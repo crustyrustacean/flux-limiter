@@ -1,0 +1,13 @@
+# gitignore for the flux-limiter library
+
+# System files
+.DS_Store
+
+# VSCode settings
+.vscode/
+
+# Environment files
+.env
+
+# Build output
+target/
