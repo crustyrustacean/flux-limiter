@@ -5,6 +5,7 @@ use std::error::Error;
 use std::fmt;
 
 // enum type to represent errors related to the rate limiter type
+#[non_exhaustive]
 #[derive(Debug)]
 pub enum RateLimiterError {
     InvalidRate,  // for rate <= 0

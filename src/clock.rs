@@ -1,7 +1,9 @@
 // src/lib/clock.rs
 
 // dependencies
+#[cfg(any(test, feature = "testing"))]
 use std::sync::Arc;
+#[cfg(any(test, feature = "testing"))]
 use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::{SystemTime, UNIX_EPOCH};
 
@@ -24,12 +26,15 @@ impl Clock for SystemClock {
 }
 
 // Test clock for deterministic testing
+#[cfg(any(test, feature = "testing"))]
 #[derive(Debug, Clone)]
 pub struct TestClock {
     time: Arc<AtomicU64>,
 }
 
 // Methods for TestClock
+#[cfg(any(test, feature = "testing"))]
+#[allow(dead_code)]
 impl TestClock {
     pub fn new(initial_time: f64) -> Self {
         Self {
@@ -44,6 +49,7 @@ impl TestClock {
 }
 
 // Implement Clock trait for TestClock
+#[cfg(any(test, feature = "testing"))]
 impl Clock for TestClock {
     fn now(&self) -> u64 {
         self.time.load(Ordering::Relaxed)

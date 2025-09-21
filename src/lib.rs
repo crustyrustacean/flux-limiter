@@ -1,11 +1,17 @@
 // src/lib/lib.rs
 
-// modules
-pub mod errors;
-pub mod clock;
-pub mod flux_limiter;
+// private modules
+mod clock;
+mod config;
+mod errors;
+mod flux_limiter;
 
-// re-exports
-pub use errors::*;
-pub use clock::*;
-pub use flux_limiter::*;
+// public API exports
+pub use clock::{Clock, SystemClock};
+pub use config::RateLimiterConfig;
+pub use errors::RateLimiterError;
+pub use flux_limiter::RateLimiter;
+
+// Available for external users who want to test with it
+#[cfg(feature = "testing")]
+pub use clock::TestClock;

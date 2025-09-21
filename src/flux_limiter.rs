@@ -2,6 +2,7 @@
 
 // dependencies
 use crate::clock::{Clock, SystemClock};
+use crate::config::RateLimiterConfig;
 use crate::errors::RateLimiterError;
 use dashmap::DashMap;
 use std::hash::Hash;
@@ -27,20 +28,7 @@ where
     C: Clock,
 {
     // method to create a new rate limiter given a desired rate and burst value
-    pub fn new(
-        rate_per_second: f64,
-        burst_capacity: f64,
-        clock: C,
-    ) -> Result<Self, RateLimiterError> {
-        // rate must be non-negative and not zero
-        if rate_per_second <= 0.0 {
-            return Err(RateLimiterError::InvalidRate);
-        }
-        // burst parameter must be positive
-        if burst_capacity < 0.0 {
-            return Err(RateLimiterError::InvalidBurst);
-        }
-
+    fn new(rate_per_second: f64, burst_capacity: f64, clock: C) -> Result<Self, RateLimiterError> {
         // Convert to nanoseconds
         let rate_nanos = (1_000_000_000.0 / rate_per_second) as u64;
         let tolerance_nanos = (burst_capacity * rate_nanos as f64) as u64;
@@ -53,12 +41,10 @@ where
         })
     }
 
-    // Convenience constructor with default system clock
-    pub fn with_system_clock(rate: f64, burst: f64) -> Result<Self, RateLimiterError>
-    where
-        C: Default,
-    {
-        Self::new(rate, burst, C::default())
+    // method to create a new rate limiter from a config object
+    pub fn with_config(config: RateLimiterConfig, clock: C) -> Result<Self, RateLimiterError> {
+        config.validate()?;
+        Self::new(config.rate_per_second, config.burst_capacity, clock)
     }
 
     // accessor method to return the rate field (convert back to requests per second)
@@ -168,26 +154,27 @@ mod tests {
         }
     }
 
+    // Config validation tests
     #[test]
-    fn constructor_rejects_zero_rate() {
-        let clock = TestClock::new(0.0);
-        let result = RateLimiter::<String, _>::new(0.0, 1.0, clock);
+    fn config_rejects_zero_rate() {
+        let config = RateLimiterConfig::new(0.0, 1.0);
+        let result = config.validate();
         assert!(result.is_err());
         assert!(matches!(result.unwrap_err(), RateLimiterError::InvalidRate));
     }
 
     #[test]
-    fn constructor_rejects_negative_rate() {
-        let clock = TestClock::new(0.0);
-        let result = RateLimiter::<String, _>::new(-1.0, 1.0, clock);
+    fn config_rejects_negative_rate() {
+        let config = RateLimiterConfig::new(-1.0, 1.0);
+        let result = config.validate();
         assert!(result.is_err());
         assert!(matches!(result.unwrap_err(), RateLimiterError::InvalidRate));
     }
 
     #[test]
-    fn constructor_rejects_negative_burst() {
-        let clock = TestClock::new(0.0);
-        let result = RateLimiter::<String, _>::new(1.0, -1.0, clock);
+    fn config_rejects_negative_burst() {
+        let config = RateLimiterConfig::new(1.0, -1.0);
+        let result = config.validate();
         assert!(result.is_err());
         assert!(matches!(
             result.unwrap_err(),
@@ -196,23 +183,43 @@ mod tests {
     }
 
     #[test]
-    fn constructor_accepts_valid_parameters() {
-        let clock = TestClock::new(0.0);
-        let result = RateLimiter::<String, _>::new(10.0, 5.0, clock);
+    fn config_accepts_valid_parameters() {
+        let config = RateLimiterConfig::new(10.0, 5.0);
+        let result = config.validate();
         assert!(result.is_ok());
     }
 
     #[test]
-    fn constructor_accepts_zero_burst() {
-        let clock = TestClock::new(0.0);
-        let result = RateLimiter::<String, _>::new(1.0, 0.0, clock);
+    fn config_accepts_zero_burst() {
+        let config = RateLimiterConfig::new(1.0, 0.0);
+        let result = config.validate();
         assert!(result.is_ok());
     }
 
+    // Constructor tests with config
+    #[test]
+    fn constructor_with_invalid_config_fails() {
+        let clock = TestClock::new(0.0);
+        let config = RateLimiterConfig::new(0.0, 1.0);
+        let result = RateLimiter::<String, _>::with_config(config, clock);
+        assert!(result.is_err());
+        assert!(matches!(result.unwrap_err(), RateLimiterError::InvalidRate));
+    }
+
+    #[test]
+    fn constructor_with_valid_config_succeeds() {
+        let clock = TestClock::new(0.0);
+        let config = RateLimiterConfig::new(10.0, 5.0);
+        let result = RateLimiter::<String, _>::with_config(config, clock);
+        assert!(result.is_ok());
+    }
+
+    // GCRA algorithm tests
     #[test]
     fn first_request_always_allowed() {
         let clock = TestClock::new(0.0);
-        let limiter = RateLimiter::new(1.0, 1.0, clock).unwrap();
+        let config = RateLimiterConfig::new(1.0, 1.0);
+        let limiter = RateLimiter::with_config(config, clock).unwrap();
         let result = limiter.is_allowed("client1");
         assert!(result.unwrap());
     }
@@ -220,7 +227,8 @@ mod tests {
     #[test]
     fn rate_limiting_blocks_rapid_requests() {
         let clock = TestClock::new(0.0);
-        let limiter = RateLimiter::new(1.0, 0.0, clock.clone()).unwrap(); // 1 req/sec, no burst
+        let config = RateLimiterConfig::new(1.0, 0.0); // 1 req/sec, no burst
+        let limiter = RateLimiter::with_config(config, clock.clone()).unwrap();
         let client = "client1";
 
         // First request at time 0.0 should be allowed
@@ -244,7 +252,8 @@ mod tests {
     #[test]
     fn burst_allowance_works() {
         let clock = TestClock::new(0.0);
-        let limiter = RateLimiter::new(1.0, 3.0, clock.clone()).unwrap(); // 1 req/sec, burst of 3
+        let config = RateLimiterConfig::new(1.0, 3.0); // 1 req/sec, burst of 3
+        let limiter = RateLimiter::with_config(config, clock.clone()).unwrap();
         let client = "client1";
 
         // First 4 requests should all be allowed (burst capacity)
@@ -267,7 +276,8 @@ mod tests {
     #[test]
     fn multiple_clients_independent() {
         let clock = TestClock::new(0.0);
-        let limiter = RateLimiter::new(1.0, 0.0, clock.clone()).unwrap(); // 1 req/sec, no burst
+        let config = RateLimiterConfig::new(1.0, 0.0); // 1 req/sec, no burst
+        let limiter = RateLimiter::with_config(config, clock.clone()).unwrap();
 
         // Both clients' first requests should be allowed
         assert!(limiter.is_allowed("client1").unwrap());
@@ -292,7 +302,8 @@ mod tests {
     #[test]
     fn time_progression_allows_requests() {
         let clock = TestClock::new(0.0);
-        let limiter = RateLimiter::new(2.0, 0.0, clock.clone()).unwrap(); // 2 req/sec, no burst
+        let config = RateLimiterConfig::new(2.0, 0.0); // 2 req/sec, no burst
+        let limiter = RateLimiter::with_config(config, clock.clone()).unwrap();
         let client = "client1";
 
         // First request at t=0 should be allowed
@@ -336,7 +347,8 @@ mod tests {
     #[test]
     fn accessor_methods_work() {
         let clock = TestClock::new(0.0);
-        let limiter = RateLimiter::<String, _>::new(10.0, 5.0, clock).unwrap();
+        let config = RateLimiterConfig::new(10.0, 5.0);
+        let limiter = RateLimiter::<String, _>::with_config(config, clock).unwrap();
 
         // Test that accessors return the original user-provided values
         assert_eq!(limiter.rate(), 10.0);
@@ -346,7 +358,8 @@ mod tests {
     #[test]
     fn nanosecond_precision() {
         let clock = TestClock::new(0.0);
-        let limiter = RateLimiter::new(1_000_000.0, 0.0, clock.clone()).unwrap(); // 1M req/sec
+        let config = RateLimiterConfig::new(1_000_000.0, 0.0); // 1M req/sec
+        let limiter = RateLimiter::with_config(config, clock.clone()).unwrap();
         let client = "client1";
 
         // First request should be allowed
@@ -358,5 +371,18 @@ mod tests {
         // Advance by exactly 1 microsecond (1000 nanoseconds)
         clock.advance(0.000001);
         assert!(limiter.is_allowed(client).unwrap());
+    }
+
+    // Test config builder pattern
+    #[test]
+    fn config_builder_pattern_works() {
+        let config = RateLimiterConfig::new(0.0, 0.0).rate(10.0).burst(5.0);
+
+        assert!(config.validate().is_ok());
+
+        let clock = TestClock::new(0.0);
+        let limiter = RateLimiter::<String, _>::with_config(config, clock).unwrap();
+        assert_eq!(limiter.rate(), 10.0);
+        assert_eq!(limiter.burst(), 5.0);
     }
 }
