@@ -7,6 +7,7 @@ A high-performance rate limiter based on the Generic Cell Rate Algorithm (GCRA) 
 - **Mathematically precise**: Implements the GCRA algorithm with exact nanosecond timing
 - **High performance**: Lock-free concurrent access using DashMap
 - **Generic client IDs**: Works with any hashable client identifier (`String`, `IpAddr`, `u64`, etc.)
+- **Rich metadata**: Returns detailed decision information for HTTP response construction
 - **Memory efficient**: Automatic cleanup of stale client entries
 - **Testable**: Clock abstraction enables deterministic testing
 - **Thread-safe**: Safe to use across multiple threads
@@ -18,7 +19,7 @@ Add this to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-flux-limiter = "0.3.0"
+flux-limiter = "0.4.0"
 ```
 
 ## Quick Start
@@ -31,10 +32,25 @@ let config = RateLimiterConfig::new(10.0, 5.0);
 let limiter = RateLimiter::with_config(config, SystemClock).unwrap();
 
 // Check if a request should be allowed
-match limiter.is_allowed("user_123") {
-    Ok(true) => println!("Request allowed"),
-    Ok(false) => println!("Rate limited - deny request"),
-    Err(e) => println!("Error: {}", e),
+let decision = limiter.check_request("user_123").unwrap();
+if decision.allowed {
+    println!("Request allowed");
+} else {
+    println!("Rate limited - retry after {:.2}s", 
+             decision.retry_after_seconds.unwrap_or(0.0));
+}
+```
+
+## Rate Limiting Decisions
+
+The `check_request()` method returns a `RateLimitDecision` with rich metadata:
+
+```rust
+pub struct RateLimitDecision {
+    pub allowed: bool,                    // Whether to allow the request
+    pub retry_after_seconds: Option<f64>, // When to retry (if denied)
+    pub remaining_capacity: Option<f64>,  // Remaining burst capacity
+    pub reset_time_nanos: u64,           // When the window resets
 }
 ```
 
@@ -73,7 +89,8 @@ let config = RateLimiterConfig::new(5.0, 10.0);
 let limiter = RateLimiter::<IpAddr, _>::with_config(config, SystemClock).unwrap();
 
 let client_ip: IpAddr = "192.168.1.1".parse().unwrap();
-if limiter.is_allowed(client_ip).unwrap() {
+let decision = limiter.check_request(client_ip).unwrap();
+if decision.allowed {
     // Process request
 }
 ```
@@ -96,7 +113,7 @@ Enable the `testing` feature for deterministic testing:
 
 ```toml
 [dependencies]
-flux-limiter = { version = "0.3.0", features = ["testing"] }
+flux-limiter = { version = "0.4.0", features = ["testing"] }
 ```
 
 ```rust
@@ -111,16 +128,19 @@ mod tests {
         let limiter = RateLimiter::with_config(config, clock.clone()).unwrap();
 
         // First request allowed
-        assert!(limiter.is_allowed("client").unwrap());
+        let decision1 = limiter.check_request("client").unwrap();
+        assert!(decision1.allowed);
         
         // Second request blocked
-        assert!(!limiter.is_allowed("client").unwrap());
+        let decision2 = limiter.check_request("client").unwrap();
+        assert!(!decision2.allowed);
         
         // Advance time by 1 second
         clock.advance(1.0);
         
         // Request allowed again
-        assert!(limiter.is_allowed("client").unwrap());
+        let decision3 = limiter.check_request("client").unwrap();
+        assert!(decision3.allowed);
     }
 }
 ```
@@ -130,32 +150,56 @@ mod tests {
 ### Example with Axum
 
 ```rust
-use axum::{http::StatusCode, response::Response};
+use axum::{http::{StatusCode, HeaderMap}, response::Response};
 use flux_limiter::{RateLimiter, RateLimiterConfig, SystemClock};
 use std::sync::Arc;
 
 async fn rate_limit_middleware(
     request: axum::extract::Request,
     limiter: Arc<RateLimiter<String, SystemClock>>,
-) -> Result<Response, StatusCode> {
+) -> Result<Response, (StatusCode, HeaderMap, &'static str)> {
     let client_ip = extract_client_ip(&request);
     
-    match limiter.is_allowed(client_ip) {
-        Ok(true) => {
-            // Process request normally
-            Ok(Response::new("Request processed".into()))
+    match limiter.check_request(client_ip) {
+        Ok(decision) if decision.allowed => {
+            // Add rate limit headers to successful responses
+            let mut headers = HeaderMap::new();
+            if let Some(remaining) = decision.remaining_capacity {
+                headers.insert("X-RateLimit-Remaining", 
+                    remaining.to_string().parse().unwrap());
+            }
+            Ok(Response::builder()
+                .status(200)
+                .headers(headers)
+                .body("Request processed".into())
+                .unwrap())
         }
-        Ok(false) => {
-            // Return 429 Too Many Requests
-            Err(StatusCode::TOO_MANY_REQUESTS)
+        Ok(decision) => {
+            // Rate limited - return 429 with metadata
+            let mut headers = HeaderMap::new();
+            if let Some(retry_after) = decision.retry_after_seconds {
+                headers.insert("Retry-After", 
+                    (retry_after.ceil() as u64).to_string().parse().unwrap());
+            }
+            headers.insert("X-RateLimit-Remaining", "0".parse().unwrap());
+            
+            Err((StatusCode::TOO_MANY_REQUESTS, headers, "Rate limited"))
         }
         Err(_) => {
             // Handle limiter errors
-            Err(StatusCode::INTERNAL_SERVER_ERROR)
+            Err((StatusCode::INTERNAL_SERVER_ERROR, HeaderMap::new(), "Internal error"))
         }
     }
 }
 ```
+
+### Standard Rate Limit Headers
+
+Flux Limiter provides all the metadata needed for standard HTTP rate limiting headers:
+
+- **X-RateLimit-Remaining**: Use `decision.remaining_capacity`
+- **Retry-After**: Use `decision.retry_after_seconds` (when denied)
+- **X-RateLimit-Reset**: Convert `decision.reset_time_nanos` to timestamp
 
 ## Algorithm Details
 
@@ -172,7 +216,7 @@ GCRA advantages:
 ## Performance Characteristics
 
 - **Memory**: O(number of active clients)
-- **Time complexity**: O(1) for `is_allowed()` operations
+- **Time complexity**: O(1) for `check_request()` operations
 - **Concurrency**: Lock-free reads and writes via DashMap
 - **Precision**: Nanosecond timing accuracy
 - **Throughput**: Millions of operations per second
