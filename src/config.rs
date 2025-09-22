@@ -27,7 +27,7 @@ impl RateLimiterConfig {
     /// Create a new configuration with rate and burst settings.
     ///
     /// # Arguments
-    /// 
+    ///
     /// * `rate_per_second` - Maximum sustained rate (must be > 0)
     /// * `burst_capacity` - Additional burst allowance (must be ≥ 0)
     pub fn new(rate_per_second: f64, burst_capacity: f64) -> Self {

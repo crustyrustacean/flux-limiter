@@ -86,30 +86,51 @@ where
         self.tolerance_nanos as f64 / 1_000_000_000.0
     }
 
-    // core method that implements the GCRA algorithm
-    pub fn is_allowed(&self, client_id: T) -> Result<bool, RateLimiterError> {
-        // Get current time in nanoseconds
+    pub fn check_request(&self, client_id: T) -> Result<RateLimitDecision, RateLimiterError> {
         let current_time_nanos = self.clock.now();
-
-        // Get previous TAT in nanoseconds, default to current time for new clients
         let previous_tat_nanos = self
             .client_state
             .get(&client_id)
             .map(|entry| *entry.value())
             .unwrap_or(current_time_nanos);
 
-        // Core GCRA test using integer arithmetic
         let is_conforming =
             current_time_nanos >= previous_tat_nanos.saturating_sub(self.tolerance_nanos);
 
-        // If conforming, update the TAT
         if is_conforming {
-            // Update TAT: max(current_time, previous_tat) + increment
             let new_tat_nanos = current_time_nanos.max(previous_tat_nanos) + self.rate_nanos;
             self.client_state.insert(client_id, new_tat_nanos);
-        }
 
-        Ok(is_conforming)
+            Ok(RateLimitDecision {
+                allowed: true,
+                retry_after_seconds: None,
+                remaining_capacity: Some(
+                    self.calculate_remaining_capacity(current_time_nanos, new_tat_nanos),
+                ),
+                reset_time_nanos: new_tat_nanos,
+            })
+        } else {
+            let retry_after_nanos = previous_tat_nanos
+                .saturating_sub(self.tolerance_nanos)
+                .saturating_sub(current_time_nanos);
+
+            Ok(RateLimitDecision {
+                allowed: false,
+                retry_after_seconds: Some(retry_after_nanos as f64 / 1_000_000_000.0),
+                remaining_capacity: Some(0.0),
+                reset_time_nanos: previous_tat_nanos,
+            })
+        }
+    }
+
+    fn calculate_remaining_capacity(&self, current_time: u64, tat: u64) -> f64 {
+        if current_time >= tat.saturating_sub(self.tolerance_nanos) {
+            let time_until_tat = tat.saturating_sub(current_time) as f64 / 1_000_000_000.0;
+            let rate_per_second = self.rate();
+            (self.burst() - (time_until_tat * rate_per_second)).max(0.0)
+        } else {
+            0.0
+        }
     }
 
     // method to clean up stale clients
@@ -119,6 +140,19 @@ where
             tat + self.tolerance_nanos > current_time_nanos.saturating_sub(max_stale_nanos)
         });
     }
+}
+
+/// Result of a rate limiting decision with metadata for HTTP responses
+#[derive(Debug, Clone)]
+pub struct RateLimitDecision {
+    /// Whether the request should be allowed
+    pub allowed: bool,
+    /// Seconds until the client can make another request (when denied)
+    pub retry_after_seconds: Option<f64>,
+    /// Approximate remaining burst capacity
+    pub remaining_capacity: Option<f64>,
+    /// When the rate limit window resets (nanoseconds since epoch)
+    pub reset_time_nanos: u64,
 }
 
 // Make SystemClock the default
@@ -234,8 +268,8 @@ mod tests {
         let clock = TestClock::new(0.0);
         let config = RateLimiterConfig::new(1.0, 1.0);
         let limiter = RateLimiter::with_config(config, clock).unwrap();
-        let result = limiter.is_allowed("client1");
-        assert!(result.unwrap());
+        let decision = limiter.check_request("client1").unwrap();
+        assert!(decision.allowed);
     }
 
     #[test]
@@ -246,21 +280,26 @@ mod tests {
         let client = "client1";
 
         // First request at time 0.0 should be allowed
-        assert!(limiter.is_allowed(client).unwrap());
+        let decision1 = limiter.check_request(client).unwrap();
+        assert!(decision1.allowed);
 
         // Second request immediately after should be blocked
-        assert!(!limiter.is_allowed(client).unwrap());
+        let decision2 = limiter.check_request(client).unwrap();
+        assert!(!decision2.allowed);
 
         // Request at 0.5 seconds should still be blocked
         clock.set_time(0.5);
-        assert!(!limiter.is_allowed(client).unwrap());
+        let decision3 = limiter.check_request(client).unwrap();
+        assert!(!decision3.allowed);
 
         // Request at 1.0 seconds should be allowed (exactly 1 second later)
         clock.set_time(1.0);
-        assert!(limiter.is_allowed(client).unwrap());
+        let decision4 = limiter.check_request(client).unwrap();
+        assert!(decision4.allowed);
 
         // Another immediate request should be blocked again
-        assert!(!limiter.is_allowed(client).unwrap());
+        let decision5 = limiter.check_request(client).unwrap();
+        assert!(!decision5.allowed);
     }
 
     #[test]
@@ -271,20 +310,20 @@ mod tests {
         let client = "client1";
 
         // First 4 requests should all be allowed (burst capacity)
-        assert!(limiter.is_allowed(client).unwrap());
-        assert!(limiter.is_allowed(client).unwrap());
-        assert!(limiter.is_allowed(client).unwrap());
-        assert!(limiter.is_allowed(client).unwrap());
+        assert!(limiter.check_request(client).unwrap().allowed);
+        assert!(limiter.check_request(client).unwrap().allowed);
+        assert!(limiter.check_request(client).unwrap().allowed);
+        assert!(limiter.check_request(client).unwrap().allowed);
 
         // 5th request at same time should be blocked (burst exhausted)
-        assert!(!limiter.is_allowed(client).unwrap());
+        assert!(!limiter.check_request(client).unwrap().allowed);
 
         // After 1 second, 1 more request should be allowed
         clock.set_time(1.0);
-        assert!(limiter.is_allowed(client).unwrap());
+        assert!(limiter.check_request(client).unwrap().allowed);
 
         // But immediate follow-up should be blocked
-        assert!(!limiter.is_allowed(client).unwrap());
+        assert!(!limiter.check_request(client).unwrap().allowed);
     }
 
     #[test]
@@ -294,23 +333,23 @@ mod tests {
         let limiter = RateLimiter::with_config(config, clock.clone()).unwrap();
 
         // Both clients' first requests should be allowed
-        assert!(limiter.is_allowed("client1").unwrap());
-        assert!(limiter.is_allowed("client2").unwrap());
+        assert!(limiter.check_request("client1").unwrap().allowed);
+        assert!(limiter.check_request("client2").unwrap().allowed);
 
         // Both clients' immediate second requests should be blocked
-        assert!(!limiter.is_allowed("client1").unwrap());
-        assert!(!limiter.is_allowed("client2").unwrap());
+        assert!(!limiter.check_request("client1").unwrap().allowed);
+        assert!(!limiter.check_request("client2").unwrap().allowed);
 
         // After 1 second, both should be allowed again
         clock.set_time(1.0);
-        assert!(limiter.is_allowed("client1").unwrap());
-        assert!(limiter.is_allowed("client2").unwrap());
+        assert!(limiter.check_request("client1").unwrap().allowed);
+        assert!(limiter.check_request("client2").unwrap().allowed);
 
         // Client1 exhausts their allowance, but client2 should still work
-        assert!(!limiter.is_allowed("client1").unwrap());
+        assert!(!limiter.check_request("client1").unwrap().allowed);
 
         // Client3 (new client) should be allowed even though others are blocked
-        assert!(limiter.is_allowed("client3").unwrap());
+        assert!(limiter.check_request("client3").unwrap().allowed);
     }
 
     #[test]
@@ -321,29 +360,29 @@ mod tests {
         let client = "client1";
 
         // First request at t=0 should be allowed
-        assert!(limiter.is_allowed(client).unwrap());
+        assert!(limiter.check_request(client).unwrap().allowed);
 
         // Immediate second request should be blocked
-        assert!(!limiter.is_allowed(client).unwrap());
+        assert!(!limiter.check_request(client).unwrap().allowed);
 
         // Request at 0.25 seconds should still be blocked (need 0.5s interval for 2 req/sec)
         clock.set_time(0.25);
-        assert!(!limiter.is_allowed(client).unwrap());
+        assert!(!limiter.check_request(client).unwrap().allowed);
 
         // Request at exactly 0.5 seconds should be allowed
         clock.set_time(0.5);
-        assert!(limiter.is_allowed(client).unwrap());
+        assert!(limiter.check_request(client).unwrap().allowed);
 
         // Immediate follow-up should be blocked again
-        assert!(!limiter.is_allowed(client).unwrap());
+        assert!(!limiter.check_request(client).unwrap().allowed);
 
         // Another 0.5 seconds later (t=1.0) should be allowed
         clock.set_time(1.0);
-        assert!(limiter.is_allowed(client).unwrap());
+        assert!(limiter.check_request(client).unwrap().allowed);
 
         // Long idle period - request at t=10.0 should definitely be allowed
         clock.set_time(10.0);
-        assert!(limiter.is_allowed(client).unwrap());
+        assert!(limiter.check_request(client).unwrap().allowed);
     }
 
     #[test]
@@ -377,14 +416,14 @@ mod tests {
         let client = "client1";
 
         // First request should be allowed
-        assert!(limiter.is_allowed(client).unwrap());
+        assert!(limiter.check_request(client).unwrap().allowed);
 
         // Second request immediately should be blocked
-        assert!(!limiter.is_allowed(client).unwrap());
+        assert!(!limiter.check_request(client).unwrap().allowed);
 
         // Advance by exactly 1 microsecond (1000 nanoseconds)
         clock.advance(0.000001);
-        assert!(limiter.is_allowed(client).unwrap());
+        assert!(limiter.check_request(client).unwrap().allowed);
     }
 
     // Test config builder pattern
@@ -407,13 +446,28 @@ mod tests {
         let limiter = RateLimiter::with_config(config, clock.clone()).unwrap();
 
         // Add some clients at different times
-        assert!(limiter.is_allowed("client1".to_string()).unwrap()); // TAT = t=1
+        assert!(
+            limiter
+                .check_request("client1".to_string())
+                .unwrap()
+                .allowed
+        ); // TAT = t=1
 
         clock.set_time(5.0);
-        assert!(limiter.is_allowed("client2".to_string()).unwrap()); // TAT = t=6
+        assert!(
+            limiter
+                .check_request("client2".to_string())
+                .unwrap()
+                .allowed
+        ); // TAT = t=6
 
         clock.set_time(10.0);
-        assert!(limiter.is_allowed("client3".to_string()).unwrap()); // TAT = t=11
+        assert!(
+            limiter
+                .check_request("client3".to_string())
+                .unwrap()
+                .allowed
+        ); // TAT = t=11
 
         // Verify all clients are in the map
         assert_eq!(limiter.client_state.len(), 3);
@@ -455,7 +509,7 @@ mod tests {
         // Add several recent clients
         for i in 0..5 {
             let client = format!("client{}", i);
-            assert!(limiter.is_allowed(client).unwrap()); // Pass owned String
+            assert!(limiter.check_request(client).unwrap().allowed); // Pass owned String
             clock.advance(0.01); // Very small time advances
         }
 
@@ -465,5 +519,66 @@ mod tests {
         limiter.cleanup_stale_clients(1_000_000); // 1ms
 
         assert_eq!(limiter.client_state.len(), initial_count);
+    }
+
+    // Tests for the new RateLimitDecision metadata
+    #[test]
+    fn check_request_returns_detailed_decision() {
+        let clock = TestClock::new(0.0);
+        let config = RateLimiterConfig::new(1.0, 2.0); // 1 req/sec, burst of 2
+        let limiter = RateLimiter::with_config(config, clock.clone()).unwrap();
+        let client = "client1";
+
+        // First request should be allowed with metadata
+        let decision = limiter.check_request(client).unwrap();
+        assert!(decision.allowed);
+        assert!(decision.retry_after_seconds.is_none());
+        assert!(decision.remaining_capacity.is_some());
+        assert!(decision.reset_time_nanos > 0);
+    }
+
+    #[test]
+    fn retry_after_calculation_works() {
+        let clock = TestClock::new(0.0);
+        let config = RateLimiterConfig::new(2.0, 0.0); // 2 req/sec, no burst
+        let limiter = RateLimiter::with_config(config, clock.clone()).unwrap();
+        let client = "client1";
+
+        // First request allowed
+        assert!(limiter.check_request(client).unwrap().allowed);
+
+        // Second request blocked, should suggest ~0.5 second retry
+        let decision = limiter.check_request(client).unwrap();
+        assert!(!decision.allowed);
+        let retry_after = decision.retry_after_seconds.unwrap();
+        assert!(retry_after > 0.4 && retry_after < 0.6); // Approximately 0.5 seconds
+    }
+
+    #[test]
+    fn remaining_capacity_tracks_burst() {
+        let clock = TestClock::new(0.0);
+        let config = RateLimiterConfig::new(1.0, 3.0); // 1 req/sec, burst of 3
+        let limiter = RateLimiter::with_config(config, clock.clone()).unwrap();
+        let client = "client1";
+
+        // First request should show remaining capacity
+        let decision1 = limiter.check_request(client).unwrap();
+        assert!(decision1.allowed);
+        let remaining1 = decision1.remaining_capacity.unwrap();
+
+        // Second request should show lower remaining capacity
+        let decision2 = limiter.check_request(client).unwrap();
+        assert!(decision2.allowed);
+        let remaining2 = decision2.remaining_capacity.unwrap();
+
+        assert!(remaining2 < remaining1);
+
+        // Eventually we should hit zero remaining capacity
+        limiter.check_request(client).unwrap(); // 3rd request
+        limiter.check_request(client).unwrap(); // 4th request
+
+        let blocked_decision = limiter.check_request(client).unwrap();
+        assert!(!blocked_decision.allowed);
+        assert_eq!(blocked_decision.remaining_capacity, Some(0.0));
     }
 }
