@@ -1,5 +1,7 @@
 // src/errors.rs
 
+// error handling for the rate limiter type
+
 // dependencies
 use std::error::Error;
 use std::fmt;

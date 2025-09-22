@@ -1,4 +1,6 @@
-// src/lib/clock.rs
+// src/clock.rs
+
+// clock module definition and implementations
 
 // dependencies
 #[cfg(any(test, feature = "testing"))]
