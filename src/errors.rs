@@ -6,7 +6,7 @@
 use std::error::Error;
 use std::fmt;
 
-// enum type to represent errors related to the rate limiter type
+/// Error type for RateLimiter configuration issues.
 #[non_exhaustive]
 #[derive(Debug)]
 pub enum RateLimiterError {

@@ -1,13 +1,13 @@
 [package]
 name = "flux-limiter"
-version = "0.3.0"
+version = "0.3.1"
 edition = "2024"
 authors = ["Jeffery D. Mitchell <crusty-rustacean@gmail.com>"]
 description = "A rate limiter based on the Generic Cell Rate Algorithm (GCRA)."
 license = "MIT"
 repository = "https://github.com/crustyrustacean/flux-limiter"
 keywords = ["rate-limiting", "GCRA", "algorithm", "throttling"]
-categories = ["network programming", "algorithms"]
+categories = ["network-programming", "algorithms"]
 readme = "README.md"
 publish = false
 
@@ -17,3 +17,7 @@ testing = []
 
 [dependencies]
 dashmap = "6.1.0"
+
+[package.metadata.docs.rs]
+features = ["testing"]
+rustdoc-args = ["--cfg", "docsrs"]

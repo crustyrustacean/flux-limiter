@@ -5,7 +5,18 @@
 // dependencies
 use crate::errors::RateLimiterError;
 
-/// Configuration for rate limiter behavior
+/// Configuration for rate limiter behavior.
+///
+/// # Examples
+///
+/// ```rust
+/// use flux_limiter::RateLimiterConfig;
+///
+/// let config = RateLimiterConfig::new(10.0, 5.0)
+///     .rate(20.0)
+///     .burst(10.0);
+/// ```
+
 #[derive(Debug, Clone)]
 pub struct RateLimiterConfig {
     pub(crate) rate_per_second: f64,
@@ -13,7 +24,12 @@ pub struct RateLimiterConfig {
 }
 
 impl RateLimiterConfig {
-    /// Create a new configuration with rate and burst settings
+    /// Create a new configuration with rate and burst settings.
+    ///
+    /// # Arguments
+    /// 
+    /// * `rate_per_second` - Maximum sustained rate (must be > 0)
+    /// * `burst_capacity` - Additional burst allowance (must be ≥ 0)
     pub fn new(rate_per_second: f64, burst_capacity: f64) -> Self {
         Self {
             rate_per_second,

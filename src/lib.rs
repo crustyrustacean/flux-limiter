@@ -1,5 +1,22 @@
 // src/lib/lib.rs
 
+//! # Flux Limiter
+//!
+//! A high-performance rate limiter based on the Generic Cell Rate Algorithm (GCRA).
+//!
+//! ## Quick Example
+//!
+//! ```rust
+//! use flux_limiter::{RateLimiter, RateLimiterConfig, SystemClock};
+//!
+//! let config = RateLimiterConfig::new(10.0, 5.0);
+//! let limiter = RateLimiter::with_config(config, SystemClock).unwrap();
+//!
+//! if limiter.is_allowed("user_123").unwrap() {
+//!     println!("Request allowed");
+//! }
+//! ```
+
 // private modules
 mod clock;
 mod config;

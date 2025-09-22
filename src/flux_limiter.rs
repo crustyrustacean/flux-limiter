@@ -10,7 +10,10 @@ use dashmap::DashMap;
 use std::hash::Hash;
 use std::sync::Arc;
 
-// struct type to represent a rate limiter
+/// The main RateLimiter model.
+/// T is the type used to identify clients (e.g., String, u64, etc.).
+/// C is the clock type, defaulting to SystemClock.
+/// We use `Arc<DashMap>` for thread-safe concurrent access to client state.
 #[derive(Debug)]
 pub struct RateLimiter<T, C = SystemClock>
 where
