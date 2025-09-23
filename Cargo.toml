@@ -1,6 +1,6 @@
 [package]
 name = "flux-limiter"
-version = "0.4.1"
+version = "0.4.2"
 edition = "2024"
 authors = ["Jeffery D. Mitchell <crusty-rustacean@gmail.com>"]
 description = "A rate limiter based on the Generic Cell Rate Algorithm (GCRA)."
@@ -10,10 +10,6 @@ keywords = ["rate-limiting", "GCRA", "algorithm", "throttling"]
 categories = ["network-programming", "algorithms"]
 readme = "README.md"
 publish = false
-
-[features]
-default = []
-testing = []
 
 [dependencies]
 dashmap = "6.1.0"
