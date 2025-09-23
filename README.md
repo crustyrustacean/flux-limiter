@@ -25,11 +25,11 @@ flux-limiter = "0.4.0"
 ## Quick Start
 
 ```rust
-use flux_limiter::{RateLimiter, RateLimiterConfig, SystemClock};
+use flux_limiter::{FluxLimiter, FluxLimiterConfig, SystemClock};
 
 // Create a rate limiter: 10 requests per second with burst of 5
-let config = RateLimiterConfig::new(10.0, 5.0);
-let limiter = RateLimiter::with_config(config, SystemClock).unwrap();
+let config = FluxLimiterConfig::new(10.0, 5.0);
+let limiter = FluxLimiter::with_config(config, SystemClock).unwrap();
 
 // Check if a request should be allowed
 let decision = limiter.check_request("user_123").unwrap();
@@ -43,10 +43,10 @@ if decision.allowed {
 
 ## Rate Limiting Decisions
 
-The `check_request()` method returns a `RateLimitDecision` with rich metadata:
+The `check_request()` method returns a `FluxLimiterDecision` with rich metadata:
 
 ```rust
-pub struct RateLimitDecision {
+pub struct FluxLimiterDecision {
     pub allowed: bool,                    // Whether to allow the request
     pub retry_after_seconds: Option<f64>, // When to retry (if denied)
     pub remaining_capacity: Option<f64>,  // Remaining burst capacity
@@ -59,9 +59,9 @@ pub struct RateLimitDecision {
 ### Builder Pattern
 
 ```rust
-use flux_limiter::RateLimiterConfig;
+use flux_limiter::FluxLimiterConfig;
 
-let config = RateLimiterConfig::new(0.0, 0.0)
+let config = FluxLimiterConfig::new(0.0, 0.0)
     .rate(100.0)        // 100 requests per second
     .burst(50.0);       // Allow bursts of up to 50 requests
 ```
@@ -85,8 +85,8 @@ Example: With `rate=10.0` and `burst=5.0`:
 use std::net::IpAddr;
 
 // Use IP addresses as client identifiers
-let config = RateLimiterConfig::new(5.0, 10.0);
-let limiter = RateLimiter::<IpAddr, _>::with_config(config, SystemClock).unwrap();
+let config = FluxLimiterConfig::new(5.0, 10.0);
+let limiter = FluxLimiter::<IpAddr, _>::with_config(config, SystemClock).unwrap();
 
 let client_ip: IpAddr = "192.168.1.1".parse().unwrap();
 let decision = limiter.check_request(client_ip).unwrap();
@@ -107,56 +107,18 @@ let threshold = limiter.rate() as u64 * 100 * 1_000_000_000; // 100x rate interv
 limiter.cleanup_stale_clients(threshold);
 ```
 
-### Testing Support
-
-Enable the `testing` feature for deterministic testing:
-
-```toml
-[dependencies]
-flux-limiter = { version = "0.4.0", features = ["testing"] }
-```
-
-```rust
-#[cfg(test)]
-mod tests {
-    use flux_limiter::{RateLimiter, RateLimiterConfig, TestClock};
-
-    #[test]
-    fn test_rate_limiting() {
-        let clock = TestClock::new(0.0);
-        let config = RateLimiterConfig::new(1.0, 0.0); // 1 req/sec, no burst
-        let limiter = RateLimiter::with_config(config, clock.clone()).unwrap();
-
-        // First request allowed
-        let decision1 = limiter.check_request("client").unwrap();
-        assert!(decision1.allowed);
-        
-        // Second request blocked
-        let decision2 = limiter.check_request("client").unwrap();
-        assert!(!decision2.allowed);
-        
-        // Advance time by 1 second
-        clock.advance(1.0);
-        
-        // Request allowed again
-        let decision3 = limiter.check_request("client").unwrap();
-        assert!(decision3.allowed);
-    }
-}
-```
-
 ## Web Framework Integration
 
 ### Example with Axum
 
 ```rust
 use axum::{http::{StatusCode, HeaderMap}, response::Response};
-use flux_limiter::{RateLimiter, RateLimiterConfig, SystemClock};
+use flux_limiter::{FluxLimiter, FluxLimiterConfig, SystemClock};
 use std::sync::Arc;
 
 async fn rate_limit_middleware(
     request: axum::extract::Request,
-    limiter: Arc<RateLimiter<String, SystemClock>>,
+    limiter: Arc<FluxLimiter<String, SystemClock>>,
 ) -> Result<Response, (StatusCode, HeaderMap, &'static str)> {
     let client_ip = extract_client_ip(&request);
     
@@ -240,12 +202,12 @@ tokio::spawn(async move {
 ## Error Handling
 
 ```rust
-use flux_limiter::{RateLimiterConfig, RateLimiterError};
+use flux_limiter::{FluxLimiterConfig, FluxLimiterError};
 
-match RateLimiterConfig::new(0.0, 5.0).validate() {
+match FluxLimiterConfig::new(0.0, 5.0).validate() {
     Ok(_) => println!("Valid configuration"),
-    Err(RateLimiterError::InvalidRate) => println!("Rate must be positive"),
-    Err(RateLimiterError::InvalidBurst) => println!("Burst must be non-negative"),
+    Err(FluxLimiterError::InvalidRate) => println!("Rate must be positive"),
+    Err(FluxLimiterError::InvalidBurst) => println!("Burst must be non-negative"),
 }
 ```
 
