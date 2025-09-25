@@ -11,7 +11,13 @@ use std::time::{SystemTime, UNIX_EPOCH};
 /// This trait allows for different clock implementations, such as system time or a test clock.
 /// The Clock trait is used by the RateLimiter to get the current time.
 pub trait Clock: Send + Sync {
-    fn now(&self) -> u64;
+    fn now(&self) -> Result<u64, ClockError>;
+}
+
+/// Clock error type
+#[derive(Debug)]
+pub enum ClockError {
+    SystemTimeError,
 }
 
 /// SystemClock implementation using the system time.
@@ -24,10 +30,10 @@ pub trait Clock: Send + Sync {
 pub struct SystemClock;
 
 impl Clock for SystemClock {
-    fn now(&self) -> u64 {
+    fn now(&self) -> Result<u64, ClockError> {
         SystemTime::now()
             .duration_since(UNIX_EPOCH)
-            .expect("System clock went backwards before Unix epoch")
-            .as_nanos() as u64
+            .map(|d| d.as_nanos() as u64)
+            .map_err(|_| ClockError::SystemTimeError)
     }
 }

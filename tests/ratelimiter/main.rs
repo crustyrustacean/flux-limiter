@@ -4,6 +4,7 @@
 mod cleanup_tests;
 mod config_tests;
 mod decision_metadata_tests;
+mod error_tests;
 mod fixtures;
 mod gcra_algorithm_tests;
 mod helpers;

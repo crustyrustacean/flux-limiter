@@ -42,7 +42,7 @@ dependencies = [
 
 [[package]]
 name = "flux-limiter"
-version = "0.4.3"
+version = "0.5.0"
 dependencies = [
  "dashmap",
 ]
@@ -55,9 +55,9 @@ checksum = "e5274423e17b7c9fc20b6e7e208532f9b19825d82dfd615708b70edd83df41f1"
 
 [[package]]
 name = "libc"
-version = "0.2.175"
+version = "0.2.176"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "6a82ae493e598baaea5209805c49bbf2ea7de956d50d7da0da1164f9c6d28543"
+checksum = "58f929b4d672ea937a23a1ab494143d968337a5f47e56d0815df1e0890ddf174"
 
 [[package]]
 name = "lock_api"

@@ -43,7 +43,9 @@ mod tests {
         // Cutoff will be 12 - 4.5 = 7.5, so keep TATs > 7.5
         clock.set_time(12.0);
         let threshold_nanos = (4.5 * 1_000_000_000.0) as u64;
-        limiter.cleanup_stale_clients(threshold_nanos);
+        limiter
+            .cleanup_stale_clients(threshold_nanos)
+            .expect("Error with the system clock.");
 
         // Only client3 (TAT=11) should remain
         assert_eq!(limiter.client_state.len(), 1);
@@ -52,7 +54,9 @@ mod tests {
         assert!(limiter.client_state.contains_key("client3"));
 
         // Clean up all remaining clients
-        limiter.cleanup_stale_clients(0);
+        limiter
+            .cleanup_stale_clients(0)
+            .expect("Error with the system clock.");
         assert_eq!(limiter.client_state.len(), 0);
     }
 
@@ -63,7 +67,9 @@ mod tests {
         let limiter = FluxLimiter::<String, _>::with_config(config, clock).unwrap();
 
         // Cleanup on empty state should not panic
-        limiter.cleanup_stale_clients(1000);
+        limiter
+            .cleanup_stale_clients(1000)
+            .expect("Error with the system clock.");
         assert_eq!(limiter.client_state.len(), 0);
     }
 
@@ -83,7 +89,9 @@ mod tests {
         let initial_count = limiter.client_state.len();
 
         // Cleanup with a very short threshold - should preserve all recent clients
-        limiter.cleanup_stale_clients(1_000_000); // 1ms
+        limiter
+            .cleanup_stale_clients(1_000_000)
+            .expect("Error with the system clock."); // 1ms
 
         assert_eq!(limiter.client_state.len(), initial_count);
     }

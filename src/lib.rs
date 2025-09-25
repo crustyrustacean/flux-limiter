@@ -25,12 +25,10 @@
 mod config;
 mod errors;
 mod flux_limiter;
-
-// public modules
-pub mod clock;
+mod clock;
 
 // public API exports
-pub use clock::{Clock, SystemClock};
+pub use clock::{Clock, SystemClock, ClockError};
 pub use config::FluxLimiterConfig;
 pub use errors::FluxLimiterError;
-pub use flux_limiter::{FluxLimiterDecision, FluxLimiter};
+pub use flux_limiter::{FluxLimiter, FluxLimiterDecision};

@@ -87,7 +87,7 @@ where
     }
 
     pub fn check_request(&self, client_id: T) -> Result<FluxLimiterDecision, FluxLimiterError> {
-        let current_time_nanos = self.clock.now();
+        let current_time_nanos = self.clock.now().map_err(FluxLimiterError::ClockError)?;
         let previous_tat_nanos = self
             .client_state
             .get(&client_id)
@@ -134,11 +134,13 @@ where
     }
 
     // method to clean up stale clients
-    pub fn cleanup_stale_clients(&self, max_stale_nanos: u64) {
-        let current_time_nanos = self.clock.now();
+    pub fn cleanup_stale_clients(&self, max_stale_nanos: u64) -> Result<(), FluxLimiterError> {
+        let current_time_nanos = self.clock.now().map_err(FluxLimiterError::ClockError)?;
         self.client_state.retain(|_, &mut tat| {
             tat + self.tolerance_nanos > current_time_nanos.saturating_sub(max_stale_nanos)
         });
+
+        Ok(())
     }
 }
 

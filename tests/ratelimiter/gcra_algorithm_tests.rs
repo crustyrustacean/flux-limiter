@@ -160,13 +160,24 @@ mod tests {
         let client = "client1";
 
         // First request should be allowed
-        assert!(limiter.check_request(client).unwrap().allowed);
+        let decision = limiter.check_request(client).expect("Clock should work");
+        assert!(decision.allowed);
 
         // Second request immediately should be blocked
-        assert!(!limiter.check_request(client).unwrap().allowed);
+        assert!(
+            !limiter
+                .check_request(client)
+                .expect("Clock should work")
+                .allowed
+        );
 
         // Advance by exactly 1 microsecond (1000 nanoseconds)
         clock.advance(0.000001);
-        assert!(limiter.check_request(client).unwrap().allowed);
+        assert!(
+            limiter
+                .check_request(client)
+                .expect("Clock should work")
+                .allowed
+        );
     }
 }
