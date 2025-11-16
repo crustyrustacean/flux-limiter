@@ -1,40 +1,21 @@
-// tests/ratelimiter/gcra_algorithm_tests.rs
+// tests/ratelimiter/cleanup_tests.rs
 
 #[cfg(test)]
 mod tests {
-
-    use crate::fixtures::test_clock::TestClock;
-    use flux_limiter::{FluxLimiter, FluxLimiterConfig};
+    use crate::helpers::{setup_limiter, assert_request_allowed};
 
     #[test]
     fn cleanup_removes_stale_clients() {
-        let clock = TestClock::new(0.0);
-        let config = FluxLimiterConfig::new(1.0, 0.0);
-        let limiter = FluxLimiter::with_config(config, clock.clone()).unwrap();
+        let (limiter, clock) = setup_limiter(1.0, 0.0, 0.0);
 
         // Add some clients at different times
-        assert!(
-            limiter
-                .check_request("client1".to_string())
-                .unwrap()
-                .allowed
-        ); // TAT = t=1
+        assert_request_allowed(&limiter, "client1"); // TAT = t=1
 
         clock.set_time(5.0);
-        assert!(
-            limiter
-                .check_request("client2".to_string())
-                .unwrap()
-                .allowed
-        ); // TAT = t=6
+        assert_request_allowed(&limiter, "client2"); // TAT = t=6
 
         clock.set_time(10.0);
-        assert!(
-            limiter
-                .check_request("client3".to_string())
-                .unwrap()
-                .allowed
-        ); // TAT = t=11
+        assert_request_allowed(&limiter, "client3"); // TAT = t=11
 
         // Verify all clients are in the map
         assert_eq!(limiter.client_state.len(), 3);
@@ -62,9 +43,7 @@ mod tests {
 
     #[test]
     fn cleanup_handles_empty_state() {
-        let clock = TestClock::new(0.0);
-        let config = FluxLimiterConfig::new(1.0, 0.0);
-        let limiter = FluxLimiter::<String, _>::with_config(config, clock).unwrap();
+        let (limiter, _clock) = setup_limiter(1.0, 0.0, 0.0);
 
         // Cleanup on empty state should not panic
         limiter
@@ -75,14 +54,12 @@ mod tests {
 
     #[test]
     fn cleanup_preserves_recent_clients() {
-        let clock = TestClock::new(100.0);
-        let config = FluxLimiterConfig::new(10.0, 0.0);
-        let limiter = FluxLimiter::with_config(config, clock.clone()).unwrap();
+        let (limiter, clock) = setup_limiter(10.0, 0.0, 100.0);
 
         // Add several recent clients
         for i in 0..5 {
             let client = format!("client{}", i);
-            assert!(limiter.check_request(client).unwrap().allowed); // Pass owned String
+            assert_request_allowed(&limiter, &client);
             clock.advance(0.01); // Very small time advances
         }
 

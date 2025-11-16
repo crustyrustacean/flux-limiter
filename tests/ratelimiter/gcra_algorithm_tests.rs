@@ -3,47 +3,36 @@
 #[cfg(test)]
 mod tests {
 
-    use crate::fixtures::test_clock::TestClock;
-    use flux_limiter::{FluxLimiter, FluxLimiterConfig};
+    use crate::helpers::*;
 
     // GCRA algorithm tests
     #[test]
     fn first_request_always_allowed() {
-        let clock = TestClock::new(0.0);
-        let config = FluxLimiterConfig::new(1.0, 1.0);
-        let limiter = FluxLimiter::with_config(config, clock).unwrap();
-        let decision = limiter.check_request("client1").unwrap();
-        assert!(decision.allowed);
+        let (limiter, _clock) = setup_limiter(1.0, 1.0, 0.0);
+        assert_request_allowed(&limiter, "client1");
     }
 
     #[test]
     fn rate_limiting_blocks_rapid_requests() {
-        let clock = TestClock::new(0.0);
-        let config = FluxLimiterConfig::new(1.0, 0.0); // 1 req/sec, no burst
-        let limiter = FluxLimiter::with_config(config, clock.clone()).unwrap();
+        let (limiter, clock) = setup_limiter(1.0, 0.0, 0.0); // 1 req/sec, no burst
         let client = "client1";
 
         // First request at time 0.0 should be allowed
-        let decision1 = limiter.check_request(client).unwrap();
-        assert!(decision1.allowed);
+        assert_request_allowed(&limiter, client);
 
         // Second request immediately after should be blocked
-        let decision2 = limiter.check_request(client).unwrap();
-        assert!(!decision2.allowed);
+        assert_request_denied(&limiter, client);
 
         // Request at 0.5 seconds should still be blocked
         clock.set_time(0.5);
-        let decision3 = limiter.check_request(client).unwrap();
-        assert!(!decision3.allowed);
+        assert_request_denied(&limiter, client);
 
         // Request at 1.0 seconds should be allowed (exactly 1 second later)
-        clock.set_time(1.0);
-        let decision4 = limiter.check_request(client).unwrap();
-        assert!(decision4.allowed);
+        let decision = advance_time_and_request(&limiter, &clock, 0.5, client);
+        assert!(decision.allowed);
 
         // Another immediate request should be blocked again
-        let decision5 = limiter.check_request(client).unwrap();
-        assert!(!decision5.allowed);
+        assert_request_denied(&limiter, client);
     }
 
     #[test]
