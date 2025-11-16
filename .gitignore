@@ -6,6 +6,9 @@
 # VSCode settings
 .vscode/
 
+# AI Guardrails
+CLAUDE*.md
+
 # Environment files
 .env
 
