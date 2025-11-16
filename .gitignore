@@ -6,7 +6,8 @@
 # VSCode settings
 .vscode/
 
-# AI Guardrails
+# AI configuration
+.claude
 CLAUDE*.md
 
 # Environment files
@@ -14,3 +15,6 @@ CLAUDE*.md
 
 # Build output
 target/
+
+# Documentation build output
+/docs/book

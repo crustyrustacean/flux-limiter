@@ -1,0 +1,13 @@
+[book]
+authors = ["Jeff Mitchell"]
+language = "en"
+src = "src"
+title = "Flux Limiter Documentation"
+description = "A high-performance rate limiter based on the Generic Cell Rate Algorithm (GCRA)"
+
+[build]
+build-dir = "book"
+
+[output.html]
+git-repository-url = "https://github.com/anthropics/flux-limiter"
+edit-url-template = "https://github.com/anthropics/flux-limiter/edit/main/docs/{path}"

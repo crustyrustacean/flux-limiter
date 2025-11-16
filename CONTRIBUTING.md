@@ -68,6 +68,11 @@ flux-limiter/
 │   └── ratelimiter/        # Integration tests
 │       ├── fixtures/       # Test utilities
 │       └── *.rs           # Test modules
+├── docs/                   # mdbook documentation
+│   ├── book.toml          # mdbook configuration
+│   └── src/               # Documentation source
+│       ├── SUMMARY.md     # Table of contents
+│       └── *.md          # Documentation chapters
 ├── Cargo.toml
 ├── README.md
 └── CONTRIBUTING.md
@@ -289,10 +294,15 @@ cargo test -- --test-threads=1  # For timing-sensitive tests
 
 2. **README Updates**:
    - Update examples for new features
-   - Add new configuration options
-   - Update performance claims with benchmarks
+   - Keep README concise - detailed docs go in mdbook
+   - Link to appropriate mdbook sections
 
-3. **CHANGELOG**:
+3. **mdbook Documentation**:
+   - Update relevant sections for new features
+   - Add examples to appropriate chapters
+   - Keep architecture docs current
+
+4. **CHANGELOG**:
    - Follow [Keep a Changelog](https://keepachangelog.com/) format
    - Document breaking changes
    - Include migration guidance
@@ -300,7 +310,7 @@ cargo test -- --test-threads=1  # For timing-sensitive tests
 ### Documentation Commands
 
 ```bash
-# Generate and open documentation
+# Generate and open API documentation
 cargo doc --open
 
 # Check for missing documentation
@@ -308,6 +318,12 @@ cargo doc --document-private-items
 
 # Test documentation examples
 cargo test --doc
+
+# Build mdbook documentation (requires mdbook: cargo install mdbook)
+mdbook build docs
+
+# Serve mdbook locally with live reload
+mdbook serve docs --open
 ```
 
 ## Performance Considerations
