@@ -1,0 +1,571 @@
+<!DOCTYPE HTML>
+<html lang="en" class="light sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Component Design - Flux Limiter Documentation</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="A high-performance rate limiter based on the Generic Cell Rate Algorithm (GCRA)">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="../favicon.svg">
+        <link rel="shortcut icon" href="../favicon.png">
+        <link rel="stylesheet" href="../css/variables.css">
+        <link rel="stylesheet" href="../css/general.css">
+        <link rel="stylesheet" href="../css/chrome.css">
+        <link rel="stylesheet" href="../css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../FontAwesome/css/font-awesome.css">
+        <link rel="stylesheet" href="../fonts/fonts.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="highlight-css" href="../highlight.css">
+        <link rel="stylesheet" id="tomorrow-night-css" href="../tomorrow-night.css">
+        <link rel="stylesheet" id="ayu-highlight-css" href="../ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "../";
+            const default_light_theme = "light";
+            const default_dark_theme = "navy";
+            window.path_to_searchindex_js = "../searchindex.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="../toc.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="../toc.html"></iframe>
+            </noscript>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="sidebar-toggle" class="icon-button" for="sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </label>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        <button id="search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">Flux Limiter Documentation</h1>
+
+                    <div class="right-buttons">
+                        <a href="../print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+                        <a href="https://github.com/anthropics/flux-limiter" title="Git repository" aria-label="Git repository">
+                            <i id="git-repository-button" class="fa fa-github"></i>
+                        </a>
+                        <a href="https://github.com/anthropics/flux-limiter/edit/main/docs/src/architecture/components.md" title="Suggest an edit" aria-label="Suggest an edit" rel="edit">
+                            <i id="git-edit-button" class="fa fa-edit"></i>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <i class="fa fa-spinner fa-spin"></i>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <h1 id="component-design"><a class="header" href="#component-design">Component Design</a></h1>
+<p>Detailed exploration of Flux Limiter's core components and their design rationale.</p>
+<h2 id="fluxlimitert-c"><a class="header" href="#fluxlimitert-c">FluxLimiter&lt;T, C&gt;</a></h2>
+<p>The main rate limiter struct uses generics for flexibility.</p>
+<h3 id="structure-definition"><a class="header" href="#structure-definition">Structure Definition</a></h3>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub struct FluxLimiter&lt;T, C = SystemClock&gt;
+where
+    T: Hash + Eq + Clone,  // Client identifier type
+    C: Clock,              // Time source
+{
+    rate_nanos: u64,                    // Rate interval in nanoseconds
+    tolerance_nanos: u64,               // Burst tolerance in nanoseconds
+    client_state: Arc&lt;DashMap&lt;T, u64&gt;&gt;, // Client TAT storage
+    clock: C,                           // Time abstraction
+}
+<span class="boring">}</span></code></pre></pre>
+<h3 id="design-rationale"><a class="header" href="#design-rationale">Design Rationale</a></h3>
+<p><strong>Generic Client ID (T)</strong>:</p>
+<ul>
+<li>Supports <code>String</code>, <code>IpAddr</code>, <code>u64</code>, custom types</li>
+<li>Constrains: <code>Hash + Eq + Clone</code></li>
+<li>Zero-cost abstraction - no runtime overhead</li>
+</ul>
+<p><strong>Generic Clock (C)</strong>:</p>
+<ul>
+<li>Default: <code>SystemClock</code> for production</li>
+<li>Alternative: <code>TestClock</code> for testing</li>
+<li>Custom: User-defined time sources</li>
+<li>Constrains: <code>Clock</code> trait</li>
+</ul>
+<p><strong>Arc<DashMap></strong>:</p>
+<ul>
+<li>Thread-safe shared ownership</li>
+<li>Lock-free concurrent access</li>
+<li>Minimal contention</li>
+<li>Efficient cloning</li>
+</ul>
+<p><strong>Nanosecond Storage</strong>:</p>
+<ul>
+<li><code>u64</code> for rate and tolerance</li>
+<li>Maintains precision throughout calculations</li>
+<li>Avoids floating-point arithmetic in hot path</li>
+</ul>
+<h3 id="public-api"><a class="header" href="#public-api">Public API</a></h3>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>impl&lt;T, C&gt; FluxLimiter&lt;T, C&gt;
+where
+    T: Hash + Eq + Clone,
+    C: Clock,
+{
+    pub fn with_config(
+        config: FluxLimiterConfig,
+        clock: C,
+    ) -&gt; Result&lt;Self, FluxLimiterError&gt;
+
+    pub fn check_request(
+        &amp;self,
+        client_id: T,
+    ) -&gt; Result&lt;FluxLimiterDecision, FluxLimiterError&gt;
+
+    pub fn cleanup_stale_clients(
+        &amp;self,
+        stale_threshold_nanos: u64,
+    ) -&gt; Result&lt;usize, FluxLimiterError&gt;
+
+    pub fn rate(&amp;self) -&gt; f64
+    pub fn burst(&amp;self) -&gt; f64
+}
+<span class="boring">}</span></code></pre></pre>
+<h2 id="fluxlimiterconfig"><a class="header" href="#fluxlimiterconfig">FluxLimiterConfig</a></h2>
+<p>Configuration management with builder pattern support.</p>
+<h3 id="structure-definition-1"><a class="header" href="#structure-definition-1">Structure Definition</a></h3>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[derive(Debug, Clone)]
+pub struct FluxLimiterConfig {
+    rate_per_second: f64,   // User-friendly rate specification
+    burst_capacity: f64,    // User-friendly burst specification
+}
+<span class="boring">}</span></code></pre></pre>
+<h3 id="design-rationale-1"><a class="header" href="#design-rationale-1">Design Rationale</a></h3>
+<p><strong>User-Friendly Units</strong>:</p>
+<ul>
+<li><code>rate_per_second</code>: Intuitive "requests per second"</li>
+<li><code>burst_capacity</code>: Additional burst allowance</li>
+<li>Converted to nanoseconds internally</li>
+</ul>
+<p><strong>Builder Pattern</strong>:</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>impl FluxLimiterConfig {
+    pub fn new(rate_per_second: f64, burst_capacity: f64) -&gt; Self
+    pub fn rate(mut self, rate_per_second: f64) -&gt; Self
+    pub fn burst(mut self, burst_capacity: f64) -&gt; Self
+    pub fn validate(&amp;self) -&gt; Result&lt;(), FluxLimiterError&gt;
+}
+<span class="boring">}</span></code></pre></pre>
+<h3 id="validation"><a class="header" href="#validation">Validation</a></h3>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub fn validate(&amp;self) -&gt; Result&lt;(), FluxLimiterError&gt; {
+    if self.rate_per_second &lt;= 0.0 {
+        return Err(FluxLimiterError::InvalidRate);
+    }
+    if self.burst_capacity &lt; 0.0 {
+        return Err(FluxLimiterError::InvalidBurst);
+    }
+    Ok(())
+}
+<span class="boring">}</span></code></pre></pre>
+<p><strong>Validation Rules</strong>:</p>
+<ul>
+<li>Rate must be positive (&gt; 0.0)</li>
+<li>Burst must be non-negative (≥ 0.0)</li>
+<li>Checked at construction time</li>
+</ul>
+<h2 id="fluxlimiterdecision"><a class="header" href="#fluxlimiterdecision">FluxLimiterDecision</a></h2>
+<p>Rich metadata returned from rate limiting decisions.</p>
+<h3 id="structure-definition-2"><a class="header" href="#structure-definition-2">Structure Definition</a></h3>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[derive(Debug, Clone, PartialEq)]
+pub struct FluxLimiterDecision {
+    pub allowed: bool,                    // Primary decision
+    pub retry_after_seconds: Option&lt;f64&gt;, // When to retry (if denied)
+    pub remaining_capacity: Option&lt;f64&gt;,  // Remaining burst capacity
+    pub reset_time_nanos: u64,           // When window resets
+}
+<span class="boring">}</span></code></pre></pre>
+<h3 id="design-rationale-2"><a class="header" href="#design-rationale-2">Design Rationale</a></h3>
+<p><strong>Rich Metadata Enables</strong>:</p>
+<ul>
+<li>HTTP rate limit headers (X-RateLimit-Remaining, Retry-After)</li>
+<li>Client-side backoff strategies</li>
+<li>Monitoring and observability</li>
+<li>Debugging and diagnostics</li>
+</ul>
+<p><strong>Field Details</strong>:</p>
+<ol>
+<li>
+<p><strong><code>allowed: bool</code></strong></p>
+<ul>
+<li>Primary decision</li>
+<li><code>true</code> = allow request, <code>false</code> = deny</li>
+</ul>
+</li>
+<li>
+<p><strong><code>retry_after_seconds: Option&lt;f64&gt;</code></strong></p>
+<ul>
+<li><code>Some(seconds)</code> when denied</li>
+<li>How long to wait before retrying</li>
+<li>Used for HTTP <code>Retry-After</code> header</li>
+</ul>
+</li>
+<li>
+<p><strong><code>remaining_capacity: Option&lt;f64&gt;</code></strong></p>
+<ul>
+<li>Current burst capacity remaining</li>
+<li>Useful for <code>X-RateLimit-Remaining</code> header</li>
+<li>Helps clients understand their quota</li>
+</ul>
+</li>
+<li>
+<p><strong><code>reset_time_nanos: u64</code></strong></p>
+<ul>
+<li>Nanosecond timestamp when limit resets</li>
+<li>Convert to HTTP <code>X-RateLimit-Reset</code> header</li>
+<li>Absolute time, not relative</li>
+</ul>
+</li>
+</ol>
+<h2 id="fluxlimitererror"><a class="header" href="#fluxlimitererror">FluxLimiterError</a></h2>
+<p>Comprehensive error handling for robust production usage.</p>
+<h3 id="enum-definition"><a class="header" href="#enum-definition">Enum Definition</a></h3>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[derive(Debug, Clone, PartialEq)]
+pub enum FluxLimiterError {
+    InvalidRate,           // Configuration: rate ≤ 0
+    InvalidBurst,          // Configuration: burst &lt; 0
+    ClockError(ClockError), // Runtime: clock failure
+}
+
+#[derive(Debug, Clone, PartialEq)]
+pub enum ClockError {
+    SystemTimeError,       // System time unavailable
+}
+<span class="boring">}</span></code></pre></pre>
+<h3 id="design-rationale-3"><a class="header" href="#design-rationale-3">Design Rationale</a></h3>
+<p><strong>Explicit Error Types</strong>:</p>
+<ul>
+<li>Configuration errors (InvalidRate, InvalidBurst)</li>
+<li>Runtime errors (ClockError)</li>
+<li>Clear separation of error categories</li>
+</ul>
+<p><strong>Error Display</strong>:</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>impl std::fmt::Display for FluxLimiterError {
+    fn fmt(&amp;self, f: &amp;mut std::fmt::Formatter) -&gt; std::fmt::Result {
+        match self {
+            Self::InvalidRate =&gt; write!(f, "Invalid rate: must be positive"),
+            Self::InvalidBurst =&gt; write!(f, "Invalid burst: must be non-negative"),
+            Self::ClockError(e) =&gt; write!(f, "Clock error: {}", e),
+        }
+    }
+}
+<span class="boring">}</span></code></pre></pre>
+<p><strong>Error Conversion</strong>:</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>impl From&lt;ClockError&gt; for FluxLimiterError {
+    fn from(error: ClockError) -&gt; Self {
+        FluxLimiterError::ClockError(error)
+    }
+}
+<span class="boring">}</span></code></pre></pre>
+<h2 id="clock-trait"><a class="header" href="#clock-trait">Clock Trait</a></h2>
+<p>Abstraction for pluggable time sources.</p>
+<h3 id="trait-definition"><a class="header" href="#trait-definition">Trait Definition</a></h3>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub trait Clock: Send + Sync {
+    fn now(&amp;self) -&gt; Result&lt;u64, ClockError&gt;;
+}
+<span class="boring">}</span></code></pre></pre>
+<h3 id="design-rationale-4"><a class="header" href="#design-rationale-4">Design Rationale</a></h3>
+<p><strong>Benefits</strong>:</p>
+<ul>
+<li>Enables deterministic testing</li>
+<li>Handles real-world clock issues</li>
+<li>Allows custom time sources</li>
+<li>Graceful error handling</li>
+</ul>
+<p><strong>Send + Sync Requirements</strong>:</p>
+<ul>
+<li>Thread-safe: Can be shared across threads</li>
+<li>Required for concurrent rate limiting</li>
+</ul>
+<h3 id="systemclock"><a class="header" href="#systemclock">SystemClock</a></h3>
+<p>Production time source using system time:</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[derive(Clone, Copy, Debug)]
+pub struct SystemClock;
+
+impl Clock for SystemClock {
+    fn now(&amp;self) -&gt; Result&lt;u64, ClockError&gt; {
+        SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .map(|d| d.as_nanos() as u64)
+            .map_err(|_| ClockError::SystemTimeError)
+    }
+}
+<span class="boring">}</span></code></pre></pre>
+<p><strong>Handles Real-World Issues</strong>:</p>
+<ul>
+<li>System clock going backwards (NTP adjustments)</li>
+<li>Clock resolution limitations</li>
+<li>System suspend/resume</li>
+<li>Virtualization time skips</li>
+</ul>
+<h3 id="testclock"><a class="header" href="#testclock">TestClock</a></h3>
+<p>Deterministic time source for testing:</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub struct TestClock {
+    time: Arc&lt;AtomicU64&gt;,        // Current time in nanoseconds
+    should_fail: Arc&lt;AtomicBool&gt;, // Failure simulation flag
+}
+
+impl TestClock {
+    pub fn new(initial_time_secs: f64) -&gt; Self
+    pub fn advance(&amp;self, duration_secs: f64)
+    pub fn set_time(&amp;self, time_secs: f64)
+    pub fn fail_next_call(&amp;self)
+}
+<span class="boring">}</span></code></pre></pre>
+<p><strong>Features</strong>:</p>
+<ul>
+<li>Precise time control</li>
+<li>Failure simulation</li>
+<li>Thread-safe</li>
+<li>Deterministic testing</li>
+</ul>
+<h2 id="memory-layout"><a class="header" href="#memory-layout">Memory Layout</a></h2>
+<h3 id="fluxlimiter-size"><a class="header" href="#fluxlimiter-size">FluxLimiter Size</a></h3>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>FluxLimiter&lt;String, SystemClock&gt; {
+    rate_nanos: u64,         // 8 bytes
+    tolerance_nanos: u64,    // 8 bytes
+    client_state: Arc&lt;..&gt;,   // 8 bytes (pointer)
+    clock: SystemClock,      // 0 bytes (zero-sized type)
+}
+// Total: 24 bytes
+<span class="boring">}</span></code></pre></pre>
+<p><strong>Cache Efficiency</strong>:</p>
+<ul>
+<li>Small struct size fits in cache line</li>
+<li>Frequently accessed fields grouped</li>
+<li>Arc enables cheap cloning</li>
+</ul>
+<h3 id="per-client-state"><a class="header" href="#per-client-state">Per-Client State</a></h3>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>DashMap&lt;String, u64&gt; entry:
+    String: ~24 bytes (pointer + len + capacity)
+    u64:    8 bytes
+    Overhead: ~16 bytes (hash map metadata)
+// Total per client: ~48 bytes
+<span class="boring">}</span></code></pre></pre>
+<h3 id="scalability"><a class="header" href="#scalability">Scalability</a></h3>
+<pre><code>1,000 clients     = ~48 KB
+10,000 clients    = ~480 KB
+100,000 clients   = ~4.8 MB
+1,000,000 clients = ~48 MB
+</code></pre>
+<h2 id="thread-safety"><a class="header" href="#thread-safety">Thread Safety</a></h2>
+<p>All components are thread-safe:</p>
+<ul>
+<li><strong>FluxLimiter</strong>: Safe to share via <code>Arc</code></li>
+<li><strong>DashMap</strong>: Lock-free concurrent access</li>
+<li><strong>Clock</strong>: <code>Send + Sync</code> requirement</li>
+<li><strong>Decisions</strong>: Immutable after creation</li>
+</ul>
+<h2 id="next-steps"><a class="header" href="#next-steps">Next Steps</a></h2>
+<ul>
+<li><a href="./concurrency.html">Concurrency Model</a> - Understand thread safety</li>
+<li><a href="./performance.html">Performance Design</a> - Optimization techniques</li>
+<li><a href="./error-handling.html">Error Handling Architecture</a> - Error strategies</li>
+</ul>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="../architecture/gcra-algorithm.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+
+                            <a rel="next prefetch" href="../architecture/concurrency.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="../architecture/gcra-algorithm.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+
+                    <a rel="next prefetch" href="../architecture/concurrency.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+            </nav>
+
+        </div>
+
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="../elasticlunr.min.js"></script>
+        <script src="../mark.min.js"></script>
+        <script src="../searcher.js"></script>
+
+        <script src="../clipboard.min.js"></script>
+        <script src="../highlight.js"></script>
+        <script src="../book.js"></script>
+
+        <!-- Custom JS scripts -->
+
+
+
+    </div>
+    </body>
+</html>

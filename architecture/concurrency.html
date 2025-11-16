@@ -1,0 +1,585 @@
+<!DOCTYPE HTML>
+<html lang="en" class="light sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Concurrency Model - Flux Limiter Documentation</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="A high-performance rate limiter based on the Generic Cell Rate Algorithm (GCRA)">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="../favicon.svg">
+        <link rel="shortcut icon" href="../favicon.png">
+        <link rel="stylesheet" href="../css/variables.css">
+        <link rel="stylesheet" href="../css/general.css">
+        <link rel="stylesheet" href="../css/chrome.css">
+        <link rel="stylesheet" href="../css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../FontAwesome/css/font-awesome.css">
+        <link rel="stylesheet" href="../fonts/fonts.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="highlight-css" href="../highlight.css">
+        <link rel="stylesheet" id="tomorrow-night-css" href="../tomorrow-night.css">
+        <link rel="stylesheet" id="ayu-highlight-css" href="../ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "../";
+            const default_light_theme = "light";
+            const default_dark_theme = "navy";
+            window.path_to_searchindex_js = "../searchindex.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="../toc.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="../toc.html"></iframe>
+            </noscript>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="sidebar-toggle" class="icon-button" for="sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </label>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        <button id="search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">Flux Limiter Documentation</h1>
+
+                    <div class="right-buttons">
+                        <a href="../print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+                        <a href="https://github.com/anthropics/flux-limiter" title="Git repository" aria-label="Git repository">
+                            <i id="git-repository-button" class="fa fa-github"></i>
+                        </a>
+                        <a href="https://github.com/anthropics/flux-limiter/edit/main/docs/src/architecture/concurrency.md" title="Suggest an edit" aria-label="Suggest an edit" rel="edit">
+                            <i id="git-edit-button" class="fa fa-edit"></i>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <i class="fa fa-spinner fa-spin"></i>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <h1 id="concurrency-model"><a class="header" href="#concurrency-model">Concurrency Model</a></h1>
+<p>Understanding the lock-free concurrency design in Flux Limiter.</p>
+<h2 id="lock-free-design-philosophy"><a class="header" href="#lock-free-design-philosophy">Lock-Free Design Philosophy</a></h2>
+<p>Flux Limiter is built on a lock-free concurrency model for maximum performance:</p>
+<pre><code>Multiple Threads
+      ↓
+FluxLimiter (Shared via Arc)
+      ↓
+Arc&lt;DashMap&lt;ClientId, TAT&gt;&gt;
+      ↓
+Lock-free hash map operations
+</code></pre>
+<h2 id="thread-safety-guarantees"><a class="header" href="#thread-safety-guarantees">Thread Safety Guarantees</a></h2>
+<h3 id="1-read-operations"><a class="header" href="#1-read-operations">1. Read Operations</a></h3>
+<p>Multiple concurrent readers without contention:</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// Thread 1
+limiter.check_request("client_1")?;
+
+// Thread 2 (concurrent)
+limiter.check_request("client_2")?;
+
+// No lock contention - different shards
+<span class="boring">}</span></code></pre></pre>
+<h3 id="2-write-operations"><a class="header" href="#2-write-operations">2. Write Operations</a></h3>
+<p>Atomic updates with minimal contention:</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// Atomic TAT update
+client_state.insert(client_id, new_tat);
+<span class="boring">}</span></code></pre></pre>
+<p>Each client's state is independent, allowing parallel updates.</p>
+<h3 id="3-memory-ordering"><a class="header" href="#3-memory-ordering">3. Memory Ordering</a></h3>
+<p>Relaxed ordering is sufficient for TAT updates:</p>
+<ul>
+<li>TAT values are monotonically increasing</li>
+<li>No cross-client dependencies</li>
+<li>No ABA problem</li>
+</ul>
+<h3 id="4-concurrent-access-patterns"><a class="header" href="#4-concurrent-access-patterns">4. Concurrent Access Patterns</a></h3>
+<p><strong>Same Client, Different Threads</strong>:</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// Thread 1
+limiter.check_request("client_1")?; // TAT = 100ms
+
+// Thread 2 (concurrent)
+limiter.check_request("client_1")?; // TAT = 200ms
+
+// DashMap serializes access to same key
+// Ordering determined by DashMap's internal locking
+<span class="boring">}</span></code></pre></pre>
+<p><strong>Different Clients, Different Threads</strong>:</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// Thread 1
+limiter.check_request("client_1")?;
+
+// Thread 2 (concurrent)
+limiter.check_request("client_2")?;
+
+// Lock-free - different shards, no contention
+<span class="boring">}</span></code></pre></pre>
+<h2 id="dashmap-the-core-concurrency-primitive"><a class="header" href="#dashmap-the-core-concurrency-primitive">DashMap: The Core Concurrency Primitive</a></h2>
+<h3 id="why-dashmap"><a class="header" href="#why-dashmap">Why DashMap?</a></h3>
+<p>DashMap provides lock-free concurrent access through sharding:</p>
+<pre><code>DashMap&lt;ClientId, TAT&gt;
+    ├─ Shard 0: HashMap + RwLock
+    ├─ Shard 1: HashMap + RwLock
+    ├─ Shard 2: HashMap + RwLock
+    ├─ ...
+    └─ Shard N: HashMap + RwLock
+</code></pre>
+<p><strong>Benefits</strong>:</p>
+<ul>
+<li><strong>Better than std::HashMap + Mutex</strong>: Avoids global locking</li>
+<li><strong>Better than RwLock</strong>: No reader/writer contention</li>
+<li><strong>Better than custom lock-free map</strong>: Mature, battle-tested</li>
+<li><strong>Segmented locking</strong>: Reduces contention vs. single lock</li>
+</ul>
+<h3 id="sharding-strategy"><a class="header" href="#sharding-strategy">Sharding Strategy</a></h3>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// Client IDs are hashed to shards
+shard_index = hash(client_id) % num_shards
+
+// Different clients likely in different shards
+// Same client always in same shard (consistency)
+<span class="boring">}</span></code></pre></pre>
+<h3 id="operations-on-dashmap"><a class="header" href="#operations-on-dashmap">Operations on DashMap</a></h3>
+<p><strong>Get (Read)</strong>:</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>if let Some(previous_tat) = client_state.get(&amp;client_id) {
+    // Read lock on single shard
+    // Other shards remain accessible
+}
+<span class="boring">}</span></code></pre></pre>
+<p><strong>Insert (Write)</strong>:</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>client_state.insert(client_id, new_tat);
+// Write lock on single shard
+// Other shards remain accessible
+<span class="boring">}</span></code></pre></pre>
+<p><strong>Cleanup (Iteration)</strong>:</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>client_state.retain(|_, &amp;mut tat| {
+    // Locks each shard sequentially
+    // Short lock duration per shard
+    current_time - tat &lt; threshold
+});
+<span class="boring">}</span></code></pre></pre>
+<h2 id="memory-consistency"><a class="header" href="#memory-consistency">Memory Consistency</a></h2>
+<h3 id="happens-before-relationships"><a class="header" href="#happens-before-relationships">Happens-Before Relationships</a></h3>
+<p>DashMap provides happens-before guarantees:</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// Thread 1
+limiter.check_request("client_1")?; // Writes TAT = 100ms
+
+// Thread 2 (later)
+limiter.check_request("client_1")?; // Reads TAT &gt;= 100ms
+<span class="boring">}</span></code></pre></pre>
+<p>The write in Thread 1 happens-before the read in Thread 2.</p>
+<h3 id="visibility-guarantees"><a class="header" href="#visibility-guarantees">Visibility Guarantees</a></h3>
+<p>All updates to client state are immediately visible:</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// Thread 1
+client_state.insert("client_1", 100);
+
+// Thread 2
+let tat = client_state.get("client_1"); // Sees 100
+<span class="boring">}</span></code></pre></pre>
+<p>DashMap ensures proper memory synchronization.</p>
+<h2 id="sharing-across-threads"><a class="header" href="#sharing-across-threads">Sharing Across Threads</a></h2>
+<h3 id="arc-for-shared-ownership"><a class="header" href="#arc-for-shared-ownership">Arc for Shared Ownership</a></h3>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use std::sync::Arc;
+
+let config = FluxLimiterConfig::new(100.0, 50.0);
+let limiter = Arc::new(FluxLimiter::with_config(config, SystemClock)?);
+
+// Clone Arc for each thread (cheap)
+let limiter1 = Arc::clone(&amp;limiter);
+let limiter2 = Arc::clone(&amp;limiter);
+
+// Use in different threads
+thread::spawn(move || limiter1.check_request("client_1"));
+thread::spawn(move || limiter2.check_request("client_2"));
+<span class="boring">}</span></code></pre></pre>
+<p><strong>Arc Benefits</strong>:</p>
+<ul>
+<li>Reference counting with atomic operations</li>
+<li>Thread-safe shared ownership</li>
+<li>Cheap to clone (increments counter)</li>
+<li>No data duplication</li>
+</ul>
+<h3 id="internal-arc-usage"><a class="header" href="#internal-arc-usage">Internal Arc Usage</a></h3>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub struct FluxLimiter&lt;T, C&gt; {
+    // ...
+    client_state: Arc&lt;DashMap&lt;T, u64&gt;&gt;, // Shared across clones
+    // ...
+}
+<span class="boring">}</span></code></pre></pre>
+<p>Cloning <code>FluxLimiter</code> shares the same state:</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>let limiter1 = limiter.clone();
+let limiter2 = limiter.clone();
+
+// Both share the same client_state
+// Updates visible to both
+<span class="boring">}</span></code></pre></pre>
+<h2 id="contention-analysis"><a class="header" href="#contention-analysis">Contention Analysis</a></h2>
+<h3 id="low-contention-scenarios"><a class="header" href="#low-contention-scenarios">Low Contention Scenarios</a></h3>
+<p><strong>Different clients, concurrent access</strong>:</p>
+<pre><code>Threads: [T1: client_1] [T2: client_2] [T3: client_3]
+Shards:  [Shard 0    ] [Shard 1    ] [Shard 2    ]
+Result:  Lock-free, no contention
+</code></pre>
+<h3 id="medium-contention-scenarios"><a class="header" href="#medium-contention-scenarios">Medium Contention Scenarios</a></h3>
+<p><strong>Same shard, different clients</strong>:</p>
+<pre><code>Threads: [T1: client_1] [T2: client_100]
+Shards:  [Shard 0    ] [Shard 0      ]
+Result:  Some contention, but short lock duration
+</code></pre>
+<h3 id="high-contention-scenarios"><a class="header" href="#high-contention-scenarios">High Contention Scenarios</a></h3>
+<p><strong>Same client, concurrent access</strong>:</p>
+<pre><code>Threads: [T1: client_1] [T2: client_1] [T3: client_1]
+Shards:  [Shard 0    ] [Shard 0    ] [Shard 0    ]
+Result:  Serialized access (expected for consistency)
+</code></pre>
+<p><strong>This is correct behavior</strong>: Rate limiting the same client from multiple threads should be serialized to maintain correctness.</p>
+<h2 id="performance-under-concurrency"><a class="header" href="#performance-under-concurrency">Performance Under Concurrency</a></h2>
+<h3 id="scalability-characteristics"><a class="header" href="#scalability-characteristics">Scalability Characteristics</a></h3>
+<pre><code>Threads  Throughput  Latency
+1        1.0x        1.0μs
+2        1.9x        1.0μs
+4        3.7x        1.1μs
+8        7.0x        1.2μs
+16       12.5x       1.3μs
+</code></pre>
+<p>Nearly linear scalability with different clients.</p>
+<h3 id="benchmark-concurrent-access"><a class="header" href="#benchmark-concurrent-access">Benchmark: Concurrent Access</a></h3>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[bench]
+fn bench_concurrent_different_clients(b: &amp;mut Bencher) {
+    let limiter = Arc::new(FluxLimiter::with_config(
+        FluxLimiterConfig::new(1000.0, 500.0),
+        SystemClock
+    ).unwrap());
+
+    b.iter(|| {
+        let handles: Vec&lt;_&gt; = (0..8)
+            .map(|i| {
+                let limiter = Arc::clone(&amp;limiter);
+                thread::spawn(move || {
+                    for j in 0..1000 {
+                        let client_id = format!("client_{}_{}", i, j);
+                        limiter.check_request(client_id).unwrap();
+                    }
+                })
+            })
+            .collect();
+
+        for handle in handles {
+            handle.join().unwrap();
+        }
+    });
+}
+<span class="boring">}</span></code></pre></pre>
+<h2 id="clock-thread-safety"><a class="header" href="#clock-thread-safety">Clock Thread Safety</a></h2>
+<p>The <code>Clock</code> trait requires <code>Send + Sync</code>:</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub trait Clock: Send + Sync {
+    fn now(&amp;self) -&gt; Result&lt;u64, ClockError&gt;;
+}
+<span class="boring">}</span></code></pre></pre>
+<p><strong>SystemClock</strong>:</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>impl Clock for SystemClock {
+    fn now(&amp;self) -&gt; Result&lt;u64, ClockError&gt; {
+        // SystemTime::now() is thread-safe
+        SystemTime::now()
+            .duration_since(UNIX_EPOCH)
+            .map(|d| d.as_nanos() as u64)
+            .map_err(|_| ClockError::SystemTimeError)
+    }
+}
+<span class="boring">}</span></code></pre></pre>
+<p><strong>TestClock</strong>:</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>pub struct TestClock {
+    time: Arc&lt;AtomicU64&gt;,        // Atomic for thread safety
+    should_fail: Arc&lt;AtomicBool&gt;, // Atomic for thread safety
+}
+<span class="boring">}</span></code></pre></pre>
+<p>Both implementations are thread-safe.</p>
+<h2 id="cleanup-concurrency"><a class="header" href="#cleanup-concurrency">Cleanup Concurrency</a></h2>
+<p>Cleanup can run concurrently with rate limiting:</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// Thread 1: Rate limiting
+limiter.check_request("client_1")?;
+
+// Thread 2: Cleanup (concurrent)
+limiter.cleanup_stale_clients(threshold)?;
+
+// Thread 3: More rate limiting (concurrent)
+limiter.check_request("client_2")?;
+<span class="boring">}</span></code></pre></pre>
+<p>DashMap's <code>retain</code> method:</p>
+<ul>
+<li>Locks each shard briefly</li>
+<li>Other shards remain accessible</li>
+<li>Minimal impact on concurrent operations</li>
+</ul>
+<h2 id="best-practices"><a class="header" href="#best-practices">Best Practices</a></h2>
+<h3 id="1-share-via-arc"><a class="header" href="#1-share-via-arc">1. Share via Arc</a></h3>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// Good: Share limiter across threads
+let limiter = Arc::new(FluxLimiter::with_config(config, clock)?);
+
+// Bad: Create multiple limiters (separate state)
+let limiter1 = FluxLimiter::with_config(config, clock1)?;
+let limiter2 = FluxLimiter::with_config(config, clock2)?;
+<span class="boring">}</span></code></pre></pre>
+<h3 id="2-use-different-client-ids"><a class="header" href="#2-use-different-client-ids">2. Use Different Client IDs</a></h3>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// Good: Different clients = low contention
+for i in 0..1000 {
+    limiter.check_request(format!("client_{}", i))?;
+}
+
+// Bad: Same client = serialized access
+for _ in 0..1000 {
+    limiter.check_request("same_client")?;
+}
+<span class="boring">}</span></code></pre></pre>
+<h3 id="3-avoid-blocking-in-callbacks"><a class="header" href="#3-avoid-blocking-in-callbacks">3. Avoid Blocking in Callbacks</a></h3>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// Good: Quick check
+match limiter.check_request(client_id) {
+    Ok(decision) =&gt; decision.allowed,
+    Err(_) =&gt; false,
+}
+
+// Bad: Blocking I/O while holding client state
+match limiter.check_request(client_id) {
+    Ok(decision) =&gt; {
+        // Don't do expensive work here
+        database.log_decision(decision)?; // Blocks!
+        decision.allowed
+    }
+    Err(_) =&gt; false,
+}
+<span class="boring">}</span></code></pre></pre>
+<h3 id="4-periodic-cleanup"><a class="header" href="#4-periodic-cleanup">4. Periodic Cleanup</a></h3>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// Background cleanup task
+tokio::spawn(async move {
+    let mut interval = interval(Duration::from_secs(3600));
+    loop {
+        interval.tick().await;
+        let _ = limiter.cleanup_stale_clients(threshold);
+    }
+});
+<span class="boring">}</span></code></pre></pre>
+<h2 id="next-steps"><a class="header" href="#next-steps">Next Steps</a></h2>
+<ul>
+<li><a href="./performance.html">Performance Design</a> - Optimization techniques</li>
+<li><a href="./testing.html">Testing Architecture</a> - Concurrent testing strategies</li>
+<li><a href="./design-decisions.html">Design Decisions</a> - Why these choices?</li>
+</ul>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="../architecture/components.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+
+                            <a rel="next prefetch" href="../architecture/error-handling.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="../architecture/components.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+
+                    <a rel="next prefetch" href="../architecture/error-handling.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+            </nav>
+
+        </div>
+
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="../elasticlunr.min.js"></script>
+        <script src="../mark.min.js"></script>
+        <script src="../searcher.js"></script>
+
+        <script src="../clipboard.min.js"></script>
+        <script src="../highlight.js"></script>
+        <script src="../book.js"></script>
+
+        <!-- Custom JS scripts -->
+
+
+
+    </div>
+    </body>
+</html>

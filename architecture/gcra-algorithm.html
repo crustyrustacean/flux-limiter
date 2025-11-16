@@ -1,0 +1,449 @@
+<!DOCTYPE HTML>
+<html lang="en" class="light sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>GCRA Algorithm - Flux Limiter Documentation</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="A high-performance rate limiter based on the Generic Cell Rate Algorithm (GCRA)">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="../favicon.svg">
+        <link rel="shortcut icon" href="../favicon.png">
+        <link rel="stylesheet" href="../css/variables.css">
+        <link rel="stylesheet" href="../css/general.css">
+        <link rel="stylesheet" href="../css/chrome.css">
+        <link rel="stylesheet" href="../css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../FontAwesome/css/font-awesome.css">
+        <link rel="stylesheet" href="../fonts/fonts.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="highlight-css" href="../highlight.css">
+        <link rel="stylesheet" id="tomorrow-night-css" href="../tomorrow-night.css">
+        <link rel="stylesheet" id="ayu-highlight-css" href="../ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "../";
+            const default_light_theme = "light";
+            const default_dark_theme = "navy";
+            window.path_to_searchindex_js = "../searchindex.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="../toc.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="../toc.html"></iframe>
+            </noscript>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="sidebar-toggle" class="icon-button" for="sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </label>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        <button id="search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">Flux Limiter Documentation</h1>
+
+                    <div class="right-buttons">
+                        <a href="../print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+                        <a href="https://github.com/anthropics/flux-limiter" title="Git repository" aria-label="Git repository">
+                            <i id="git-repository-button" class="fa fa-github"></i>
+                        </a>
+                        <a href="https://github.com/anthropics/flux-limiter/edit/main/docs/src/architecture/gcra-algorithm.md" title="Suggest an edit" aria-label="Suggest an edit" rel="edit">
+                            <i id="git-edit-button" class="fa fa-edit"></i>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <i class="fa fa-spinner fa-spin"></i>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <h1 id="gcra-algorithm"><a class="header" href="#gcra-algorithm">GCRA Algorithm</a></h1>
+<p>Deep dive into the Generic Cell Rate Algorithm implementation in Flux Limiter.</p>
+<h2 id="algorithm-choice"><a class="header" href="#algorithm-choice">Algorithm Choice</a></h2>
+<p><strong>Generic Cell Rate Algorithm (GCRA)</strong> was chosen over Token Bucket for several reasons:</p>
+<ol>
+<li><strong>Mathematical Precision</strong>: Avoids floating-point precision issues</li>
+<li><strong>Stateless Calculation</strong>: No background token refill processes</li>
+<li><strong>Efficient State</strong>: One timestamp per client vs. token count + last refill</li>
+<li><strong>Deterministic</strong>: Exact timing calculations with integer arithmetic</li>
+</ol>
+<h2 id="gcra-vs-token-bucket"><a class="header" href="#gcra-vs-token-bucket">GCRA vs Token Bucket</a></h2>
+<h3 id="token-bucket"><a class="header" href="#token-bucket">Token Bucket</a></h3>
+<ul>
+<li>Maintains a count of available tokens</li>
+<li>Tokens refill at a constant rate</li>
+<li>Requests consume tokens</li>
+<li>Requires background refill process or calculation on each check</li>
+</ul>
+<h3 id="gcra"><a class="header" href="#gcra">GCRA</a></h3>
+<ul>
+<li>Maintains Theoretical Arrival Time (TAT)</li>
+<li>Checks if current time conforms to rate</li>
+<li>Updates TAT for next request</li>
+<li>No background processes needed</li>
+</ul>
+<p><strong>Equivalence</strong>: GCRA and Token Bucket produce mathematically equivalent results, but GCRA is more efficient for implementation.</p>
+<h2 id="core-concepts"><a class="header" href="#core-concepts">Core Concepts</a></h2>
+<h3 id="theoretical-arrival-time-tat"><a class="header" href="#theoretical-arrival-time-tat">Theoretical Arrival Time (TAT)</a></h3>
+<p>The TAT represents the theoretical time when the next request should arrive to maintain the configured rate.</p>
+<pre><code>Initial state:    TAT = 0
+After request 1:  TAT = current_time + rate_interval
+After request 2:  TAT = max(current_time, previous_TAT) + rate_interval
+</code></pre>
+<h3 id="rate-interval-t"><a class="header" href="#rate-interval-t">Rate Interval (T)</a></h3>
+<p>Time between consecutive requests at the configured rate:</p>
+<pre><code>T = 1 / rate_per_second
+T_nanos = 1_000_000_000 / rate_per_second
+</code></pre>
+<p>Examples:</p>
+<ul>
+<li><code>rate = 10.0</code> → <code>T = 0.1s</code> = <code>100_000_000 nanos</code></li>
+<li><code>rate = 100.0</code> → <code>T = 0.01s</code> = <code>10_000_000 nanos</code></li>
+<li><code>rate = 1000.0</code> → <code>T = 0.001s</code> = <code>1_000_000 nanos</code></li>
+</ul>
+<h3 id="tolerance-τ"><a class="header" href="#tolerance-τ">Tolerance (τ)</a></h3>
+<p>Maximum allowed deviation from the rate, determined by burst capacity:</p>
+<pre><code>τ = burst_capacity * rate_interval
+τ_nanos = burst_capacity * (1_000_000_000 / rate_per_second)
+</code></pre>
+<p>Examples with <code>rate = 10.0</code>:</p>
+<ul>
+<li><code>burst = 0.0</code> → <code>τ = 0 nanos</code> (no burst)</li>
+<li><code>burst = 5.0</code> → <code>τ = 500_000_000 nanos</code> (0.5 seconds)</li>
+<li><code>burst = 10.0</code> → <code>τ = 1_000_000_000 nanos</code> (1 second)</li>
+</ul>
+<h2 id="algorithm-implementation"><a class="header" href="#algorithm-implementation">Algorithm Implementation</a></h2>
+<h3 id="conformance-check"><a class="header" href="#conformance-check">Conformance Check</a></h3>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>let current_time_nanos = clock.now()?;
+let previous_tat_nanos = client_state
+    .get(&amp;client_id)
+    .unwrap_or(current_time_nanos);
+
+// Check if request conforms (is within tolerance)
+let is_conforming = current_time_nanos &gt;=
+    previous_tat_nanos.saturating_sub(tolerance_nanos);
+<span class="boring">}</span></code></pre></pre>
+<p><strong>Conforming Request</strong>: <code>current_time &gt;= TAT - τ</code></p>
+<p>This allows requests to arrive up to <code>τ</code> nanoseconds early (burst capacity).</p>
+<h3 id="tat-update-allowed-request"><a class="header" href="#tat-update-allowed-request">TAT Update (Allowed Request)</a></h3>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>if is_conforming {
+    // Allow request and update TAT
+    let new_tat_nanos = current_time_nanos
+        .max(previous_tat_nanos) + rate_nanos;
+
+    client_state.insert(client_id, new_tat_nanos);
+
+    // Return allowed decision
+}
+<span class="boring">}</span></code></pre></pre>
+<p><strong>TAT Update Rule</strong>: <code>TAT' = max(current_time, previous_TAT) + T</code></p>
+<p>This ensures TAT advances by the rate interval while preventing it from going backward.</p>
+<h3 id="retry-after-calculation-denied-request"><a class="header" href="#retry-after-calculation-denied-request">Retry After Calculation (Denied Request)</a></h3>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>else {
+    // Deny request
+    let retry_after_nanos = previous_tat_nanos
+        .saturating_sub(tolerance_nanos)
+        .saturating_sub(current_time_nanos);
+
+    let retry_after_seconds = retry_after_nanos as f64 / 1_000_000_000.0;
+
+    // Return denied decision with retry_after
+}
+<span class="boring">}</span></code></pre></pre>
+<p><strong>Retry After</strong>: Time until the request would conform to the rate.</p>
+<h2 id="mathematical-foundation"><a class="header" href="#mathematical-foundation">Mathematical Foundation</a></h2>
+<h3 id="basic-equations"><a class="header" href="#basic-equations">Basic Equations</a></h3>
+<ol>
+<li><strong>Rate Interval</strong>: <code>T = 1 / r</code> where <code>r</code> is rate per second</li>
+<li><strong>Tolerance</strong>: <code>τ = b * T</code> where <code>b</code> is burst capacity</li>
+<li><strong>TAT Update</strong>: <code>TAT' = max(t, TAT) + T</code> where <code>t</code> is current time</li>
+<li><strong>Conformance</strong>: Request allowed if <code>t &gt;= TAT - τ</code></li>
+</ol>
+<h3 id="burst-capacity"><a class="header" href="#burst-capacity">Burst Capacity</a></h3>
+<p>The burst capacity determines how many requests can be made immediately:</p>
+<pre><code>Total immediate capacity ≈ 1 + burst_capacity
+</code></pre>
+<p><strong>Proof</strong>:</p>
+<ul>
+<li>First request at <code>t=0</code>: TAT becomes <code>T</code></li>
+<li>Can make requests at times: <code>0, T-τ, 2T-τ, 3T-τ, ...</code></li>
+<li>Maximum burst when all accumulated: <code>τ/T = burst_capacity</code></li>
+<li>Plus the current request: <code>1 + burst_capacity</code></li>
+</ul>
+<h3 id="burst-recovery"><a class="header" href="#burst-recovery">Burst Recovery</a></h3>
+<p>After using burst capacity, it recovers at the configured rate:</p>
+<pre><code>Recovery rate = rate_per_second
+Time to full recovery = burst_capacity / rate_per_second
+</code></pre>
+<p>Example with <code>rate=10.0</code>, <code>burst=5.0</code>:</p>
+<ul>
+<li>Can burst 6 requests immediately</li>
+<li>Recovers at 10 units/second</li>
+<li>Full recovery in 0.5 seconds</li>
+</ul>
+<h2 id="precision-guarantees"><a class="header" href="#precision-guarantees">Precision Guarantees</a></h2>
+<h3 id="nanosecond-arithmetic"><a class="header" href="#nanosecond-arithmetic">Nanosecond Arithmetic</a></h3>
+<p>All calculations use <code>u64</code> nanoseconds:</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>// No floating-point drift
+let rate_nanos: u64 = (1_000_000_000.0 / rate_per_second) as u64;
+let tolerance_nanos: u64 = (burst_capacity * rate_nanos as f64) as u64;
+<span class="boring">}</span></code></pre></pre>
+<p><strong>Benefits</strong>:</p>
+<ul>
+<li>Exact integer arithmetic</li>
+<li>No accumulating rounding errors</li>
+<li>Supports rates up to 1 billion requests/second</li>
+<li>Nanosecond precision for timing</li>
+</ul>
+<h3 id="overflow-protection"><a class="header" href="#overflow-protection">Overflow Protection</a></h3>
+<p>Uses saturating arithmetic to prevent overflow:</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>let is_conforming = current_time_nanos &gt;=
+    previous_tat_nanos.saturating_sub(tolerance_nanos);
+<span class="boring">}</span></code></pre></pre>
+<p><strong>Saturating operations</strong>:</p>
+<ul>
+<li><code>saturating_sub</code>: Returns 0 if underflow would occur</li>
+<li><code>saturating_add</code>: Returns <code>u64::MAX</code> if overflow would occur</li>
+<li>Prevents undefined behavior and panics</li>
+</ul>
+<h2 id="example-scenarios"><a class="header" href="#example-scenarios">Example Scenarios</a></h2>
+<h3 id="scenario-1-sustained-rate"><a class="header" href="#scenario-1-sustained-rate">Scenario 1: Sustained Rate</a></h3>
+<p>Configuration: <code>rate=10.0</code>, <code>burst=0.0</code></p>
+<pre><code>t=0.0s:   Request → Allowed (TAT=0.1s)
+t=0.1s:   Request → Allowed (TAT=0.2s)
+t=0.2s:   Request → Allowed (TAT=0.3s)
+t=0.25s:  Request → Denied (retry after 0.05s)
+t=0.3s:   Request → Allowed (TAT=0.4s)
+</code></pre>
+<h3 id="scenario-2-burst-capacity"><a class="header" href="#scenario-2-burst-capacity">Scenario 2: Burst Capacity</a></h3>
+<p>Configuration: <code>rate=10.0</code>, <code>burst=5.0</code></p>
+<pre><code>t=0.0s:   Request → Allowed (TAT=0.1s)
+t=0.0s:   Request → Allowed (TAT=0.2s)  [burst]
+t=0.0s:   Request → Allowed (TAT=0.3s)  [burst]
+t=0.0s:   Request → Allowed (TAT=0.4s)  [burst]
+t=0.0s:   Request → Allowed (TAT=0.5s)  [burst]
+t=0.0s:   Request → Allowed (TAT=0.6s)  [burst]
+t=0.0s:   Request → Denied (retry after 0.1s)
+t=0.1s:   Request → Allowed (TAT=0.7s)
+</code></pre>
+<h3 id="scenario-3-recovery-after-idle"><a class="header" href="#scenario-3-recovery-after-idle">Scenario 3: Recovery After Idle</a></h3>
+<p>Configuration: <code>rate=10.0</code>, <code>burst=5.0</code></p>
+<pre><code>t=0.0s:   6 requests → All allowed, TAT=0.6s
+t=1.0s:   Request → Allowed (TAT=1.1s)  [burst recovered]
+t=1.0s:   6 requests → All allowed, TAT=1.6s
+</code></pre>
+<h2 id="metadata-calculation"><a class="header" href="#metadata-calculation">Metadata Calculation</a></h2>
+<h3 id="remaining-capacity"><a class="header" href="#remaining-capacity">Remaining Capacity</a></h3>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>let elapsed = current_time_nanos.saturating_sub(previous_tat_nanos);
+let recovered = (elapsed as f64 / rate_nanos as f64).min(burst_capacity);
+let remaining_capacity = Some(burst_capacity - consumed + recovered);
+<span class="boring">}</span></code></pre></pre>
+<p>Tracks how much burst capacity is currently available.</p>
+<h3 id="reset-time"><a class="header" href="#reset-time">Reset Time</a></h3>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>let reset_time_nanos = new_tat_nanos + tolerance_nanos;
+<span class="boring">}</span></code></pre></pre>
+<p>When the rate limit window will fully reset (all burst capacity recovered).</p>
+<h2 id="performance-characteristics"><a class="header" href="#performance-characteristics">Performance Characteristics</a></h2>
+<ul>
+<li><strong>Time Complexity</strong>: O(1) - constant time for all operations</li>
+<li><strong>Space Complexity</strong>: O(1) per client - single u64 timestamp</li>
+<li><strong>Calculation Overhead</strong>: ~10-20 CPU cycles for GCRA calculation</li>
+<li><strong>Memory Access</strong>: Single DashMap lookup/insert</li>
+</ul>
+<h2 id="next-steps"><a class="header" href="#next-steps">Next Steps</a></h2>
+<ul>
+<li><a href="./components.html">Component Design</a> - Explore the FluxLimiter struct</li>
+<li><a href="./performance.html">Performance Design</a> - Understand optimization techniques</li>
+<li><a href="./testing.html">Testing Architecture</a> - Learn about deterministic testing</li>
+</ul>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="../architecture/overview.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+
+                            <a rel="next prefetch" href="../architecture/components.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="../architecture/overview.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+
+                    <a rel="next prefetch" href="../architecture/components.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+            </nav>
+
+        </div>
+
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="../elasticlunr.min.js"></script>
+        <script src="../mark.min.js"></script>
+        <script src="../searcher.js"></script>
+
+        <script src="../clipboard.min.js"></script>
+        <script src="../highlight.js"></script>
+        <script src="../book.js"></script>
+
+        <!-- Custom JS scripts -->
+
+
+
+    </div>
+    </body>
+</html>

@@ -1,0 +1,665 @@
+<!DOCTYPE HTML>
+<html lang="en" class="light sidebar-visible" dir="ltr">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Testing Architecture - Flux Limiter Documentation</title>
+
+
+        <!-- Custom HTML head -->
+
+        <meta name="description" content="A high-performance rate limiter based on the Generic Cell Rate Algorithm (GCRA)">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff">
+
+        <link rel="icon" href="../favicon.svg">
+        <link rel="shortcut icon" href="../favicon.png">
+        <link rel="stylesheet" href="../css/variables.css">
+        <link rel="stylesheet" href="../css/general.css">
+        <link rel="stylesheet" href="../css/chrome.css">
+        <link rel="stylesheet" href="../css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="../FontAwesome/css/font-awesome.css">
+        <link rel="stylesheet" href="../fonts/fonts.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" id="highlight-css" href="../highlight.css">
+        <link rel="stylesheet" id="tomorrow-night-css" href="../tomorrow-night.css">
+        <link rel="stylesheet" id="ayu-highlight-css" href="../ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+
+
+        <!-- Provide site root and default themes to javascript -->
+        <script>
+            const path_to_root = "../";
+            const default_light_theme = "light";
+            const default_dark_theme = "navy";
+            window.path_to_searchindex_js = "../searchindex.js";
+        </script>
+        <!-- Start loading toc.js asap -->
+        <script src="../toc.js"></script>
+    </head>
+    <body>
+    <div id="mdbook-help-container">
+        <div id="mdbook-help-popup">
+            <h2 class="mdbook-help-title">Keyboard shortcuts</h2>
+            <div>
+                <p>Press <kbd>←</kbd> or <kbd>→</kbd> to navigate between chapters</p>
+                <p>Press <kbd>S</kbd> or <kbd>/</kbd> to search in the book</p>
+                <p>Press <kbd>?</kbd> to show this help</p>
+                <p>Press <kbd>Esc</kbd> to hide this help</p>
+            </div>
+        </div>
+    </div>
+    <div id="body-container">
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script>
+            try {
+                let theme = localStorage.getItem('mdbook-theme');
+                let sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script>
+            const default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? default_dark_theme : default_light_theme;
+            let theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            const html = document.documentElement;
+            html.classList.remove('light')
+            html.classList.add(theme);
+            html.classList.add("js");
+        </script>
+
+        <input type="checkbox" id="sidebar-toggle-anchor" class="hidden">
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script>
+            let sidebar = null;
+            const sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            } else {
+                sidebar = 'hidden';
+                sidebar_toggle.checked = false;
+            }
+            if (sidebar === 'visible') {
+                sidebar_toggle.checked = true;
+            } else {
+                html.classList.remove('sidebar-visible');
+            }
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <!-- populated by js -->
+            <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
+            <noscript>
+                <iframe class="sidebar-iframe-outer" src="../toc.html"></iframe>
+            </noscript>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle">
+                <div class="sidebar-resize-indicator"></div>
+            </div>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky">
+                    <div class="left-buttons">
+                        <label id="sidebar-toggle" class="icon-button" for="sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </label>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        <button id="search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">Flux Limiter Documentation</h1>
+
+                    <div class="right-buttons">
+                        <a href="../print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+                        <a href="https://github.com/anthropics/flux-limiter" title="Git repository" aria-label="Git repository">
+                            <i id="git-repository-button" class="fa fa-github"></i>
+                        </a>
+                        <a href="https://github.com/anthropics/flux-limiter/edit/main/docs/src/architecture/testing.md" title="Suggest an edit" aria-label="Suggest an edit" rel="edit">
+                            <i id="git-edit-button" class="fa fa-edit"></i>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <div class="search-wrapper">
+                            <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                            <div class="spinner-wrapper">
+                                <i class="fa fa-spinner fa-spin"></i>
+                            </div>
+                        </div>
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script>
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <h1 id="testing-architecture"><a class="header" href="#testing-architecture">Testing Architecture</a></h1>
+<p>Comprehensive testing strategy for deterministic and reliable tests.</p>
+<h2 id="test-organization"><a class="header" href="#test-organization">Test Organization</a></h2>
+<p>Tests are organized in <code>tests/ratelimiter/</code> with clear separation of concerns:</p>
+<pre><code>tests/ratelimiter/
+├── fixtures/
+│   ├── test_clock.rs      # TestClock implementation
+│   └── mod.rs
+├── gcra_algorithm_tests.rs # Core algorithm correctness
+├── config_tests.rs        # Configuration validation
+├── error_tests.rs         # Error handling and recovery
+├── cleanup_tests.rs       # Memory management
+├── performance_tests.rs   # Performance characteristics
+├── decision_metadata_tests.rs # Decision metadata validation
+└── main.rs               # Test module organization
+</code></pre>
+<h2 id="testclock-design"><a class="header" href="#testclock-design">TestClock Design</a></h2>
+<p>The TestClock is the foundation for deterministic testing.</p>
+<h3 id="implementation"><a class="header" href="#implementation">Implementation</a></h3>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>use std::sync::Arc;
+use std::sync::atomic::{AtomicU64, AtomicBool, Ordering};
+
+pub struct TestClock {
+    time: Arc&lt;AtomicU64&gt;,        // Current time in nanoseconds
+    should_fail: Arc&lt;AtomicBool&gt;, // Failure simulation flag
+}
+
+impl TestClock {
+    pub fn new(initial_time_secs: f64) -&gt; Self {
+        Self {
+            time: Arc::new(AtomicU64::new((initial_time_secs * 1e9) as u64)),
+            should_fail: Arc::new(AtomicBool::new(false)),
+        }
+    }
+
+    pub fn advance(&amp;self, duration_secs: f64) {
+        let duration_nanos = (duration_secs * 1e9) as u64;
+        self.time.fetch_add(duration_nanos, Ordering::SeqCst);
+    }
+
+    pub fn set_time(&amp;self, time_secs: f64) {
+        self.time.store((time_secs * 1e9) as u64, Ordering::SeqCst);
+    }
+
+    pub fn fail_next_call(&amp;self) {
+        self.should_fail.store(true, Ordering::SeqCst);
+    }
+}
+
+impl Clock for TestClock {
+    fn now(&amp;self) -&gt; Result&lt;u64, ClockError&gt; {
+        if self.should_fail.swap(false, Ordering::SeqCst) {
+            return Err(ClockError::SystemTimeError);
+        }
+        Ok(self.time.load(Ordering::SeqCst))
+    }
+}
+<span class="boring">}</span></code></pre></pre>
+<h3 id="key-features"><a class="header" href="#key-features">Key Features</a></h3>
+<ol>
+<li><strong>Deterministic Time</strong>: Controlled time progression</li>
+<li><strong>Thread-Safe</strong>: Can be shared across test threads</li>
+<li><strong>Failure Simulation</strong>: Can simulate clock errors</li>
+<li><strong>Precise Control</strong>: Nanosecond-level manipulation</li>
+</ol>
+<h3 id="usage-example"><a class="header" href="#usage-example">Usage Example</a></h3>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[test]
+fn test_rate_limiting() {
+    let clock = TestClock::new(0.0);
+    let limiter = FluxLimiter::with_config(
+        FluxLimiterConfig::new(10.0, 5.0),
+        clock.clone(),
+    ).unwrap();
+
+    // First request at t=0
+    assert!(limiter.check_request("client1").unwrap().allowed);
+
+    // Advance time by 0.1 seconds
+    clock.advance(0.1);
+
+    // Second request should be allowed
+    assert!(limiter.check_request("client1").unwrap().allowed);
+}
+<span class="boring">}</span></code></pre></pre>
+<h2 id="test-categories"><a class="header" href="#test-categories">Test Categories</a></h2>
+<h3 id="1-gcra-algorithm-tests"><a class="header" href="#1-gcra-algorithm-tests">1. GCRA Algorithm Tests</a></h3>
+<p>Test core algorithm correctness:</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[test]
+fn test_sustained_rate() {
+    let clock = TestClock::new(0.0);
+    let config = FluxLimiterConfig::new(10.0, 0.0); // 10 req/s, no burst
+    let limiter = FluxLimiter::with_config(config, clock.clone()).unwrap();
+
+    // First request allowed
+    assert!(limiter.check_request("client1").unwrap().allowed);
+
+    // Request 0.05s later (too early)
+    clock.advance(0.05);
+    assert!(!limiter.check_request("client1").unwrap().allowed);
+
+    // Request 0.1s after first (exactly on time)
+    clock.advance(0.05);
+    assert!(limiter.check_request("client1").unwrap().allowed);
+}
+<span class="boring">}</span></code></pre></pre>
+<h3 id="2-burst-capacity-tests"><a class="header" href="#2-burst-capacity-tests">2. Burst Capacity Tests</a></h3>
+<p>Verify burst handling:</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[test]
+fn test_burst_capacity() {
+    let clock = TestClock::new(0.0);
+    let config = FluxLimiterConfig::new(10.0, 5.0); // 5 request burst
+    let limiter = FluxLimiter::with_config(config, clock.clone()).unwrap();
+
+    // Should allow ~6 requests immediately (1 + burst)
+    for _ in 0..6 {
+        assert!(limiter.check_request("client1").unwrap().allowed);
+    }
+
+    // 7th request should be denied
+    assert!(!limiter.check_request("client1").unwrap().allowed);
+
+    // After rate interval, allow one more
+    clock.advance(0.1);
+    assert!(limiter.check_request("client1").unwrap().allowed);
+}
+<span class="boring">}</span></code></pre></pre>
+<h3 id="3-configuration-tests"><a class="header" href="#3-configuration-tests">3. Configuration Tests</a></h3>
+<p>Validate configuration handling:</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[test]
+fn test_invalid_rate() {
+    let config = FluxLimiterConfig::new(-10.0, 5.0);
+    let result = FluxLimiter::with_config(config, SystemClock);
+
+    assert!(matches!(result, Err(FluxLimiterError::InvalidRate)));
+}
+
+#[test]
+fn test_invalid_burst() {
+    let config = FluxLimiterConfig::new(10.0, -5.0);
+    let result = FluxLimiter::with_config(config, SystemClock);
+
+    assert!(matches!(result, Err(FluxLimiterError::InvalidBurst)));
+}
+<span class="boring">}</span></code></pre></pre>
+<h3 id="4-error-handling-tests"><a class="header" href="#4-error-handling-tests">4. Error Handling Tests</a></h3>
+<p>Test error scenarios and recovery:</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[test]
+fn test_clock_error_handling() {
+    let clock = TestClock::new(0.0);
+    let limiter = FluxLimiter::with_config(
+        FluxLimiterConfig::new(10.0, 5.0),
+        clock.clone(),
+    ).unwrap();
+
+    // Normal operation
+    assert!(limiter.check_request("client1").unwrap().allowed);
+
+    // Simulate clock failure
+    clock.fail_next_call();
+    let result = limiter.check_request("client1");
+    assert!(matches!(result, Err(FluxLimiterError::ClockError(_))));
+
+    // Verify recovery
+    assert!(limiter.check_request("client1").unwrap().allowed);
+}
+
+#[test]
+fn test_multiple_clock_failures() {
+    let clock = TestClock::new(0.0);
+    let limiter = FluxLimiter::with_config(
+        FluxLimiterConfig::new(10.0, 5.0),
+        clock.clone(),
+    ).unwrap();
+
+    // Multiple consecutive failures
+    for _ in 0..5 {
+        clock.fail_next_call();
+        assert!(limiter.check_request("client1").is_err());
+    }
+
+    // Recovery
+    assert!(limiter.check_request("client1").unwrap().allowed);
+}
+<span class="boring">}</span></code></pre></pre>
+<h3 id="5-cleanup-tests"><a class="header" href="#5-cleanup-tests">5. Cleanup Tests</a></h3>
+<p>Test memory management:</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[test]
+fn test_cleanup_stale_clients() {
+    let clock = TestClock::new(0.0);
+    let limiter = FluxLimiter::with_config(
+        FluxLimiterConfig::new(10.0, 5.0),
+        clock.clone(),
+    ).unwrap();
+
+    // Create some client state
+    limiter.check_request("client1").unwrap();
+    limiter.check_request("client2").unwrap();
+    limiter.check_request("client3").unwrap();
+
+    // Advance time by 1 hour
+    clock.advance(3600.0);
+
+    // Cleanup clients older than 30 minutes
+    let threshold = 30 * 60 * 1_000_000_000u64;
+    let removed = limiter.cleanup_stale_clients(threshold).unwrap();
+
+    assert_eq!(removed, 3);
+}
+<span class="boring">}</span></code></pre></pre>
+<h3 id="6-concurrency-tests"><a class="header" href="#6-concurrency-tests">6. Concurrency Tests</a></h3>
+<p>Test thread safety:</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[test]
+fn test_concurrent_access() {
+    use std::sync::Arc;
+    use std::thread;
+
+    let config = FluxLimiterConfig::new(100.0, 50.0);
+    let limiter = Arc::new(
+        FluxLimiter::with_config(config, SystemClock).unwrap()
+    );
+
+    let handles: Vec&lt;_&gt; = (0..10)
+        .map(|i| {
+            let limiter = Arc::clone(&amp;limiter);
+            thread::spawn(move || {
+                for j in 0..1000 {
+                    let client_id = format!("client_{}_{}", i, j);
+                    limiter.check_request(client_id).unwrap();
+                }
+            })
+        })
+        .collect();
+
+    for handle in handles {
+        handle.join().unwrap();
+    }
+}
+<span class="boring">}</span></code></pre></pre>
+<h3 id="7-decision-metadata-tests"><a class="header" href="#7-decision-metadata-tests">7. Decision Metadata Tests</a></h3>
+<p>Verify decision metadata accuracy:</p>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[test]
+fn test_retry_after_metadata() {
+    let clock = TestClock::new(0.0);
+    let config = FluxLimiterConfig::new(10.0, 0.0);
+    let limiter = FluxLimiter::with_config(config, clock.clone()).unwrap();
+
+    // First request allowed
+    limiter.check_request("client1").unwrap();
+
+    // Second request denied
+    let decision = limiter.check_request("client1").unwrap();
+    assert!(!decision.allowed);
+
+    // Verify retry_after is approximately 0.1 seconds
+    let retry_after = decision.retry_after_seconds.unwrap();
+    assert!((retry_after - 0.1).abs() &lt; 0.001);
+}
+
+#[test]
+fn test_remaining_capacity() {
+    let clock = TestClock::new(0.0);
+    let config = FluxLimiterConfig::new(10.0, 5.0);
+    let limiter = FluxLimiter::with_config(config, clock.clone()).unwrap();
+
+    // First request
+    let decision = limiter.check_request("client1").unwrap();
+    assert!(decision.allowed);
+
+    // Should have some remaining capacity
+    assert!(decision.remaining_capacity.is_some());
+
+    // Make more requests and verify capacity decreases
+    for _ in 0..5 {
+        limiter.check_request("client1").unwrap();
+    }
+
+    // Capacity should be depleted
+    let decision = limiter.check_request("client1").unwrap();
+    assert!(!decision.allowed);
+}
+<span class="boring">}</span></code></pre></pre>
+<h2 id="performance-testing"><a class="header" href="#performance-testing">Performance Testing</a></h2>
+<h3 id="latency-benchmarks"><a class="header" href="#latency-benchmarks">Latency Benchmarks</a></h3>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[cfg(test)]
+mod benchmarks {
+    use super::*;
+    use std::time::Instant;
+
+    #[test]
+    fn bench_check_request_latency() {
+        let limiter = FluxLimiter::with_config(
+            FluxLimiterConfig::new(1000.0, 500.0),
+            SystemClock,
+        ).unwrap();
+
+        let iterations = 100_000;
+        let start = Instant::now();
+
+        for i in 0..iterations {
+            let client_id = format!("client_{}", i % 1000);
+            limiter.check_request(client_id).unwrap();
+        }
+
+        let elapsed = start.elapsed();
+        let avg_latency = elapsed.as_nanos() / iterations;
+
+        println!("Average latency: {}ns", avg_latency);
+        assert!(avg_latency &lt; 1000); // Should be under 1μs
+    }
+}
+<span class="boring">}</span></code></pre></pre>
+<h3 id="throughput-tests"><a class="header" href="#throughput-tests">Throughput Tests</a></h3>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[test]
+fn test_throughput() {
+    let limiter = Arc::new(
+        FluxLimiter::with_config(
+            FluxLimiterConfig::new(10_000.0, 5_000.0),
+            SystemClock,
+        ).unwrap()
+    );
+
+    let start = Instant::now();
+    let threads = 8;
+    let requests_per_thread = 100_000;
+
+    let handles: Vec&lt;_&gt; = (0..threads)
+        .map(|t| {
+            let limiter = Arc::clone(&amp;limiter);
+            thread::spawn(move || {
+                for i in 0..requests_per_thread {
+                    let client_id = format!("client_{}_{}", t, i % 1000);
+                    limiter.check_request(client_id).unwrap();
+                }
+            })
+        })
+        .collect();
+
+    for handle in handles {
+        handle.join().unwrap();
+    }
+
+    let elapsed = start.elapsed();
+    let total_requests = threads * requests_per_thread;
+    let throughput = total_requests as f64 / elapsed.as_secs_f64();
+
+    println!("Throughput: {:.2} req/s", throughput);
+}
+<span class="boring">}</span></code></pre></pre>
+<h2 id="test-utilities"><a class="header" href="#test-utilities">Test Utilities</a></h2>
+<h3 id="helper-functions"><a class="header" href="#helper-functions">Helper Functions</a></h3>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>fn assert_allowed(result: Result&lt;FluxLimiterDecision, FluxLimiterError&gt;) {
+    match result {
+        Ok(decision) =&gt; assert!(decision.allowed, "Expected request to be allowed"),
+        Err(e) =&gt; panic!("Expected allowed decision, got error: {:?}", e),
+    }
+}
+
+fn assert_denied(result: Result&lt;FluxLimiterDecision, FluxLimiterError&gt;) {
+    match result {
+        Ok(decision) =&gt; assert!(!decision.allowed, "Expected request to be denied"),
+        Err(e) =&gt; panic!("Expected denied decision, got error: {:?}", e),
+    }
+}
+
+fn assert_error&lt;T&gt;(result: Result&lt;T, FluxLimiterError&gt;) {
+    assert!(result.is_err(), "Expected error, got success");
+}
+<span class="boring">}</span></code></pre></pre>
+<h3 id="test-fixtures"><a class="header" href="#test-fixtures">Test Fixtures</a></h3>
+<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>fn create_test_limiter(rate: f64, burst: f64) -&gt; (FluxLimiter&lt;String, TestClock&gt;, TestClock) {
+    let clock = TestClock::new(0.0);
+    let config = FluxLimiterConfig::new(rate, burst);
+    let limiter = FluxLimiter::with_config(config, clock.clone()).unwrap();
+    (limiter, clock)
+}
+<span class="boring">}</span></code></pre></pre>
+<h2 id="test-coverage"><a class="header" href="#test-coverage">Test Coverage</a></h2>
+<p>Aim for comprehensive coverage:</p>
+<ul>
+<li>✅ Algorithm correctness</li>
+<li>✅ Configuration validation</li>
+<li>✅ Error handling and recovery</li>
+<li>✅ Concurrency safety</li>
+<li>✅ Memory management</li>
+<li>✅ Decision metadata accuracy</li>
+<li>✅ Performance characteristics</li>
+<li>✅ Edge cases and boundary conditions</li>
+</ul>
+<h2 id="best-practices"><a class="header" href="#best-practices">Best Practices</a></h2>
+<ol>
+<li><strong>Use TestClock</strong> for deterministic time control</li>
+<li><strong>Test Error Paths</strong> including clock failures</li>
+<li><strong>Verify Metadata</strong> not just allow/deny</li>
+<li><strong>Test Concurrency</strong> with multiple threads</li>
+<li><strong>Measure Performance</strong> with benchmarks</li>
+<li><strong>Test Edge Cases</strong> like zero burst, high rates</li>
+<li><strong>Cleanup After Tests</strong> to avoid state leakage</li>
+</ol>
+<h2 id="next-steps"><a class="header" href="#next-steps">Next Steps</a></h2>
+<ul>
+<li><a href="./design-decisions.html">Design Decisions</a> - Understand the rationale</li>
+<li><a href="./future.html">Future Extensibility</a> - Planned enhancements</li>
+</ul>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="../architecture/performance.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+
+                            <a rel="next prefetch" href="../architecture/design-decisions.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="../architecture/performance.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+
+                    <a rel="next prefetch" href="../architecture/design-decisions.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+            </nav>
+
+        </div>
+
+
+
+
+        <script>
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="../elasticlunr.min.js"></script>
+        <script src="../mark.min.js"></script>
+        <script src="../searcher.js"></script>
+
+        <script src="../clipboard.min.js"></script>
+        <script src="../highlight.js"></script>
+        <script src="../book.js"></script>
+
+        <!-- Custom JS scripts -->
+
+
+
+    </div>
+    </body>
+</html>
