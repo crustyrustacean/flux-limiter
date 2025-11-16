@@ -1,6 +1,6 @@
 [package]
 name = "flux-limiter"
-version = "0.6.1"
+version = "0.6.2"
 edition = "2024"
 authors = ["Jeffery D. Mitchell <crusty-rustacean@gmail.com>"]
 description = "A rate limiter based on the Generic Cell Rate Algorithm (GCRA)."
@@ -15,5 +15,5 @@ publish = true
 dashmap = "6.1.0"
 
 [package.metadata.docs.rs]
-features = ["testing"]
+features = []
 rustdoc-args = ["--cfg", "docsrs"]
