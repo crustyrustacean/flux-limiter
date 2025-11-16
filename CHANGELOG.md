@@ -7,10 +7,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.7.1] - 2025-11-16
+
 ### Added
 - Comprehensive mdbook documentation with separate chapters for architecture, guides, and API reference
 - CONTRIBUTING.md with detailed contributor guidelines
 - CHANGELOG.md to track version history
+- Homepage URL in package metadata pointing to GitHub Pages documentation
+- Documentation URL in package metadata pointing to docs.rs
 
 ### Changed
 - Condensed README.md from 356 lines to 70 lines for better readability
@@ -78,7 +82,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - O(number of active clients) memory usage
 - Support for configurable rate and burst capacity
 
-[Unreleased]: https://github.com/crustyrustacean/flux-limiter/compare/v0.6.1...HEAD
+[Unreleased]: https://github.com/crustyrustacean/flux-limiter/compare/v0.7.1...HEAD
+[0.7.1]: https://github.com/crustyrustacean/flux-limiter/compare/v0.6.3...v0.7.1
 [0.6.3]: https://github.com/crustyrustacean/flux-limiter/compare/v0.6.2...v0.6.3
 [0.6.2]: https://github.com/crustyrustacean/flux-limiter/compare/v0.6.1...v0.6.2
 [0.6.1]: https://github.com/crustyrustacean/flux-limiter/releases/tag/v0.6.1
