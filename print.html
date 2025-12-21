@@ -13,21 +13,20 @@
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="theme-color" content="#ffffff">
 
-        <link rel="icon" href="favicon.svg">
-        <link rel="shortcut icon" href="favicon.png">
-        <link rel="stylesheet" href="css/variables.css">
-        <link rel="stylesheet" href="css/general.css">
-        <link rel="stylesheet" href="css/chrome.css">
-        <link rel="stylesheet" href="css/print.css" media="print">
+        <link rel="icon" href="favicon-de23e50b.svg">
+        <link rel="shortcut icon" href="favicon-8114d1fc.png">
+        <link rel="stylesheet" href="css/variables-8adf115d.css">
+        <link rel="stylesheet" href="css/general-2459343d.css">
+        <link rel="stylesheet" href="css/chrome-ae938929.css">
+        <link rel="stylesheet" href="css/print-9e4910d8.css" media="print">
 
         <!-- Fonts -->
-        <link rel="stylesheet" href="FontAwesome/css/font-awesome.css">
-        <link rel="stylesheet" href="fonts/fonts.css">
+        <link rel="stylesheet" href="fonts/fonts-9644e21d.css">
 
         <!-- Highlight.js Stylesheets -->
-        <link rel="stylesheet" id="highlight-css" href="highlight.css">
-        <link rel="stylesheet" id="tomorrow-night-css" href="tomorrow-night.css">
-        <link rel="stylesheet" id="ayu-highlight-css" href="ayu-highlight.css">
+        <link rel="stylesheet" id="mdbook-highlight-css" href="highlight-493f70e1.css">
+        <link rel="stylesheet" id="mdbook-tomorrow-night-css" href="tomorrow-night-4c0ae647.css">
+        <link rel="stylesheet" id="mdbook-ayu-highlight-css" href="ayu-highlight-3fdfc3ac.css">
 
         <!-- Custom theme stylesheets -->
 
@@ -37,10 +36,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex.js";
+            window.path_to_searchindex_js = "searchindex-44c82bb1.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc.js"></script>
+        <script src="toc-ed966b5f.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -54,7 +53,7 @@
             </div>
         </div>
     </div>
-    <div id="body-container">
+    <div id="mdbook-body-container">
         <!-- Work around some values being stored in localStorage wrapped in quotes -->
         <script>
             try {
@@ -83,12 +82,12 @@
             html.classList.add("js");
         </script>
 
-        <input type="checkbox" id="sidebar-toggle-anchor" class="hidden">
+        <input type="checkbox" id="mdbook-sidebar-toggle-anchor" class="hidden">
 
         <!-- Hide / unhide sidebar before it is displayed -->
         <script>
             let sidebar = null;
-            const sidebar_toggle = document.getElementById("sidebar-toggle-anchor");
+            const sidebar_toggle = document.getElementById("mdbook-sidebar-toggle-anchor");
             if (document.body.clientWidth >= 1080) {
                 try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
                 sidebar = sidebar || 'visible';
@@ -103,39 +102,39 @@
             }
         </script>
 
-        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+        <nav id="mdbook-sidebar" class="sidebar" aria-label="Table of contents">
             <!-- populated by js -->
             <mdbook-sidebar-scrollbox class="sidebar-scrollbox"></mdbook-sidebar-scrollbox>
             <noscript>
                 <iframe class="sidebar-iframe-outer" src="toc.html"></iframe>
             </noscript>
-            <div id="sidebar-resize-handle" class="sidebar-resize-handle">
+            <div id="mdbook-sidebar-resize-handle" class="sidebar-resize-handle">
                 <div class="sidebar-resize-indicator"></div>
             </div>
         </nav>
 
-        <div id="page-wrapper" class="page-wrapper">
+        <div id="mdbook-page-wrapper" class="page-wrapper">
 
             <div class="page">
-                <div id="menu-bar-hover-placeholder"></div>
-                <div id="menu-bar" class="menu-bar sticky">
+                <div id="mdbook-menu-bar-hover-placeholder"></div>
+                <div id="mdbook-menu-bar" class="menu-bar sticky">
                     <div class="left-buttons">
-                        <label id="sidebar-toggle" class="icon-button" for="sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
-                            <i class="fa fa-bars"></i>
+                        <label id="mdbook-sidebar-toggle" class="icon-button" for="mdbook-sidebar-toggle-anchor" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="mdbook-sidebar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 448 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M0 96C0 78.3 14.3 64 32 64H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32C14.3 128 0 113.7 0 96zM0 256c0-17.7 14.3-32 32-32H416c17.7 0 32 14.3 32 32s-14.3 32-32 32H32c-17.7 0-32-14.3-32-32zM448 416c0 17.7-14.3 32-32 32H32c-17.7 0-32-14.3-32-32s14.3-32 32-32H416c17.7 0 32 14.3 32 32z"/></svg></span>
                         </label>
-                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
-                            <i class="fa fa-paint-brush"></i>
+                        <button id="mdbook-theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="mdbook-theme-list">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M371.3 367.1c27.3-3.9 51.9-19.4 67.2-42.9L600.2 74.1c12.6-19.5 9.4-45.3-7.6-61.2S549.7-4.4 531.1 9.6L294.4 187.2c-24 18-38.2 46.1-38.4 76.1L371.3 367.1zm-19.6 25.4l-116-104.4C175.9 290.3 128 339.6 128 400c0 3.9 .2 7.8 .6 11.6c1.8 17.5-10.2 36.4-27.8 36.4H96c-17.7 0-32 14.3-32 32s14.3 32 32 32H240c61.9 0 112-50.1 112-112c0-2.5-.1-5-.2-7.5z"/></svg></span>
                         </button>
-                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
-                            <li role="none"><button role="menuitem" class="theme" id="default_theme">Auto</button></li>
-                            <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
-                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust</button></li>
-                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
-                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
-                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        <ul id="mdbook-theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-default_theme">Auto</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-rust">Rust</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="mdbook-theme-ayu">Ayu</button></li>
                         </ul>
-                        <button id="search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="searchbar">
-                            <i class="fa fa-search"></i>
+                        <button id="mdbook-search-toggle" class="icon-button" type="button" title="Search (`/`)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="/ s" aria-controls="mdbook-searchbar">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M416 208c0 45.9-14.9 88.3-40 122.7L502.6 457.4c12.5 12.5 12.5 32.8 0 45.3s-32.8 12.5-45.3 0L330.7 376c-34.4 25.2-76.8 40-122.7 40C93.1 416 0 322.9 0 208S93.1 0 208 0S416 93.1 416 208zM208 352c79.5 0 144-64.5 144-144s-64.5-144-144-144S64 128.5 64 208s64.5 144 144 144z"/></svg></span>
                         </button>
                     </div>
 
@@ -143,41 +142,41 @@
 
                     <div class="right-buttons">
                         <a href="print.html" title="Print this book" aria-label="Print this book">
-                            <i id="print-button" class="fa fa-print"></i>
+                            <span class=fa-svg id="print-button"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M128 0C92.7 0 64 28.7 64 64v96h64V64H354.7L384 93.3V160h64V93.3c0-17-6.7-33.3-18.7-45.3L400 18.7C388 6.7 371.7 0 354.7 0H128zM384 352v32 64H128V384 368 352H384zm64 32h32c17.7 0 32-14.3 32-32V256c0-35.3-28.7-64-64-64H64c-35.3 0-64 28.7-64 64v96c0 17.7 14.3 32 32 32H64v64c0 35.3 28.7 64 64 64H384c35.3 0 64-28.7 64-64V384zm-16-88c-13.3 0-24-10.7-24-24s10.7-24 24-24s24 10.7 24 24s-10.7 24-24 24z"/></svg></span>
                         </a>
-                        <a href="https://github.com/anthropics/flux-limiter" title="Git repository" aria-label="Git repository">
-                            <i id="git-repository-button" class="fa fa-github"></i>
+                        <a href="https://github.com/crustyrustacean/flux-limiter" title="Git repository" aria-label="Git repository">
+                            <span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 496 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M165.9 397.4c0 2-2.3 3.6-5.2 3.6-3.3.3-5.6-1.3-5.6-3.6 0-2 2.3-3.6 5.2-3.6 3-.3 5.6 1.3 5.6 3.6zm-31.1-4.5c-.7 2 1.3 4.3 4.3 4.9 2.6 1 5.6 0 6.2-2s-1.3-4.3-4.3-5.2c-2.6-.7-5.5.3-6.2 2.3zm44.2-1.7c-2.9.7-4.9 2.6-4.6 4.9.3 2 2.9 3.3 5.9 2.6 2.9-.7 4.9-2.6 4.6-4.6-.3-1.9-3-3.2-5.9-2.9zM244.8 8C106.1 8 0 113.3 0 252c0 110.9 69.8 205.8 169.5 239.2 12.8 2.3 17.3-5.6 17.3-12.1 0-6.2-.3-40.4-.3-61.4 0 0-70 15-84.7-29.8 0 0-11.4-29.1-27.8-36.6 0 0-22.9-15.7 1.6-15.4 0 0 24.9 2 38.6 25.8 21.9 38.6 58.6 27.5 72.9 20.9 2.3-16 8.8-27.1 16-33.7-55.9-6.2-112.3-14.3-112.3-110.5 0-27.5 7.6-41.3 23.6-58.9-2.6-6.5-11.1-33.3 2.6-67.9 20.9-6.5 69 27 69 27 20-5.6 41.5-8.5 62.8-8.5s42.8 2.9 62.8 8.5c0 0 48.1-33.6 69-27 13.7 34.7 5.2 61.4 2.6 67.9 16 17.7 25.8 31.5 25.8 58.9 0 96.5-58.9 104.2-114.8 110.5 9.2 7.9 17 22.9 17 46.4 0 33.7-.3 75.4-.3 83.6 0 6.5 4.6 14.4 17.3 12.1C428.2 457.8 496 362.9 496 252 496 113.3 383.5 8 244.8 8zM97.2 352.9c-1.3 1-1 3.3.7 5.2 1.6 1.6 3.9 2.3 5.2 1 1.3-1 1-3.3-.7-5.2-1.6-1.6-3.9-2.3-5.2-1zm-10.8-8.1c-.7 1.3.3 2.9 2.3 3.9 1.6 1 3.6.7 4.3-.7.7-1.3-.3-2.9-2.3-3.9-2-.6-3.6-.3-4.3.7zm32.4 35.6c-1.6 1.3-1 4.3 1.3 6.2 2.3 2.3 5.2 2.6 6.5 1 1.3-1.3.7-4.3-1.3-6.2-2.2-2.3-5.2-2.6-6.5-1zm-11.4-14.7c-1.6 1-1.6 3.6 0 5.9 1.6 2.3 4.3 3.3 5.6 2.3 1.6-1.3 1.6-3.9 0-6.2-1.4-2.3-4-3.3-5.6-2z"/></svg></span>
                         </a>
 
                     </div>
                 </div>
 
-                <div id="search-wrapper" class="hidden">
-                    <form id="searchbar-outer" class="searchbar-outer">
+                <div id="mdbook-search-wrapper" class="hidden">
+                    <form id="mdbook-searchbar-outer" class="searchbar-outer">
                         <div class="search-wrapper">
-                            <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                            <input type="search" id="mdbook-searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="mdbook-searchresults-outer" aria-describedby="searchresults-header">
                             <div class="spinner-wrapper">
-                                <i class="fa fa-spinner fa-spin"></i>
+                                <span class=fa-svg id="fa-spin"><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M304 48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zm0 416c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM48 304c26.5 0 48-21.5 48-48s-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48zm464-48c0-26.5-21.5-48-48-48s-48 21.5-48 48s21.5 48 48 48s48-21.5 48-48zM142.9 437c18.7-18.7 18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zm0-294.2c18.7-18.7 18.7-49.1 0-67.9S93.7 56.2 75 75s-18.7 49.1 0 67.9s49.1 18.7 67.9 0zM369.1 437c18.7 18.7 49.1 18.7 67.9 0s18.7-49.1 0-67.9s-49.1-18.7-67.9 0s-18.7 49.1 0 67.9z"/></svg></span>
                             </div>
                         </div>
                     </form>
-                    <div id="searchresults-outer" class="searchresults-outer hidden">
-                        <div id="searchresults-header" class="searchresults-header"></div>
-                        <ul id="searchresults">
+                    <div id="mdbook-searchresults-outer" class="searchresults-outer hidden">
+                        <div id="mdbook-searchresults-header" class="searchresults-header"></div>
+                        <ul id="mdbook-searchresults">
                         </ul>
                     </div>
                 </div>
 
                 <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
                 <script>
-                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
-                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
-                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                    document.getElementById('mdbook-sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('mdbook-sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#mdbook-sidebar a')).forEach(function(link) {
                         link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
                     });
                 </script>
 
-                <div id="content" class="content">
+                <div id="mdbook-content" class="content">
                     <main>
                         <h1 id="flux-limiter"><a class="header" href="#flux-limiter">Flux Limiter</a></h1>
 <p>A high-performance rate limiter based on the Generic Cell Rate Algorithm (GCRA) with nanosecond precision and lock-free concurrent access.</p>
@@ -194,7 +193,7 @@
 <li><strong>Zero allocations</strong>: Efficient hot path with minimal overhead</li>
 </ul>
 <h2 id="what-is-rate-limiting"><a class="header" href="#what-is-rate-limiting">What is Rate Limiting?</a></h2>
-<p>Rate limiting is a technique used to control the rate at which requests or operations are processed. It's commonly used to:</p>
+<p>Rate limiting is a technique used to control the rate at which requests or operations are processed. It’s commonly used to:</p>
 <ul>
 <li><strong>Protect services</strong>: Prevent abuse and ensure fair resource allocation</li>
 <li><strong>Control costs</strong>: Limit API usage to manage infrastructure costs</li>
@@ -229,16 +228,17 @@
 </ul>
 <h2 id="next-steps"><a class="header" href="#next-steps">Next Steps</a></h2>
 <ul>
-<li><a href="./getting-started/installation.html">Installation</a> - Add Flux Limiter to your project</li>
-<li><a href="./getting-started/quick-start.html">Quick Start</a> - Get started in minutes</li>
-<li><a href="./architecture/overview.html">Architecture</a> - Understand the design and implementation</li>
+<li><a href="#installation">Installation</a> - Add Flux Limiter to your project</li>
+<li><a href="#quick-start">Quick Start</a> - Get started in minutes</li>
+<li><a href="#architecture-overview">Architecture</a> - Understand the design and implementation</li>
 </ul>
-<div style="break-before: page; page-break-before: always;"></div><h1 id="installation"><a class="header" href="#installation">Installation</a></h1>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="installation"><a class="header" href="#installation">Installation</a></h1>
 <p>Add Flux Limiter to your Rust project using Cargo.</p>
 <h2 id="adding-to-cargotoml"><a class="header" href="#adding-to-cargotoml">Adding to Cargo.toml</a></h2>
 <p>Add this to your <code>Cargo.toml</code>:</p>
 <pre><code class="language-toml">[dependencies]
-flux-limiter = "0.4.0"
+flux-limiter = "0.7.2"
 </code></pre>
 <h2 id="alternative-using-cargo-add"><a class="header" href="#alternative-using-cargo-add">Alternative: Using Cargo Add</a></h2>
 <p>If you have <code>cargo-edit</code> installed, you can use:</p>
@@ -246,7 +246,7 @@ flux-limiter = "0.4.0"
 </code></pre>
 <h2 id="verify-installation"><a class="header" href="#verify-installation">Verify Installation</a></h2>
 <p>Create a simple example to verify the installation:</p>
-<pre><pre class="playground"><code class="language-rust">use flux_limiter::{FluxLimiter, FluxLimiterConfig, SystemClock};
+<pre class="playground"><code class="language-rust">use flux_limiter::{FluxLimiter, FluxLimiterConfig, SystemClock};
 
 fn main() {
     let config = FluxLimiterConfig::new(10.0, 5.0);
@@ -260,7 +260,7 @@ fn main() {
             eprintln!("Error: {}", e);
         }
     }
-}</code></pre></pre>
+}</code></pre>
 <p>Run with:</p>
 <pre><code class="language-bash">cargo run
 </code></pre>
@@ -270,13 +270,14 @@ fn main() {
 <h2 id="next-steps-1"><a class="header" href="#next-steps-1">Next Steps</a></h2>
 <p>Now that you have Flux Limiter installed, proceed to:</p>
 <ul>
-<li><a href="getting-started/./quick-start.html">Quick Start</a> - Learn the basics</li>
-<li><a href="getting-started/./configuration.html">Configuration</a> - Understand rate and burst settings</li>
+<li><a href="#quick-start">Quick Start</a> - Learn the basics</li>
+<li><a href="#configuration">Configuration</a> - Understand rate and burst settings</li>
 </ul>
-<div style="break-before: page; page-break-before: always;"></div><h1 id="quick-start"><a class="header" href="#quick-start">Quick Start</a></h1>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="quick-start"><a class="header" href="#quick-start">Quick Start</a></h1>
 <p>Get started with Flux Limiter in just a few minutes.</p>
 <h2 id="basic-example"><a class="header" href="#basic-example">Basic Example</a></h2>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>use flux_limiter::{FluxLimiter, FluxLimiterConfig, SystemClock};
 
@@ -299,9 +300,9 @@ match limiter.check_request("user_123") {
         // Handle error appropriately (e.g., allow request, log error)
     }
 }
-<span class="boring">}</span></code></pre></pre>
+<span class="boring">}</span></code></pre>
 <h2 id="understanding-the-example"><a class="header" href="#understanding-the-example">Understanding the Example</a></h2>
-<p>Let's break down what's happening:</p>
+<p>Let’s break down what’s happening:</p>
 <ol>
 <li>
 <p><strong>Create Configuration</strong>: <code>FluxLimiterConfig::new(10.0, 5.0)</code></p>
@@ -322,7 +323,7 @@ match limiter.check_request("user_123") {
 <li>
 <p><strong>Check Request</strong>: <code>limiter.check_request("user_123")</code></p>
 <ul>
-<li>Checks if the client "user_123" can make a request</li>
+<li>Checks if the client “user_123” can make a request</li>
 <li>Returns rich metadata about the decision</li>
 <li>Automatically updates internal state</li>
 </ul>
@@ -330,7 +331,7 @@ match limiter.check_request("user_123") {
 </ol>
 <h2 id="decision-metadata"><a class="header" href="#decision-metadata">Decision Metadata</a></h2>
 <p>The <code>FluxLimiterDecision</code> struct provides detailed information:</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>pub struct FluxLimiterDecision {
     pub allowed: bool,                    // Whether to allow the request
@@ -338,9 +339,9 @@ match limiter.check_request("user_123") {
     pub remaining_capacity: Option&lt;f64&gt;,  // Remaining burst capacity
     pub reset_time_nanos: u64,           // When the window resets
 }
-<span class="boring">}</span></code></pre></pre>
+<span class="boring">}</span></code></pre>
 <h3 id="using-decision-metadata"><a class="header" href="#using-decision-metadata">Using Decision Metadata</a></h3>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>match limiter.check_request("user_123") {
     Ok(decision) =&gt; {
@@ -359,10 +360,10 @@ match limiter.check_request("user_123") {
         eprintln!("Error: {}", e);
     }
 }
-<span class="boring">}</span></code></pre></pre>
+<span class="boring">}</span></code></pre>
 <h2 id="multiple-clients"><a class="header" href="#multiple-clients">Multiple Clients</a></h2>
 <p>Flux Limiter automatically tracks state for each unique client:</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>let config = FluxLimiterConfig::new(10.0, 5.0);
 let limiter = FluxLimiter::with_config(config, SystemClock).unwrap();
@@ -373,10 +374,10 @@ limiter.check_request("user_2").unwrap();
 limiter.check_request("user_3").unwrap();
 
 // Each client is tracked separately
-<span class="boring">}</span></code></pre></pre>
+<span class="boring">}</span></code></pre>
 <h2 id="thread-safety"><a class="header" href="#thread-safety">Thread Safety</a></h2>
 <p>Flux Limiter is thread-safe and can be shared across threads:</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>use std::sync::Arc;
 use std::thread;
@@ -399,23 +400,24 @@ for handle in handles {
     let result = handle.join().unwrap();
     println!("Result: {:?}", result);
 }
-<span class="boring">}</span></code></pre></pre>
+<span class="boring">}</span></code></pre>
 <h2 id="next-steps-2"><a class="header" href="#next-steps-2">Next Steps</a></h2>
 <ul>
-<li><a href="getting-started/./configuration.html">Configuration</a> - Learn about rate and burst configuration</li>
-<li><a href="getting-started/../guide/basic-usage.html">Basic Usage</a> - Explore common usage patterns</li>
-<li><a href="getting-started/../guide/error-handling.html">Error Handling</a> - Handle errors gracefully</li>
+<li><a href="#configuration">Configuration</a> - Learn about rate and burst configuration</li>
+<li><a href="#basic-usage">Basic Usage</a> - Explore common usage patterns</li>
+<li><a href="#error-handling">Error Handling</a> - Handle errors gracefully</li>
 </ul>
-<div style="break-before: page; page-break-before: always;"></div><h1 id="configuration"><a class="header" href="#configuration">Configuration</a></h1>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="configuration"><a class="header" href="#configuration">Configuration</a></h1>
 <p>Learn how to configure Flux Limiter for your specific use case.</p>
 <h2 id="configuration-basics"><a class="header" href="#configuration-basics">Configuration Basics</a></h2>
 <p>Flux Limiter uses <code>FluxLimiterConfig</code> for configuration:</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>use flux_limiter::FluxLimiterConfig;
 
 let config = FluxLimiterConfig::new(rate_per_second, burst_capacity);
-<span class="boring">}</span></code></pre></pre>
+<span class="boring">}</span></code></pre>
 <h2 id="rate-parameter"><a class="header" href="#rate-parameter">Rate Parameter</a></h2>
 <p>The <strong>rate</strong> parameter defines the sustained requests per second.</p>
 <ul>
@@ -423,11 +425,11 @@ let config = FluxLimiterConfig::new(rate_per_second, burst_capacity);
 <li>Defines the steady-state request rate</li>
 <li>Example: <code>rate = 100.0</code> means 100 requests per second</li>
 </ul>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>// 100 requests per second sustained
 let config = FluxLimiterConfig::new(100.0, 0.0);
-<span class="boring">}</span></code></pre></pre>
+<span class="boring">}</span></code></pre>
 <h3 id="understanding-rate"><a class="header" href="#understanding-rate">Understanding Rate</a></h3>
 <p>The rate translates to a time interval between requests:</p>
 <ul>
@@ -442,11 +444,11 @@ let config = FluxLimiterConfig::new(100.0, 0.0);
 <li>Allows temporary spikes above the sustained rate</li>
 <li>Example: <code>burst = 50.0</code> allows bursts of ~50 additional requests</li>
 </ul>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>// 100 requests per second with burst capacity of 50
 let config = FluxLimiterConfig::new(100.0, 50.0);
-<span class="boring">}</span></code></pre></pre>
+<span class="boring">}</span></code></pre>
 <h3 id="understanding-burst"><a class="header" href="#understanding-burst">Understanding Burst</a></h3>
 <ul>
 <li><strong>Total capacity</strong>: Approximately <code>1 + burst</code> requests can be made immediately</li>
@@ -463,12 +465,12 @@ let config = FluxLimiterConfig::new(100.0, 50.0);
 </ol>
 <h2 id="builder-pattern"><a class="header" href="#builder-pattern">Builder Pattern</a></h2>
 <p>Use the builder pattern for clearer configuration:</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>let config = FluxLimiterConfig::new(0.0, 0.0)
     .rate(100.0)        // 100 requests per second
     .burst(50.0);       // Allow bursts of up to 50 requests
-<span class="boring">}</span></code></pre></pre>
+<span class="boring">}</span></code></pre>
 <p>This approach is especially useful when you want to:</p>
 <ul>
 <li>Start with default values and override specific settings</li>
@@ -476,11 +478,11 @@ let config = FluxLimiterConfig::new(100.0, 50.0);
 </ul>
 <h2 id="common-configuration-patterns"><a class="header" href="#common-configuration-patterns">Common Configuration Patterns</a></h2>
 <h3 id="strict-rate-limiting-no-burst"><a class="header" href="#strict-rate-limiting-no-burst">Strict Rate Limiting (No Burst)</a></h3>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>// Exactly 10 requests per second, no burst allowed
 let config = FluxLimiterConfig::new(10.0, 0.0);
-<span class="boring">}</span></code></pre></pre>
+<span class="boring">}</span></code></pre>
 <p>Use when:</p>
 <ul>
 <li>You need strict, predictable rate limiting</li>
@@ -488,11 +490,11 @@ let config = FluxLimiterConfig::new(10.0, 0.0);
 <li>You want simple, consistent behavior</li>
 </ul>
 <h3 id="flexible-rate-limiting-with-burst"><a class="header" href="#flexible-rate-limiting-with-burst">Flexible Rate Limiting (With Burst)</a></h3>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>// 10 requests per second with burst of 20
 let config = FluxLimiterConfig::new(10.0, 20.0);
-<span class="boring">}</span></code></pre></pre>
+<span class="boring">}</span></code></pre>
 <p>Use when:</p>
 <ul>
 <li>User experience benefits from handling short bursts</li>
@@ -500,11 +502,11 @@ let config = FluxLimiterConfig::new(10.0, 20.0);
 <li>You want to allow occasional bursty traffic</li>
 </ul>
 <h3 id="api-gateway-configuration"><a class="header" href="#api-gateway-configuration">API Gateway Configuration</a></h3>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>// 1000 requests per second with generous burst
 let config = FluxLimiterConfig::new(1000.0, 500.0);
-<span class="boring">}</span></code></pre></pre>
+<span class="boring">}</span></code></pre>
 <p>Use for:</p>
 <ul>
 <li>High-throughput API gateways</li>
@@ -512,12 +514,12 @@ let config = FluxLimiterConfig::new(1000.0, 500.0);
 <li>Preventing extreme abuse while allowing normal traffic</li>
 </ul>
 <h3 id="free-tier-api-configuration"><a class="header" href="#free-tier-api-configuration">Free Tier API Configuration</a></h3>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>// 10 requests per minute (0.1667 per second) with small burst
 let rate_per_minute = 10.0 / 60.0;
 let config = FluxLimiterConfig::new(rate_per_minute, 5.0);
-<span class="boring">}</span></code></pre></pre>
+<span class="boring">}</span></code></pre>
 <p>Use for:</p>
 <ul>
 <li>Free tier API limits</li>
@@ -526,7 +528,7 @@ let config = FluxLimiterConfig::new(rate_per_minute, 5.0);
 </ul>
 <h2 id="configuration-validation"><a class="header" href="#configuration-validation">Configuration Validation</a></h2>
 <p>Configuration is validated when creating the rate limiter:</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>use flux_limiter::{FluxLimiterConfig, FluxLimiterError};
 
@@ -539,7 +541,7 @@ match FluxLimiter::with_config(config, SystemClock) {
     }
     Err(e) =&gt; eprintln!("Error: {}", e),
 }
-<span class="boring">}</span></code></pre></pre>
+<span class="boring">}</span></code></pre>
 <h3 id="validation-rules"><a class="header" href="#validation-rules">Validation Rules</a></h3>
 <ul>
 <li><strong>InvalidRate</strong>: Returned if rate ≤ 0</li>
@@ -547,7 +549,7 @@ match FluxLimiter::with_config(config, SystemClock) {
 </ul>
 <h3 id="manual-validation"><a class="header" href="#manual-validation">Manual Validation</a></h3>
 <p>You can validate configuration before creating the limiter:</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>match config.validate() {
     Ok(_) =&gt; println!("Configuration is valid"),
@@ -559,10 +561,10 @@ match FluxLimiter::with_config(config, SystemClock) {
     }
     Err(e) =&gt; eprintln!("Configuration error: {}", e),
 }
-<span class="boring">}</span></code></pre></pre>
+<span class="boring">}</span></code></pre>
 <h2 id="dynamic-configuration"><a class="header" href="#dynamic-configuration">Dynamic Configuration</a></h2>
-<p>While Flux Limiter doesn't support runtime configuration changes, you can work around this:</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+<p>While Flux Limiter doesn’t support runtime configuration changes, you can work around this:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>use std::sync::Arc;
 use parking_lot::RwLock;
@@ -581,19 +583,20 @@ impl DynamicRateLimiter {
         self.limiter.read().check_request(client_id)
     }
 }
-<span class="boring">}</span></code></pre></pre>
+<span class="boring">}</span></code></pre>
 <p><strong>Note</strong>: Changing configuration resets all client state.</p>
 <h2 id="next-steps-3"><a class="header" href="#next-steps-3">Next Steps</a></h2>
 <ul>
-<li><a href="getting-started/../guide/basic-usage.html">Basic Usage</a> - Learn common usage patterns</li>
-<li><a href="getting-started/../guide/advanced-usage.html">Advanced Usage</a> - Explore advanced features</li>
-<li><a href="getting-started/../guide/web-integration.html">Web Integration</a> - Integrate with web frameworks</li>
+<li><a href="#basic-usage">Basic Usage</a> - Learn common usage patterns</li>
+<li><a href="#advanced-usage">Advanced Usage</a> - Explore advanced features</li>
+<li><a href="#web-framework-integration">Web Integration</a> - Integrate with web frameworks</li>
 </ul>
-<div style="break-before: page; page-break-before: always;"></div><h1 id="basic-usage"><a class="header" href="#basic-usage">Basic Usage</a></h1>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="basic-usage"><a class="header" href="#basic-usage">Basic Usage</a></h1>
 <p>Common patterns and best practices for using Flux Limiter.</p>
 <h2 id="simple-rate-limiting"><a class="header" href="#simple-rate-limiting">Simple Rate Limiting</a></h2>
 <p>The most basic use case - check if a request should be allowed:</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>use flux_limiter::{FluxLimiter, FluxLimiterConfig, SystemClock};
 
@@ -615,19 +618,19 @@ match limiter.check_request("user_123") {
         eprintln!("Error: {}", e);
     }
 }
-<span class="boring">}</span></code></pre></pre>
+<span class="boring">}</span></code></pre>
 <h2 id="working-with-different-client-id-types"><a class="header" href="#working-with-different-client-id-types">Working with Different Client ID Types</a></h2>
 <h3 id="string-client-ids"><a class="header" href="#string-client-ids">String Client IDs</a></h3>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>// User IDs, session IDs, API keys
 let limiter = FluxLimiter::&lt;String, _&gt;::with_config(config, SystemClock).unwrap();
 
 limiter.check_request("user_123".to_string())?;
 limiter.check_request("session_abc".to_string())?;
-<span class="boring">}</span></code></pre></pre>
+<span class="boring">}</span></code></pre>
 <h3 id="ip-address-client-ids"><a class="header" href="#ip-address-client-ids">IP Address Client IDs</a></h3>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>use std::net::IpAddr;
 
@@ -635,18 +638,18 @@ let limiter = FluxLimiter::&lt;IpAddr, _&gt;::with_config(config, SystemClock).u
 
 let client_ip: IpAddr = "192.168.1.1".parse().unwrap();
 limiter.check_request(client_ip)?;
-<span class="boring">}</span></code></pre></pre>
+<span class="boring">}</span></code></pre>
 <h3 id="numeric-client-ids"><a class="header" href="#numeric-client-ids">Numeric Client IDs</a></h3>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>// High-performance numeric IDs
 let limiter = FluxLimiter::&lt;u64, _&gt;::with_config(config, SystemClock).unwrap();
 
 limiter.check_request(12345)?;
 limiter.check_request(67890)?;
-<span class="boring">}</span></code></pre></pre>
+<span class="boring">}</span></code></pre>
 <h3 id="custom-client-ids"><a class="header" href="#custom-client-ids">Custom Client IDs</a></h3>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>use std::hash::{Hash, Hasher};
 
@@ -664,19 +667,19 @@ let client = ClientId {
 };
 
 limiter.check_request(client)?;
-<span class="boring">}</span></code></pre></pre>
+<span class="boring">}</span></code></pre>
 <h2 id="accessing-configuration"><a class="header" href="#accessing-configuration">Accessing Configuration</a></h2>
 <p>You can query the current rate limiter configuration:</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>let limiter = FluxLimiter::with_config(config, SystemClock).unwrap();
 
 println!("Rate: {} req/sec", limiter.rate());
 println!("Burst: {}", limiter.burst());
-<span class="boring">}</span></code></pre></pre>
+<span class="boring">}</span></code></pre>
 <h2 id="using-decision-metadata-1"><a class="header" href="#using-decision-metadata-1">Using Decision Metadata</a></h2>
 <h3 id="extracting-all-metadata"><a class="header" href="#extracting-all-metadata">Extracting All Metadata</a></h3>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>match limiter.check_request("user_123") {
     Ok(decision) =&gt; {
@@ -694,9 +697,9 @@ println!("Burst: {}", limiter.burst());
     }
     Err(e) =&gt; eprintln!("Error: {}", e),
 }
-<span class="boring">}</span></code></pre></pre>
+<span class="boring">}</span></code></pre>
 <h3 id="computing-reset-time"><a class="header" href="#computing-reset-time">Computing Reset Time</a></h3>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>use std::time::{SystemTime, UNIX_EPOCH, Duration};
 
@@ -713,10 +716,10 @@ match limiter.check_request("user_123") {
     }
     Err(e) =&gt; eprintln!("Error: {}", e),
 }
-<span class="boring">}</span></code></pre></pre>
+<span class="boring">}</span></code></pre>
 <h2 id="sharing-across-threads"><a class="header" href="#sharing-across-threads">Sharing Across Threads</a></h2>
 <p>Flux Limiter is thread-safe and designed to be shared:</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>use std::sync::Arc;
 use std::thread;
@@ -741,10 +744,10 @@ for handle in handles {
         Err(e) =&gt; eprintln!("Error: {}", e),
     }
 }
-<span class="boring">}</span></code></pre></pre>
+<span class="boring">}</span></code></pre>
 <h2 id="async-usage"><a class="header" href="#async-usage">Async Usage</a></h2>
 <p>While Flux Limiter is synchronous, it works seamlessly in async contexts:</p>
-<pre><pre class="playground"><code class="language-rust">use std::sync::Arc;
+<pre class="playground"><code class="language-rust">use std::sync::Arc;
 use tokio;
 
 #[tokio::main]
@@ -766,10 +769,10 @@ async fn main() {
     })
     .await
     .unwrap();
-}</code></pre></pre>
+}</code></pre>
 <h2 id="multiple-rate-limiters"><a class="header" href="#multiple-rate-limiters">Multiple Rate Limiters</a></h2>
 <p>You can create different rate limiters for different purposes:</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>// Global rate limiter
 let global_limiter = FluxLimiter::with_config(
@@ -796,9 +799,9 @@ fn check_both_limits(user_id: &amp;str) -&gt; bool {
         Err(_) =&gt; false,
     }
 }
-<span class="boring">}</span></code></pre></pre>
+<span class="boring">}</span></code></pre>
 <h2 id="idiomatic-error-handling"><a class="header" href="#idiomatic-error-handling">Idiomatic Error Handling</a></h2>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>use flux_limiter::{FluxLimiter, FluxLimiterError};
 
@@ -817,18 +820,19 @@ fn process_request(limiter: &amp;FluxLimiter&lt;String, SystemClock&gt;, client_
     // Process the request
     Ok(())
 }
-<span class="boring">}</span></code></pre></pre>
+<span class="boring">}</span></code></pre>
 <h2 id="next-steps-4"><a class="header" href="#next-steps-4">Next Steps</a></h2>
 <ul>
-<li><a href="guide/./error-handling.html">Error Handling</a> - Handle errors gracefully</li>
-<li><a href="guide/./advanced-usage.html">Advanced Usage</a> - Memory management and optimization</li>
-<li><a href="guide/./web-integration.html">Web Integration</a> - Use with web frameworks</li>
+<li><a href="#error-handling">Error Handling</a> - Handle errors gracefully</li>
+<li><a href="#advanced-usage">Advanced Usage</a> - Memory management and optimization</li>
+<li><a href="#web-framework-integration">Web Integration</a> - Use with web frameworks</li>
 </ul>
-<div style="break-before: page; page-break-before: always;"></div><h1 id="error-handling"><a class="header" href="#error-handling">Error Handling</a></h1>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="error-handling"><a class="header" href="#error-handling">Error Handling</a></h1>
 <p>Comprehensive guide to handling errors in Flux Limiter.</p>
 <h2 id="error-types"><a class="header" href="#error-types">Error Types</a></h2>
 <p>Flux Limiter provides a well-defined error hierarchy:</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>pub enum FluxLimiterError {
     InvalidRate,           // Configuration: rate ≤ 0
@@ -839,11 +843,11 @@ fn process_request(limiter: &amp;FluxLimiter&lt;String, SystemClock&gt;, client_
 pub enum ClockError {
     SystemTimeError,       // System time unavailable
 }
-<span class="boring">}</span></code></pre></pre>
+<span class="boring">}</span></code></pre>
 <h2 id="configuration-errors"><a class="header" href="#configuration-errors">Configuration Errors</a></h2>
 <p>Configuration errors occur when creating a rate limiter with invalid settings.</p>
 <h3 id="invalidrate-error"><a class="header" href="#invalidrate-error">InvalidRate Error</a></h3>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>use flux_limiter::{FluxLimiterConfig, FluxLimiter, SystemClock, FluxLimiterError};
 
@@ -857,9 +861,9 @@ match FluxLimiter::with_config(config, SystemClock) {
     }
     Err(e) =&gt; eprintln!("Other error: {}", e),
 }
-<span class="boring">}</span></code></pre></pre>
+<span class="boring">}</span></code></pre>
 <h3 id="invalidburst-error"><a class="header" href="#invalidburst-error">InvalidBurst Error</a></h3>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>// Invalid: burst must be non-negative
 let config = FluxLimiterConfig::new(10.0, -5.0);
@@ -871,10 +875,10 @@ match FluxLimiter::with_config(config, SystemClock) {
     }
     Err(e) =&gt; eprintln!("Other error: {}", e),
 }
-<span class="boring">}</span></code></pre></pre>
+<span class="boring">}</span></code></pre>
 <h3 id="handling-configuration-errors"><a class="header" href="#handling-configuration-errors">Handling Configuration Errors</a></h3>
 <p>Configuration errors should be caught early, typically at application startup:</p>
-<pre><pre class="playground"><code class="language-rust">fn create_rate_limiter() -&gt; Result&lt;FluxLimiter&lt;String, SystemClock&gt;, String&gt; {
+<pre class="playground"><code class="language-rust">fn create_rate_limiter() -&gt; Result&lt;FluxLimiter&lt;String, SystemClock&gt;, String&gt; {
     let config = FluxLimiterConfig::new(100.0, 50.0);
 
     FluxLimiter::with_config(config, SystemClock)
@@ -894,7 +898,7 @@ fn main() {
         .expect("Failed to create rate limiter with valid configuration");
 
     // Use limiter...
-}</code></pre></pre>
+}</code></pre>
 <h2 id="runtime-clock-errors"><a class="header" href="#runtime-clock-errors">Runtime Clock Errors</a></h2>
 <p>Clock errors can occur during normal operation when the system clock is unavailable or behaves unexpectedly.</p>
 <h3 id="understanding-clock-errors"><a class="header" href="#understanding-clock-errors">Understanding Clock Errors</a></h3>
@@ -906,7 +910,7 @@ fn main() {
 <li>Virtualization causes time skips</li>
 </ul>
 <h3 id="basic-clock-error-handling"><a class="header" href="#basic-clock-error-handling">Basic Clock Error Handling</a></h3>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>match limiter.check_request("user_123") {
     Ok(decision) =&gt; {
@@ -924,12 +928,12 @@ fn main() {
         eprintln!("Unexpected error: {}", e);
     }
 }
-<span class="boring">}</span></code></pre></pre>
+<span class="boring">}</span></code></pre>
 <h2 id="error-handling-policies"><a class="header" href="#error-handling-policies">Error Handling Policies</a></h2>
 <p>Different applications require different error handling strategies.</p>
 <h3 id="fail-open-policy"><a class="header" href="#fail-open-policy">Fail-Open Policy</a></h3>
 <p>Allow requests when the rate limiter encounters errors:</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>fn should_allow_request(
     limiter: &amp;FluxLimiter&lt;String, SystemClock&gt;,
@@ -948,7 +952,7 @@ fn main() {
         }
     }
 }
-<span class="boring">}</span></code></pre></pre>
+<span class="boring">}</span></code></pre>
 <p><strong>Use when:</strong></p>
 <ul>
 <li>Availability is more important than strict rate limiting</li>
@@ -957,7 +961,7 @@ fn main() {
 </ul>
 <h3 id="fail-closed-policy"><a class="header" href="#fail-closed-policy">Fail-Closed Policy</a></h3>
 <p>Deny requests when the rate limiter encounters errors:</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>fn should_allow_request(
     limiter: &amp;FluxLimiter&lt;String, SystemClock&gt;,
@@ -976,7 +980,7 @@ fn main() {
         }
     }
 }
-<span class="boring">}</span></code></pre></pre>
+<span class="boring">}</span></code></pre>
 <p><strong>Use when:</strong></p>
 <ul>
 <li>Security is paramount</li>
@@ -985,7 +989,7 @@ fn main() {
 </ul>
 <h3 id="fallback-policy"><a class="header" href="#fallback-policy">Fallback Policy</a></h3>
 <p>Use alternative rate limiting when clock errors occur:</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
@@ -1019,10 +1023,10 @@ impl FallbackRateLimiter {
         }
     }
 }
-<span class="boring">}</span></code></pre></pre>
+<span class="boring">}</span></code></pre>
 <h2 id="monitoring-clock-errors"><a class="header" href="#monitoring-clock-errors">Monitoring Clock Errors</a></h2>
 <p>Track clock errors for alerting and debugging:</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>use std::sync::atomic::{AtomicU64, Ordering};
 
@@ -1055,10 +1059,10 @@ fn check_with_monitoring(
         }
     }
 }
-<span class="boring">}</span></code></pre></pre>
+<span class="boring">}</span></code></pre>
 <h2 id="circuit-breaker-pattern"><a class="header" href="#circuit-breaker-pattern">Circuit Breaker Pattern</a></h2>
 <p>Temporarily bypass rate limiting after consecutive failures:</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>use std::sync::atomic::{AtomicU64, Ordering};
 
@@ -1100,10 +1104,10 @@ impl CircuitBreakerLimiter {
         }
     }
 }
-<span class="boring">}</span></code></pre></pre>
+<span class="boring">}</span></code></pre>
 <h2 id="cleanup-error-handling"><a class="header" href="#cleanup-error-handling">Cleanup Error Handling</a></h2>
 <p>The <code>cleanup_stale_clients</code> method can also return clock errors:</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>// Cleanup errors are typically not critical
 match limiter.cleanup_stale_clients(one_hour_nanos) {
@@ -1118,7 +1122,7 @@ match limiter.cleanup_stale_clients(one_hour_nanos) {
         eprintln!("Unexpected cleanup error: {}", e);
     }
 }
-<span class="boring">}</span></code></pre></pre>
+<span class="boring">}</span></code></pre>
 <h2 id="best-practices"><a class="header" href="#best-practices">Best Practices</a></h2>
 <ol>
 <li><strong>Validate Configuration Early</strong>: Check configuration at startup, not runtime</li>
@@ -1131,11 +1135,12 @@ match limiter.cleanup_stale_clients(one_hour_nanos) {
 </ol>
 <h2 id="next-steps-5"><a class="header" href="#next-steps-5">Next Steps</a></h2>
 <ul>
-<li><a href="guide/./advanced-usage.html">Advanced Usage</a> - Memory management and optimization</li>
-<li><a href="guide/./production.html">Production Considerations</a> - Deploy with confidence</li>
-<li><a href="guide/../architecture/testing.html">Testing Architecture</a> - Test error handling</li>
+<li><a href="#advanced-usage">Advanced Usage</a> - Memory management and optimization</li>
+<li><a href="#production-considerations">Production Considerations</a> - Deploy with confidence</li>
+<li><a href="#testing-architecture">Testing Architecture</a> - Test error handling</li>
 </ul>
-<div style="break-before: page; page-break-before: always;"></div><h1 id="advanced-usage"><a class="header" href="#advanced-usage">Advanced Usage</a></h1>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="advanced-usage"><a class="header" href="#advanced-usage">Advanced Usage</a></h1>
 <p>Advanced features and optimization techniques for Flux Limiter.</p>
 <h2 id="memory-management"><a class="header" href="#memory-management">Memory Management</a></h2>
 <p>Flux Limiter tracks state for each client, which can grow over time. Use cleanup to manage memory.</p>
@@ -1146,7 +1151,7 @@ match limiter.cleanup_stale_clients(one_hour_nanos) {
 <li><strong>Example</strong>: 1 million clients ≈ 40-48 MB</li>
 </ul>
 <h3 id="manual-cleanup"><a class="header" href="#manual-cleanup">Manual Cleanup</a></h3>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>// Clean up clients that haven't been seen for 1 hour
 let one_hour_nanos = 60 * 60 * 1_000_000_000u64;
@@ -1160,9 +1165,9 @@ match limiter.cleanup_stale_clients(one_hour_nanos) {
         // Cleanup failure is usually not critical - log and continue
     }
 }
-<span class="boring">}</span></code></pre></pre>
+<span class="boring">}</span></code></pre>
 <h3 id="automatic-cleanup-with-tokio"><a class="header" href="#automatic-cleanup-with-tokio">Automatic Cleanup with Tokio</a></h3>
-<pre><pre class="playground"><code class="language-rust">use std::sync::Arc;
+<pre class="playground"><code class="language-rust">use std::sync::Arc;
 use tokio::time::{interval, Duration};
 
 async fn start_cleanup_task(limiter: Arc&lt;FluxLimiter&lt;String, SystemClock&gt;&gt;) {
@@ -1195,10 +1200,10 @@ async fn main() {
     tokio::spawn(start_cleanup_task(limiter_clone));
 
     // Use limiter in your application...
-}</code></pre></pre>
+}</code></pre>
 <h3 id="dynamic-cleanup-thresholds"><a class="header" href="#dynamic-cleanup-thresholds">Dynamic Cleanup Thresholds</a></h3>
 <p>Base cleanup threshold on the configured rate:</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>fn calculate_cleanup_threshold(limiter: &amp;FluxLimiter&lt;String, SystemClock&gt;) -&gt; u64 {
     // Clean up clients inactive for 100x the rate interval
@@ -1209,12 +1214,12 @@ async fn main() {
 
 let threshold = calculate_cleanup_threshold(&amp;limiter);
 let _ = limiter.cleanup_stale_clients(threshold);
-<span class="boring">}</span></code></pre></pre>
+<span class="boring">}</span></code></pre>
 <h2 id="custom-client-id-types"><a class="header" href="#custom-client-id-types">Custom Client ID Types</a></h2>
 <p>Create custom client IDs for complex rate limiting scenarios.</p>
 <h3 id="composite-client-ids"><a class="header" href="#composite-client-ids">Composite Client IDs</a></h3>
 <p>Rate limit by multiple dimensions:</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>use std::hash::{Hash, Hasher};
 
@@ -1236,9 +1241,9 @@ let client = CompositeClientId {
 };
 
 limiter.check_request(client)?;
-<span class="boring">}</span></code></pre></pre>
+<span class="boring">}</span></code></pre>
 <h3 id="hierarchical-rate-limiting"><a class="header" href="#hierarchical-rate-limiting">Hierarchical Rate Limiting</a></h3>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>#[derive(Clone, Debug, PartialEq, Eq, Hash)]
 enum RateLimitKey {
@@ -1273,11 +1278,11 @@ fn check_hierarchical(
         .unwrap()
         .allowed
 }
-<span class="boring">}</span></code></pre></pre>
+<span class="boring">}</span></code></pre>
 <h2 id="multiple-rate-limiters-1"><a class="header" href="#multiple-rate-limiters-1">Multiple Rate Limiters</a></h2>
 <p>Use different rate limiters for different purposes.</p>
 <h3 id="tiered-rate-limiting"><a class="header" href="#tiered-rate-limiting">Tiered Rate Limiting</a></h3>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>use std::sync::Arc;
 
@@ -1314,9 +1319,9 @@ impl TieredRateLimiter {
         }
     }
 }
-<span class="boring">}</span></code></pre></pre>
+<span class="boring">}</span></code></pre>
 <h3 id="per-endpoint-rate-limiting"><a class="header" href="#per-endpoint-rate-limiting">Per-Endpoint Rate Limiting</a></h3>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>use std::collections::HashMap;
 use std::sync::Arc;
@@ -1362,11 +1367,11 @@ impl EndpointRateLimiter {
         limiter.check_request(client_id)
     }
 }
-<span class="boring">}</span></code></pre></pre>
+<span class="boring">}</span></code></pre>
 <h2 id="performance-optimization"><a class="header" href="#performance-optimization">Performance Optimization</a></h2>
 <h3 id="minimize-string-allocations"><a class="header" href="#minimize-string-allocations">Minimize String Allocations</a></h3>
 <p>Use references where possible:</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>// Instead of allocating new strings
 fn check_request_owned(limiter: &amp;FluxLimiter&lt;String, SystemClock&gt;, id: String) -&gt; bool {
@@ -1377,17 +1382,17 @@ fn check_request_owned(limiter: &amp;FluxLimiter&lt;String, SystemClock&gt;, id:
 fn check_request_borrowed(limiter: &amp;FluxLimiter&lt;String, SystemClock&gt;, id: &amp;str) -&gt; bool {
     limiter.check_request(id.to_string()).unwrap().allowed
 }
-<span class="boring">}</span></code></pre></pre>
+<span class="boring">}</span></code></pre>
 <p>Or use numeric IDs for better performance:</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>// Faster: no string allocation
 let limiter = FluxLimiter::&lt;u64, _&gt;::with_config(config, SystemClock).unwrap();
 limiter.check_request(user_id_numeric).unwrap();
-<span class="boring">}</span></code></pre></pre>
+<span class="boring">}</span></code></pre>
 <h3 id="batch-operations"><a class="header" href="#batch-operations">Batch Operations</a></h3>
 <p>Process multiple clients efficiently:</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>fn check_batch(
     limiter: &amp;FluxLimiter&lt;String, SystemClock&gt;,
@@ -1400,10 +1405,10 @@ limiter.check_request(user_id_numeric).unwrap();
             .unwrap_or(false))
         .collect()
 }
-<span class="boring">}</span></code></pre></pre>
+<span class="boring">}</span></code></pre>
 <h3 id="parallel-processing"><a class="header" href="#parallel-processing">Parallel Processing</a></h3>
 <p>Use rayon for parallel rate limiting checks:</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>use rayon::prelude::*;
 
@@ -1418,11 +1423,11 @@ fn check_parallel(
             .unwrap_or(false))
         .collect()
 }
-<span class="boring">}</span></code></pre></pre>
+<span class="boring">}</span></code></pre>
 <h2 id="custom-clock-implementation"><a class="header" href="#custom-clock-implementation">Custom Clock Implementation</a></h2>
 <p>Implement custom clock sources for special scenarios.</p>
 <h3 id="mock-clock-for-testing"><a class="header" href="#mock-clock-for-testing">Mock Clock for Testing</a></h3>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>use flux_limiter::{Clock, ClockError};
 use std::sync::atomic::{AtomicU64, Ordering};
@@ -1461,10 +1466,10 @@ let limiter = FluxLimiter::with_config(config, clock.clone()).unwrap();
 
 // Control time in tests
 clock.advance(1_000_000_000); // Advance 1 second
-<span class="boring">}</span></code></pre></pre>
+<span class="boring">}</span></code></pre>
 <h3 id="monotonic-clock"><a class="header" href="#monotonic-clock">Monotonic Clock</a></h3>
 <p>Ensure time never goes backward:</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>use std::sync::atomic::{AtomicU64, Ordering};
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -1505,18 +1510,19 @@ impl Clock for MonotonicClock {
         }
     }
 }
-<span class="boring">}</span></code></pre></pre>
+<span class="boring">}</span></code></pre>
 <h2 id="next-steps-6"><a class="header" href="#next-steps-6">Next Steps</a></h2>
 <ul>
-<li><a href="guide/./web-integration.html">Web Integration</a> - Use with web frameworks</li>
-<li><a href="guide/./production.html">Production Considerations</a> - Deploy with confidence</li>
-<li><a href="guide/../architecture/performance.html">Performance Design</a> - Understand performance characteristics</li>
+<li><a href="#web-framework-integration">Web Integration</a> - Use with web frameworks</li>
+<li><a href="#production-considerations">Production Considerations</a> - Deploy with confidence</li>
+<li><a href="#performance-design">Performance Design</a> - Understand performance characteristics</li>
 </ul>
-<div style="break-before: page; page-break-before: always;"></div><h1 id="web-framework-integration"><a class="header" href="#web-framework-integration">Web Framework Integration</a></h1>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="web-framework-integration"><a class="header" href="#web-framework-integration">Web Framework Integration</a></h1>
 <p>Learn how to integrate Flux Limiter with popular web frameworks.</p>
 <h2 id="axum-integration"><a class="header" href="#axum-integration">Axum Integration</a></h2>
 <h3 id="basic-middleware"><a class="header" href="#basic-middleware">Basic Middleware</a></h3>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>use axum::{
     extract::State,
@@ -1583,9 +1589,9 @@ fn extract_client_ip&lt;B&gt;(request: &amp;Request&lt;B&gt;) -&gt; String {
         .unwrap_or("unknown")
         .to_string()
 }
-<span class="boring">}</span></code></pre></pre>
+<span class="boring">}</span></code></pre>
 <h3 id="complete-axum-example"><a class="header" href="#complete-axum-example">Complete Axum Example</a></h3>
-<pre><pre class="playground"><code class="language-rust">use axum::{
+<pre class="playground"><code class="language-rust">use axum::{
     routing::get,
     Router,
     middleware,
@@ -1618,10 +1624,10 @@ async fn main() {
 
 async fn handler() -&gt; &amp;'static str {
     "Hello, world!"
-}</code></pre></pre>
+}</code></pre>
 <h2 id="actix-web-integration"><a class="header" href="#actix-web-integration">Actix-Web Integration</a></h2>
 <h3 id="basic-middleware-1"><a class="header" href="#basic-middleware-1">Basic Middleware</a></h3>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>use actix_web::{
     dev::{Service, ServiceRequest, ServiceResponse, Transform},
@@ -1727,10 +1733,10 @@ where
         }
     }
 }
-<span class="boring">}</span></code></pre></pre>
+<span class="boring">}</span></code></pre>
 <h2 id="rocket-integration"><a class="header" href="#rocket-integration">Rocket Integration</a></h2>
 <h3 id="request-guard"><a class="header" href="#request-guard">Request Guard</a></h3>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>use rocket::{
     request::{FromRequest, Outcome, Request},
@@ -1784,11 +1790,11 @@ impl&lt;'r&gt; FromRequest&lt;'r&gt; for RateLimited {
 fn data(_rate_limited: RateLimited) -&gt; &amp;'static str {
     "Hello, world!"
 }
-<span class="boring">}</span></code></pre></pre>
+<span class="boring">}</span></code></pre>
 <h2 id="standard-rate-limit-headers"><a class="header" href="#standard-rate-limit-headers">Standard Rate Limit Headers</a></h2>
 <h3 id="http-response-headers"><a class="header" href="#http-response-headers">HTTP Response Headers</a></h3>
 <p>Implement standard rate limiting headers:</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>use axum::http::HeaderMap;
 
@@ -1828,10 +1834,10 @@ fn add_rate_limit_headers(
         }
     }
 }
-<span class="boring">}</span></code></pre></pre>
+<span class="boring">}</span></code></pre>
 <h2 id="multi-tier-rate-limiting"><a class="header" href="#multi-tier-rate-limiting">Multi-Tier Rate Limiting</a></h2>
 <p>Rate limit based on user tier:</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>use axum::{
     extract::{State, Extension},
@@ -1891,10 +1897,10 @@ async fn tiered_rate_limit&lt;B&gt;(
         Err(_) =&gt; next.run(request).await, // Fail-open
     }
 }
-<span class="boring">}</span></code></pre></pre>
+<span class="boring">}</span></code></pre>
 <h2 id="background-cleanup-task"><a class="header" href="#background-cleanup-task">Background Cleanup Task</a></h2>
 <p>Automatically clean up stale clients:</p>
-<pre><pre class="playground"><code class="language-rust">use tokio::time::{interval, Duration};
+<pre class="playground"><code class="language-rust">use tokio::time::{interval, Duration};
 use std::sync::Arc;
 
 async fn cleanup_task(limiter: Arc&lt;FluxLimiter&lt;String, SystemClock&gt;&gt;) {
@@ -1926,19 +1932,20 @@ async fn main() {
     tokio::spawn(cleanup_task(limiter.clone()));
 
     // Build and run your web server...
-}</code></pre></pre>
+}</code></pre>
 <h2 id="next-steps-7"><a class="header" href="#next-steps-7">Next Steps</a></h2>
 <ul>
-<li><a href="guide/./production.html">Production Considerations</a> - Deploy with confidence</li>
-<li><a href="guide/./error-handling.html">Error Handling</a> - Handle errors gracefully</li>
-<li><a href="guide/./advanced-usage.html">Advanced Usage</a> - Optimize performance</li>
+<li><a href="#production-considerations">Production Considerations</a> - Deploy with confidence</li>
+<li><a href="#error-handling">Error Handling</a> - Handle errors gracefully</li>
+<li><a href="#advanced-usage">Advanced Usage</a> - Optimize performance</li>
 </ul>
-<div style="break-before: page; page-break-before: always;"></div><h1 id="production-considerations"><a class="header" href="#production-considerations">Production Considerations</a></h1>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="production-considerations"><a class="header" href="#production-considerations">Production Considerations</a></h1>
 <p>Best practices for deploying Flux Limiter in production environments.</p>
 <h2 id="configuration-1"><a class="header" href="#configuration-1">Configuration</a></h2>
 <h3 id="choose-appropriate-limits"><a class="header" href="#choose-appropriate-limits">Choose Appropriate Limits</a></h3>
-<p>Consider your service's capacity and SLAs:</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+<p>Consider your service’s capacity and SLAs:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>// Calculate based on backend capacity
 let backend_capacity = 10_000.0; // 10k requests/second
@@ -1947,9 +1954,9 @@ let clients_count = 100.0; // Expected concurrent clients
 
 let rate_per_client = (backend_capacity * safety_margin) / clients_count;
 let config = FluxLimiterConfig::new(rate_per_client, rate_per_client * 0.5);
-<span class="boring">}</span></code></pre></pre>
+<span class="boring">}</span></code></pre>
 <h3 id="environment-based-configuration"><a class="header" href="#environment-based-configuration">Environment-Based Configuration</a></h3>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>use std::env;
 
@@ -1967,11 +1974,11 @@ fn create_rate_limiter() -&gt; Result&lt;FluxLimiter&lt;String, SystemClock&gt;,
     let config = FluxLimiterConfig::new(rate, burst);
     FluxLimiter::with_config(config, SystemClock)
 }
-<span class="boring">}</span></code></pre></pre>
+<span class="boring">}</span></code></pre>
 <h2 id="monitoring-and-observability"><a class="header" href="#monitoring-and-observability">Monitoring and Observability</a></h2>
 <h3 id="metrics-collection"><a class="header" href="#metrics-collection">Metrics Collection</a></h3>
 <p>Track rate limiting decisions for monitoring:</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>use std::sync::atomic::{AtomicU64, Ordering};
 
@@ -2018,9 +2025,9 @@ impl RateLimiterMetrics {
         )
     }
 }
-<span class="boring">}</span></code></pre></pre>
+<span class="boring">}</span></code></pre>
 <h3 id="prometheus-integration"><a class="header" href="#prometheus-integration">Prometheus Integration</a></h3>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>use prometheus::{Counter, IntCounter, Registry};
 use std::sync::Arc;
@@ -2086,10 +2093,10 @@ impl PrometheusRateLimiter {
         result
     }
 }
-<span class="boring">}</span></code></pre></pre>
+<span class="boring">}</span></code></pre>
 <h3 id="logging"><a class="header" href="#logging">Logging</a></h3>
 <p>Implement structured logging:</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>use tracing::{info, warn, error};
 
@@ -2132,11 +2139,11 @@ fn check_request_with_logging(
         }
     }
 }
-<span class="boring">}</span></code></pre></pre>
+<span class="boring">}</span></code></pre>
 <h2 id="memory-management-1"><a class="header" href="#memory-management-1">Memory Management</a></h2>
 <h3 id="automatic-cleanup"><a class="header" href="#automatic-cleanup">Automatic Cleanup</a></h3>
 <p>Implement periodic cleanup to prevent unbounded memory growth:</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>use tokio::time::{interval, Duration};
 use std::sync::Arc;
@@ -2181,10 +2188,10 @@ impl ManagedRateLimiter {
         self.limiter.check_request(client_id)
     }
 }
-<span class="boring">}</span></code></pre></pre>
+<span class="boring">}</span></code></pre>
 <h3 id="memory-monitoring"><a class="header" href="#memory-monitoring">Memory Monitoring</a></h3>
 <p>Monitor memory usage and alert on growth:</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>fn estimate_memory_usage(limiter: &amp;FluxLimiter&lt;String, SystemClock&gt;) -&gt; usize {
     // Estimate: ~48 bytes per client (HashMap overhead + String + u64)
@@ -2203,11 +2210,11 @@ fn check_memory_threshold(limiter: &amp;FluxLimiter&lt;String, SystemClock&gt;) 
         );
     }
 }
-<span class="boring">}</span></code></pre></pre>
+<span class="boring">}</span></code></pre>
 <h2 id="error-handling-strategy"><a class="header" href="#error-handling-strategy">Error Handling Strategy</a></h2>
 <h3 id="circuit-breaker-for-clock-errors"><a class="header" href="#circuit-breaker-for-clock-errors">Circuit Breaker for Clock Errors</a></h3>
 <p>Temporarily disable rate limiting after persistent failures:</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>use std::sync::atomic::{AtomicU64, AtomicBool, Ordering};
 use std::time::{SystemTime, Duration};
@@ -2287,10 +2294,10 @@ impl CircuitBreakerRateLimiter {
         }
     }
 }
-<span class="boring">}</span></code></pre></pre>
+<span class="boring">}</span></code></pre>
 <h2 id="load-testing"><a class="header" href="#load-testing">Load Testing</a></h2>
 <p>Test your rate limiter configuration under load:</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>#[cfg(test)]
 mod load_tests {
@@ -2343,45 +2350,36 @@ mod load_tests {
         println!("Allowed: {}, Denied: {}", total_allowed, total_denied);
     }
 }
-<span class="boring">}</span></code></pre></pre>
+<span class="boring">}</span></code></pre>
 <h2 id="deployment-checklist"><a class="header" href="#deployment-checklist">Deployment Checklist</a></h2>
 <ul>
-<li><input disabled="" type="checkbox"/>
-Configure appropriate rate and burst limits</li>
-<li><input disabled="" type="checkbox"/>
-Implement error handling policy (fail-open/fail-closed)</li>
-<li><input disabled="" type="checkbox"/>
-Set up monitoring and alerting</li>
-<li><input disabled="" type="checkbox"/>
-Enable structured logging</li>
-<li><input disabled="" type="checkbox"/>
-Configure automatic cleanup</li>
-<li><input disabled="" type="checkbox"/>
-Load test under expected traffic</li>
-<li><input disabled="" type="checkbox"/>
-Document rate limit headers in API docs</li>
-<li><input disabled="" type="checkbox"/>
-Set up memory monitoring</li>
-<li><input disabled="" type="checkbox"/>
-Test clock error handling</li>
-<li><input disabled="" type="checkbox"/>
-Implement circuit breaker if needed</li>
+<li><input disabled="" type="checkbox"> Configure appropriate rate and burst limits</li>
+<li><input disabled="" type="checkbox"> Implement error handling policy (fail-open/fail-closed)</li>
+<li><input disabled="" type="checkbox"> Set up monitoring and alerting</li>
+<li><input disabled="" type="checkbox"> Enable structured logging</li>
+<li><input disabled="" type="checkbox"> Configure automatic cleanup</li>
+<li><input disabled="" type="checkbox"> Load test under expected traffic</li>
+<li><input disabled="" type="checkbox"> Document rate limit headers in API docs</li>
+<li><input disabled="" type="checkbox"> Set up memory monitoring</li>
+<li><input disabled="" type="checkbox"> Test clock error handling</li>
+<li><input disabled="" type="checkbox"> Implement circuit breaker if needed</li>
 </ul>
 <h2 id="next-steps-8"><a class="header" href="#next-steps-8">Next Steps</a></h2>
 <ul>
-<li><a href="guide/./basic-usage.html#using-decision-metadata">Monitoring</a> - Use decision metadata</li>
-<li><a href="guide/../architecture/performance.html">Performance</a> - Understand performance characteristics</li>
-<li><a href="guide/./error-handling.html">Error Handling</a> - Handle errors gracefully</li>
+<li><a href="#using-decision-metadata-1">Monitoring</a> - Use decision metadata</li>
+<li><a href="#performance-design">Performance</a> - Understand performance characteristics</li>
+<li><a href="#error-handling">Error Handling</a> - Handle errors gracefully</li>
 </ul>
-<div style="break-before: page; page-break-before: always;"></div><h1 id="architecture-overview"><a class="header" href="#architecture-overview">Architecture Overview</a></h1>
-<p>This document provides a comprehensive overview of the Flux Limiter's architecture, design decisions, and implementation details.</p>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="architecture-overview"><a class="header" href="#architecture-overview">Architecture Overview</a></h1>
+<p>This document provides a comprehensive overview of the Flux Limiter’s architecture, design decisions, and implementation details.</p>
 <h2 id="design-philosophy"><a class="header" href="#design-philosophy">Design Philosophy</a></h2>
 <p>Flux Limiter is built on several key architectural principles:</p>
 <ol>
 <li><strong>Lock-Free Concurrency</strong>: Uses atomic operations and lock-free data structures</li>
 <li><strong>Zero-Allocation Hot Path</strong>: Minimizes memory allocation in rate limiting decisions</li>
 <li><strong>Clock Abstraction</strong>: Enables testing and handles time-related failures</li>
-<li><strong>Type Safety</strong>: Leverages Rust's type system for correctness guarantees</li>
+<li><strong>Type Safety</strong>: Leverages Rust’s type system for correctness guarantees</li>
 <li><strong>Graceful Degradation</strong>: Continues operation despite partial failures</li>
 </ol>
 <h2 id="core-architecture"><a class="header" href="#core-architecture">Core Architecture</a></h2>
@@ -2441,7 +2439,7 @@ Return FluxLimiterDecision
 <h3 id="correctness-guaranteed"><a class="header" href="#correctness-guaranteed">Correctness Guaranteed</a></h3>
 <ul>
 <li><strong>Mathematical precision</strong>: Exact GCRA implementation</li>
-<li><strong>Type safety</strong>: Rust's type system prevents common errors</li>
+<li><strong>Type safety</strong>: Rust’s type system prevents common errors</li>
 <li><strong>Comprehensive testing</strong>: &gt;95% code coverage with deterministic tests</li>
 <li><strong>No silent failures</strong>: All errors are explicitly handled</li>
 </ul>
@@ -2512,12 +2510,13 @@ Return FluxLimiterDecision
 </ul>
 <h2 id="next-steps-9"><a class="header" href="#next-steps-9">Next Steps</a></h2>
 <ul>
-<li><a href="architecture/./gcra-algorithm.html">GCRA Algorithm</a> - Understand the core algorithm</li>
-<li><a href="architecture/./components.html">Component Design</a> - Explore individual components</li>
-<li><a href="architecture/./concurrency.html">Concurrency Model</a> - Learn about thread safety</li>
-<li><a href="architecture/./performance.html">Performance Design</a> - Understand performance characteristics</li>
+<li><a href="#gcra-algorithm">GCRA Algorithm</a> - Understand the core algorithm</li>
+<li><a href="#component-design">Component Design</a> - Explore individual components</li>
+<li><a href="#concurrency-model">Concurrency Model</a> - Learn about thread safety</li>
+<li><a href="#performance-design">Performance Design</a> - Understand performance characteristics</li>
 </ul>
-<div style="break-before: page; page-break-before: always;"></div><h1 id="gcra-algorithm"><a class="header" href="#gcra-algorithm">GCRA Algorithm</a></h1>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="gcra-algorithm"><a class="header" href="#gcra-algorithm">GCRA Algorithm</a></h1>
 <p>Deep dive into the Generic Cell Rate Algorithm implementation in Flux Limiter.</p>
 <h2 id="algorithm-choice"><a class="header" href="#algorithm-choice">Algorithm Choice</a></h2>
 <p><strong>Generic Cell Rate Algorithm (GCRA)</strong> was chosen over Token Bucket for several reasons:</p>
@@ -2574,7 +2573,7 @@ T_nanos = 1_000_000_000 / rate_per_second
 </ul>
 <h2 id="algorithm-implementation"><a class="header" href="#algorithm-implementation">Algorithm Implementation</a></h2>
 <h3 id="conformance-check"><a class="header" href="#conformance-check">Conformance Check</a></h3>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>let current_time_nanos = clock.now()?;
 let previous_tat_nanos = client_state
@@ -2584,11 +2583,11 @@ let previous_tat_nanos = client_state
 // Check if request conforms (is within tolerance)
 let is_conforming = current_time_nanos &gt;=
     previous_tat_nanos.saturating_sub(tolerance_nanos);
-<span class="boring">}</span></code></pre></pre>
+<span class="boring">}</span></code></pre>
 <p><strong>Conforming Request</strong>: <code>current_time &gt;= TAT - τ</code></p>
 <p>This allows requests to arrive up to <code>τ</code> nanoseconds early (burst capacity).</p>
 <h3 id="tat-update-allowed-request"><a class="header" href="#tat-update-allowed-request">TAT Update (Allowed Request)</a></h3>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>if is_conforming {
     // Allow request and update TAT
@@ -2599,11 +2598,11 @@ let is_conforming = current_time_nanos &gt;=
 
     // Return allowed decision
 }
-<span class="boring">}</span></code></pre></pre>
+<span class="boring">}</span></code></pre>
 <p><strong>TAT Update Rule</strong>: <code>TAT' = max(current_time, previous_TAT) + T</code></p>
 <p>This ensures TAT advances by the rate interval while preventing it from going backward.</p>
 <h3 id="retry-after-calculation-denied-request"><a class="header" href="#retry-after-calculation-denied-request">Retry After Calculation (Denied Request)</a></h3>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>else {
     // Deny request
@@ -2615,7 +2614,7 @@ let is_conforming = current_time_nanos &gt;=
 
     // Return denied decision with retry_after
 }
-<span class="boring">}</span></code></pre></pre>
+<span class="boring">}</span></code></pre>
 <p><strong>Retry After</strong>: Time until the request would conform to the rate.</p>
 <h2 id="mathematical-foundation"><a class="header" href="#mathematical-foundation">Mathematical Foundation</a></h2>
 <h3 id="basic-equations"><a class="header" href="#basic-equations">Basic Equations</a></h3>
@@ -2650,12 +2649,12 @@ Time to full recovery = burst_capacity / rate_per_second
 <h2 id="precision-guarantees"><a class="header" href="#precision-guarantees">Precision Guarantees</a></h2>
 <h3 id="nanosecond-arithmetic"><a class="header" href="#nanosecond-arithmetic">Nanosecond Arithmetic</a></h3>
 <p>All calculations use <code>u64</code> nanoseconds:</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>// No floating-point drift
 let rate_nanos: u64 = (1_000_000_000.0 / rate_per_second) as u64;
 let tolerance_nanos: u64 = (burst_capacity * rate_nanos as f64) as u64;
-<span class="boring">}</span></code></pre></pre>
+<span class="boring">}</span></code></pre>
 <p><strong>Benefits</strong>:</p>
 <ul>
 <li>Exact integer arithmetic</li>
@@ -2665,11 +2664,11 @@ let tolerance_nanos: u64 = (burst_capacity * rate_nanos as f64) as u64;
 </ul>
 <h3 id="overflow-protection"><a class="header" href="#overflow-protection">Overflow Protection</a></h3>
 <p>Uses saturating arithmetic to prevent overflow:</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>let is_conforming = current_time_nanos &gt;=
     previous_tat_nanos.saturating_sub(tolerance_nanos);
-<span class="boring">}</span></code></pre></pre>
+<span class="boring">}</span></code></pre>
 <p><strong>Saturating operations</strong>:</p>
 <ul>
 <li><code>saturating_sub</code>: Returns 0 if underflow would occur</li>
@@ -2704,18 +2703,18 @@ t=1.0s:   6 requests → All allowed, TAT=1.6s
 </code></pre>
 <h2 id="metadata-calculation"><a class="header" href="#metadata-calculation">Metadata Calculation</a></h2>
 <h3 id="remaining-capacity"><a class="header" href="#remaining-capacity">Remaining Capacity</a></h3>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>let elapsed = current_time_nanos.saturating_sub(previous_tat_nanos);
 let recovered = (elapsed as f64 / rate_nanos as f64).min(burst_capacity);
 let remaining_capacity = Some(burst_capacity - consumed + recovered);
-<span class="boring">}</span></code></pre></pre>
+<span class="boring">}</span></code></pre>
 <p>Tracks how much burst capacity is currently available.</p>
 <h3 id="reset-time"><a class="header" href="#reset-time">Reset Time</a></h3>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>let reset_time_nanos = new_tat_nanos + tolerance_nanos;
-<span class="boring">}</span></code></pre></pre>
+<span class="boring">}</span></code></pre>
 <p>When the rate limit window will fully reset (all burst capacity recovered).</p>
 <h2 id="performance-characteristics-2"><a class="header" href="#performance-characteristics-2">Performance Characteristics</a></h2>
 <ul>
@@ -2726,16 +2725,17 @@ let remaining_capacity = Some(burst_capacity - consumed + recovered);
 </ul>
 <h2 id="next-steps-10"><a class="header" href="#next-steps-10">Next Steps</a></h2>
 <ul>
-<li><a href="architecture/./components.html">Component Design</a> - Explore the FluxLimiter struct</li>
-<li><a href="architecture/./performance.html">Performance Design</a> - Understand optimization techniques</li>
-<li><a href="architecture/./testing.html">Testing Architecture</a> - Learn about deterministic testing</li>
+<li><a href="#component-design">Component Design</a> - Explore the FluxLimiter struct</li>
+<li><a href="#performance-design">Performance Design</a> - Understand optimization techniques</li>
+<li><a href="#testing-architecture">Testing Architecture</a> - Learn about deterministic testing</li>
 </ul>
-<div style="break-before: page; page-break-before: always;"></div><h1 id="component-design"><a class="header" href="#component-design">Component Design</a></h1>
-<p>Detailed exploration of Flux Limiter's core components and their design rationale.</p>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="component-design"><a class="header" href="#component-design">Component Design</a></h1>
+<p>Detailed exploration of Flux Limiter’s core components and their design rationale.</p>
 <h2 id="fluxlimitert-c"><a class="header" href="#fluxlimitert-c">FluxLimiter&lt;T, C&gt;</a></h2>
 <p>The main rate limiter struct uses generics for flexibility.</p>
 <h3 id="structure-definition"><a class="header" href="#structure-definition">Structure Definition</a></h3>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>pub struct FluxLimiter&lt;T, C = SystemClock&gt;
 where
@@ -2747,7 +2747,7 @@ where
     client_state: Arc&lt;DashMap&lt;T, u64&gt;&gt;, // Client TAT storage
     clock: C,                           // Time abstraction
 }
-<span class="boring">}</span></code></pre></pre>
+<span class="boring">}</span></code></pre>
 <h3 id="design-rationale"><a class="header" href="#design-rationale">Design Rationale</a></h3>
 <p><strong>Generic Client ID (T)</strong>:</p>
 <ul>
@@ -2762,7 +2762,7 @@ where
 <li>Custom: User-defined time sources</li>
 <li>Constrains: <code>Clock</code> trait</li>
 </ul>
-<p><strong>Arc<DashMap></strong>:</p>
+<p><strong>Arc<dashmap></dashmap></strong>:</p>
 <ul>
 <li>Thread-safe shared ownership</li>
 <li>Lock-free concurrent access</li>
@@ -2776,7 +2776,7 @@ where
 <li>Avoids floating-point arithmetic in hot path</li>
 </ul>
 <h3 id="public-api"><a class="header" href="#public-api">Public API</a></h3>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>impl&lt;T, C&gt; FluxLimiter&lt;T, C&gt;
 where
@@ -2801,27 +2801,27 @@ where
     pub fn rate(&amp;self) -&gt; f64
     pub fn burst(&amp;self) -&gt; f64
 }
-<span class="boring">}</span></code></pre></pre>
+<span class="boring">}</span></code></pre>
 <h2 id="fluxlimiterconfig"><a class="header" href="#fluxlimiterconfig">FluxLimiterConfig</a></h2>
 <p>Configuration management with builder pattern support.</p>
 <h3 id="structure-definition-1"><a class="header" href="#structure-definition-1">Structure Definition</a></h3>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>#[derive(Debug, Clone)]
 pub struct FluxLimiterConfig {
     rate_per_second: f64,   // User-friendly rate specification
     burst_capacity: f64,    // User-friendly burst specification
 }
-<span class="boring">}</span></code></pre></pre>
+<span class="boring">}</span></code></pre>
 <h3 id="design-rationale-1"><a class="header" href="#design-rationale-1">Design Rationale</a></h3>
 <p><strong>User-Friendly Units</strong>:</p>
 <ul>
-<li><code>rate_per_second</code>: Intuitive "requests per second"</li>
+<li><code>rate_per_second</code>: Intuitive “requests per second”</li>
 <li><code>burst_capacity</code>: Additional burst allowance</li>
 <li>Converted to nanoseconds internally</li>
 </ul>
 <p><strong>Builder Pattern</strong>:</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>impl FluxLimiterConfig {
     pub fn new(rate_per_second: f64, burst_capacity: f64) -&gt; Self
@@ -2829,9 +2829,9 @@ pub struct FluxLimiterConfig {
     pub fn burst(mut self, burst_capacity: f64) -&gt; Self
     pub fn validate(&amp;self) -&gt; Result&lt;(), FluxLimiterError&gt;
 }
-<span class="boring">}</span></code></pre></pre>
+<span class="boring">}</span></code></pre>
 <h3 id="validation"><a class="header" href="#validation">Validation</a></h3>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>pub fn validate(&amp;self) -&gt; Result&lt;(), FluxLimiterError&gt; {
     if self.rate_per_second &lt;= 0.0 {
@@ -2842,7 +2842,7 @@ pub struct FluxLimiterConfig {
     }
     Ok(())
 }
-<span class="boring">}</span></code></pre></pre>
+<span class="boring">}</span></code></pre>
 <p><strong>Validation Rules</strong>:</p>
 <ul>
 <li>Rate must be positive (&gt; 0.0)</li>
@@ -2852,7 +2852,7 @@ pub struct FluxLimiterConfig {
 <h2 id="fluxlimiterdecision"><a class="header" href="#fluxlimiterdecision">FluxLimiterDecision</a></h2>
 <p>Rich metadata returned from rate limiting decisions.</p>
 <h3 id="structure-definition-2"><a class="header" href="#structure-definition-2">Structure Definition</a></h3>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>#[derive(Debug, Clone, PartialEq)]
 pub struct FluxLimiterDecision {
@@ -2861,7 +2861,7 @@ pub struct FluxLimiterDecision {
     pub remaining_capacity: Option&lt;f64&gt;,  // Remaining burst capacity
     pub reset_time_nanos: u64,           // When window resets
 }
-<span class="boring">}</span></code></pre></pre>
+<span class="boring">}</span></code></pre>
 <h3 id="design-rationale-2"><a class="header" href="#design-rationale-2">Design Rationale</a></h3>
 <p><strong>Rich Metadata Enables</strong>:</p>
 <ul>
@@ -2907,7 +2907,7 @@ pub struct FluxLimiterDecision {
 <h2 id="fluxlimitererror"><a class="header" href="#fluxlimitererror">FluxLimiterError</a></h2>
 <p>Comprehensive error handling for robust production usage.</p>
 <h3 id="enum-definition"><a class="header" href="#enum-definition">Enum Definition</a></h3>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>#[derive(Debug, Clone, PartialEq)]
 pub enum FluxLimiterError {
@@ -2920,7 +2920,7 @@ pub enum FluxLimiterError {
 pub enum ClockError {
     SystemTimeError,       // System time unavailable
 }
-<span class="boring">}</span></code></pre></pre>
+<span class="boring">}</span></code></pre>
 <h3 id="design-rationale-3"><a class="header" href="#design-rationale-3">Design Rationale</a></h3>
 <p><strong>Explicit Error Types</strong>:</p>
 <ul>
@@ -2929,7 +2929,7 @@ pub enum ClockError {
 <li>Clear separation of error categories</li>
 </ul>
 <p><strong>Error Display</strong>:</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>impl std::fmt::Display for FluxLimiterError {
     fn fmt(&amp;self, f: &amp;mut std::fmt::Formatter) -&gt; std::fmt::Result {
@@ -2940,25 +2940,25 @@ pub enum ClockError {
         }
     }
 }
-<span class="boring">}</span></code></pre></pre>
+<span class="boring">}</span></code></pre>
 <p><strong>Error Conversion</strong>:</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>impl From&lt;ClockError&gt; for FluxLimiterError {
     fn from(error: ClockError) -&gt; Self {
         FluxLimiterError::ClockError(error)
     }
 }
-<span class="boring">}</span></code></pre></pre>
+<span class="boring">}</span></code></pre>
 <h2 id="clock-trait"><a class="header" href="#clock-trait">Clock Trait</a></h2>
 <p>Abstraction for pluggable time sources.</p>
 <h3 id="trait-definition"><a class="header" href="#trait-definition">Trait Definition</a></h3>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>pub trait Clock: Send + Sync {
     fn now(&amp;self) -&gt; Result&lt;u64, ClockError&gt;;
 }
-<span class="boring">}</span></code></pre></pre>
+<span class="boring">}</span></code></pre>
 <h3 id="design-rationale-4"><a class="header" href="#design-rationale-4">Design Rationale</a></h3>
 <p><strong>Benefits</strong>:</p>
 <ul>
@@ -2974,7 +2974,7 @@ pub enum ClockError {
 </ul>
 <h3 id="systemclock"><a class="header" href="#systemclock">SystemClock</a></h3>
 <p>Production time source using system time:</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>#[derive(Clone, Copy, Debug)]
 pub struct SystemClock;
@@ -2987,7 +2987,7 @@ impl Clock for SystemClock {
             .map_err(|_| ClockError::SystemTimeError)
     }
 }
-<span class="boring">}</span></code></pre></pre>
+<span class="boring">}</span></code></pre>
 <p><strong>Handles Real-World Issues</strong>:</p>
 <ul>
 <li>System clock going backwards (NTP adjustments)</li>
@@ -2997,7 +2997,7 @@ impl Clock for SystemClock {
 </ul>
 <h3 id="testclock"><a class="header" href="#testclock">TestClock</a></h3>
 <p>Deterministic time source for testing:</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>pub struct TestClock {
     time: Arc&lt;AtomicU64&gt;,        // Current time in nanoseconds
@@ -3010,7 +3010,7 @@ impl TestClock {
     pub fn set_time(&amp;self, time_secs: f64)
     pub fn fail_next_call(&amp;self)
 }
-<span class="boring">}</span></code></pre></pre>
+<span class="boring">}</span></code></pre>
 <p><strong>Features</strong>:</p>
 <ul>
 <li>Precise time control</li>
@@ -3020,7 +3020,7 @@ impl TestClock {
 </ul>
 <h2 id="memory-layout"><a class="header" href="#memory-layout">Memory Layout</a></h2>
 <h3 id="fluxlimiter-size"><a class="header" href="#fluxlimiter-size">FluxLimiter Size</a></h3>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>FluxLimiter&lt;String, SystemClock&gt; {
     rate_nanos: u64,         // 8 bytes
@@ -3029,7 +3029,7 @@ impl TestClock {
     clock: SystemClock,      // 0 bytes (zero-sized type)
 }
 // Total: 24 bytes
-<span class="boring">}</span></code></pre></pre>
+<span class="boring">}</span></code></pre>
 <p><strong>Cache Efficiency</strong>:</p>
 <ul>
 <li>Small struct size fits in cache line</li>
@@ -3037,14 +3037,14 @@ impl TestClock {
 <li>Arc enables cheap cloning</li>
 </ul>
 <h3 id="per-client-state"><a class="header" href="#per-client-state">Per-Client State</a></h3>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>DashMap&lt;String, u64&gt; entry:
     String: ~24 bytes (pointer + len + capacity)
     u64:    8 bytes
     Overhead: ~16 bytes (hash map metadata)
 // Total per client: ~48 bytes
-<span class="boring">}</span></code></pre></pre>
+<span class="boring">}</span></code></pre>
 <h3 id="scalability-1"><a class="header" href="#scalability-1">Scalability</a></h3>
 <pre><code>1,000 clients     = ~48 KB
 10,000 clients    = ~480 KB
@@ -3061,11 +3061,12 @@ impl TestClock {
 </ul>
 <h2 id="next-steps-11"><a class="header" href="#next-steps-11">Next Steps</a></h2>
 <ul>
-<li><a href="architecture/./concurrency.html">Concurrency Model</a> - Understand thread safety</li>
-<li><a href="architecture/./performance.html">Performance Design</a> - Optimization techniques</li>
-<li><a href="architecture/./error-handling.html">Error Handling Architecture</a> - Error strategies</li>
+<li><a href="#concurrency-model">Concurrency Model</a> - Understand thread safety</li>
+<li><a href="#performance-design">Performance Design</a> - Optimization techniques</li>
+<li><a href="#error-handling-architecture">Error Handling Architecture</a> - Error strategies</li>
 </ul>
-<div style="break-before: page; page-break-before: always;"></div><h1 id="concurrency-model"><a class="header" href="#concurrency-model">Concurrency Model</a></h1>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="concurrency-model"><a class="header" href="#concurrency-model">Concurrency Model</a></h1>
 <p>Understanding the lock-free concurrency design in Flux Limiter.</p>
 <h2 id="lock-free-design-philosophy"><a class="header" href="#lock-free-design-philosophy">Lock-Free Design Philosophy</a></h2>
 <p>Flux Limiter is built on a lock-free concurrency model for maximum performance:</p>
@@ -3080,7 +3081,7 @@ Lock-free hash map operations
 <h2 id="thread-safety-guarantees"><a class="header" href="#thread-safety-guarantees">Thread Safety Guarantees</a></h2>
 <h3 id="1-read-operations"><a class="header" href="#1-read-operations">1. Read Operations</a></h3>
 <p>Multiple concurrent readers without contention:</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>// Thread 1
 limiter.check_request("client_1")?;
@@ -3089,15 +3090,15 @@ limiter.check_request("client_1")?;
 limiter.check_request("client_2")?;
 
 // No lock contention - different shards
-<span class="boring">}</span></code></pre></pre>
+<span class="boring">}</span></code></pre>
 <h3 id="2-write-operations"><a class="header" href="#2-write-operations">2. Write Operations</a></h3>
 <p>Atomic updates with minimal contention:</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>// Atomic TAT update
 client_state.insert(client_id, new_tat);
-<span class="boring">}</span></code></pre></pre>
-<p>Each client's state is independent, allowing parallel updates.</p>
+<span class="boring">}</span></code></pre>
+<p>Each client’s state is independent, allowing parallel updates.</p>
 <h3 id="3-memory-ordering"><a class="header" href="#3-memory-ordering">3. Memory Ordering</a></h3>
 <p>Relaxed ordering is sufficient for TAT updates:</p>
 <ul>
@@ -3107,7 +3108,7 @@ client_state.insert(client_id, new_tat);
 </ul>
 <h3 id="4-concurrent-access-patterns"><a class="header" href="#4-concurrent-access-patterns">4. Concurrent Access Patterns</a></h3>
 <p><strong>Same Client, Different Threads</strong>:</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>// Thread 1
 limiter.check_request("client_1")?; // TAT = 100ms
@@ -3117,9 +3118,9 @@ limiter.check_request("client_1")?; // TAT = 200ms
 
 // DashMap serializes access to same key
 // Ordering determined by DashMap's internal locking
-<span class="boring">}</span></code></pre></pre>
+<span class="boring">}</span></code></pre>
 <p><strong>Different Clients, Different Threads</strong>:</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>// Thread 1
 limiter.check_request("client_1")?;
@@ -3128,7 +3129,7 @@ limiter.check_request("client_1")?;
 limiter.check_request("client_2")?;
 
 // Lock-free - different shards, no contention
-<span class="boring">}</span></code></pre></pre>
+<span class="boring">}</span></code></pre>
 <h2 id="dashmap-the-core-concurrency-primitive"><a class="header" href="#dashmap-the-core-concurrency-primitive">DashMap: The Core Concurrency Primitive</a></h2>
 <h3 id="why-dashmap"><a class="header" href="#why-dashmap">Why DashMap?</a></h3>
 <p>DashMap provides lock-free concurrent access through sharding:</p>
@@ -3147,65 +3148,65 @@ limiter.check_request("client_2")?;
 <li><strong>Segmented locking</strong>: Reduces contention vs. single lock</li>
 </ul>
 <h3 id="sharding-strategy"><a class="header" href="#sharding-strategy">Sharding Strategy</a></h3>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>// Client IDs are hashed to shards
 shard_index = hash(client_id) % num_shards
 
 // Different clients likely in different shards
 // Same client always in same shard (consistency)
-<span class="boring">}</span></code></pre></pre>
+<span class="boring">}</span></code></pre>
 <h3 id="operations-on-dashmap"><a class="header" href="#operations-on-dashmap">Operations on DashMap</a></h3>
 <p><strong>Get (Read)</strong>:</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>if let Some(previous_tat) = client_state.get(&amp;client_id) {
     // Read lock on single shard
     // Other shards remain accessible
 }
-<span class="boring">}</span></code></pre></pre>
+<span class="boring">}</span></code></pre>
 <p><strong>Insert (Write)</strong>:</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>client_state.insert(client_id, new_tat);
 // Write lock on single shard
 // Other shards remain accessible
-<span class="boring">}</span></code></pre></pre>
+<span class="boring">}</span></code></pre>
 <p><strong>Cleanup (Iteration)</strong>:</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>client_state.retain(|_, &amp;mut tat| {
     // Locks each shard sequentially
     // Short lock duration per shard
     current_time - tat &lt; threshold
 });
-<span class="boring">}</span></code></pre></pre>
+<span class="boring">}</span></code></pre>
 <h2 id="memory-consistency"><a class="header" href="#memory-consistency">Memory Consistency</a></h2>
 <h3 id="happens-before-relationships"><a class="header" href="#happens-before-relationships">Happens-Before Relationships</a></h3>
 <p>DashMap provides happens-before guarantees:</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>// Thread 1
 limiter.check_request("client_1")?; // Writes TAT = 100ms
 
 // Thread 2 (later)
 limiter.check_request("client_1")?; // Reads TAT &gt;= 100ms
-<span class="boring">}</span></code></pre></pre>
+<span class="boring">}</span></code></pre>
 <p>The write in Thread 1 happens-before the read in Thread 2.</p>
 <h3 id="visibility-guarantees"><a class="header" href="#visibility-guarantees">Visibility Guarantees</a></h3>
 <p>All updates to client state are immediately visible:</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>// Thread 1
 client_state.insert("client_1", 100);
 
 // Thread 2
 let tat = client_state.get("client_1"); // Sees 100
-<span class="boring">}</span></code></pre></pre>
+<span class="boring">}</span></code></pre>
 <p>DashMap ensures proper memory synchronization.</p>
 <h2 id="sharing-across-threads-1"><a class="header" href="#sharing-across-threads-1">Sharing Across Threads</a></h2>
 <h3 id="arc-for-shared-ownership"><a class="header" href="#arc-for-shared-ownership">Arc for Shared Ownership</a></h3>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>use std::sync::Arc;
 
@@ -3219,7 +3220,7 @@ let limiter2 = Arc::clone(&amp;limiter);
 // Use in different threads
 thread::spawn(move || limiter1.check_request("client_1"));
 thread::spawn(move || limiter2.check_request("client_2"));
-<span class="boring">}</span></code></pre></pre>
+<span class="boring">}</span></code></pre>
 <p><strong>Arc Benefits</strong>:</p>
 <ul>
 <li>Reference counting with atomic operations</li>
@@ -3228,23 +3229,23 @@ thread::spawn(move || limiter2.check_request("client_2"));
 <li>No data duplication</li>
 </ul>
 <h3 id="internal-arc-usage"><a class="header" href="#internal-arc-usage">Internal Arc Usage</a></h3>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>pub struct FluxLimiter&lt;T, C&gt; {
     // ...
     client_state: Arc&lt;DashMap&lt;T, u64&gt;&gt;, // Shared across clones
     // ...
 }
-<span class="boring">}</span></code></pre></pre>
+<span class="boring">}</span></code></pre>
 <p>Cloning <code>FluxLimiter</code> shares the same state:</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>let limiter1 = limiter.clone();
 let limiter2 = limiter.clone();
 
 // Both share the same client_state
 // Updates visible to both
-<span class="boring">}</span></code></pre></pre>
+<span class="boring">}</span></code></pre>
 <h2 id="contention-analysis"><a class="header" href="#contention-analysis">Contention Analysis</a></h2>
 <h3 id="low-contention-scenarios"><a class="header" href="#low-contention-scenarios">Low Contention Scenarios</a></h3>
 <p><strong>Different clients, concurrent access</strong>:</p>
@@ -3276,7 +3277,7 @@ Result:  Serialized access (expected for consistency)
 </code></pre>
 <p>Nearly linear scalability with different clients.</p>
 <h3 id="benchmark-concurrent-access"><a class="header" href="#benchmark-concurrent-access">Benchmark: Concurrent Access</a></h3>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>#[bench]
 fn bench_concurrent_different_clients(b: &amp;mut Bencher) {
@@ -3303,17 +3304,17 @@ fn bench_concurrent_different_clients(b: &amp;mut Bencher) {
         }
     });
 }
-<span class="boring">}</span></code></pre></pre>
+<span class="boring">}</span></code></pre>
 <h2 id="clock-thread-safety"><a class="header" href="#clock-thread-safety">Clock Thread Safety</a></h2>
 <p>The <code>Clock</code> trait requires <code>Send + Sync</code>:</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>pub trait Clock: Send + Sync {
     fn now(&amp;self) -&gt; Result&lt;u64, ClockError&gt;;
 }
-<span class="boring">}</span></code></pre></pre>
+<span class="boring">}</span></code></pre>
 <p><strong>SystemClock</strong>:</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>impl Clock for SystemClock {
     fn now(&amp;self) -&gt; Result&lt;u64, ClockError&gt; {
@@ -3324,19 +3325,19 @@ fn bench_concurrent_different_clients(b: &amp;mut Bencher) {
             .map_err(|_| ClockError::SystemTimeError)
     }
 }
-<span class="boring">}</span></code></pre></pre>
+<span class="boring">}</span></code></pre>
 <p><strong>TestClock</strong>:</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>pub struct TestClock {
     time: Arc&lt;AtomicU64&gt;,        // Atomic for thread safety
     should_fail: Arc&lt;AtomicBool&gt;, // Atomic for thread safety
 }
-<span class="boring">}</span></code></pre></pre>
+<span class="boring">}</span></code></pre>
 <p>Both implementations are thread-safe.</p>
 <h2 id="cleanup-concurrency"><a class="header" href="#cleanup-concurrency">Cleanup Concurrency</a></h2>
 <p>Cleanup can run concurrently with rate limiting:</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>// Thread 1: Rate limiting
 limiter.check_request("client_1")?;
@@ -3346,8 +3347,8 @@ limiter.cleanup_stale_clients(threshold)?;
 
 // Thread 3: More rate limiting (concurrent)
 limiter.check_request("client_2")?;
-<span class="boring">}</span></code></pre></pre>
-<p>DashMap's <code>retain</code> method:</p>
+<span class="boring">}</span></code></pre>
+<p>DashMap’s <code>retain</code> method:</p>
 <ul>
 <li>Locks each shard briefly</li>
 <li>Other shards remain accessible</li>
@@ -3355,7 +3356,7 @@ limiter.check_request("client_2")?;
 </ul>
 <h2 id="best-practices-1"><a class="header" href="#best-practices-1">Best Practices</a></h2>
 <h3 id="1-share-via-arc"><a class="header" href="#1-share-via-arc">1. Share via Arc</a></h3>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>// Good: Share limiter across threads
 let limiter = Arc::new(FluxLimiter::with_config(config, clock)?);
@@ -3363,9 +3364,9 @@ let limiter = Arc::new(FluxLimiter::with_config(config, clock)?);
 // Bad: Create multiple limiters (separate state)
 let limiter1 = FluxLimiter::with_config(config, clock1)?;
 let limiter2 = FluxLimiter::with_config(config, clock2)?;
-<span class="boring">}</span></code></pre></pre>
+<span class="boring">}</span></code></pre>
 <h3 id="2-use-different-client-ids"><a class="header" href="#2-use-different-client-ids">2. Use Different Client IDs</a></h3>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>// Good: Different clients = low contention
 for i in 0..1000 {
@@ -3376,9 +3377,9 @@ for i in 0..1000 {
 for _ in 0..1000 {
     limiter.check_request("same_client")?;
 }
-<span class="boring">}</span></code></pre></pre>
+<span class="boring">}</span></code></pre>
 <h3 id="3-avoid-blocking-in-callbacks"><a class="header" href="#3-avoid-blocking-in-callbacks">3. Avoid Blocking in Callbacks</a></h3>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>// Good: Quick check
 match limiter.check_request(client_id) {
@@ -3395,9 +3396,9 @@ match limiter.check_request(client_id) {
     }
     Err(_) =&gt; false,
 }
-<span class="boring">}</span></code></pre></pre>
+<span class="boring">}</span></code></pre>
 <h3 id="4-periodic-cleanup"><a class="header" href="#4-periodic-cleanup">4. Periodic Cleanup</a></h3>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>// Background cleanup task
 tokio::spawn(async move {
@@ -3407,14 +3408,15 @@ tokio::spawn(async move {
         let _ = limiter.cleanup_stale_clients(threshold);
     }
 });
-<span class="boring">}</span></code></pre></pre>
+<span class="boring">}</span></code></pre>
 <h2 id="next-steps-12"><a class="header" href="#next-steps-12">Next Steps</a></h2>
 <ul>
-<li><a href="architecture/./performance.html">Performance Design</a> - Optimization techniques</li>
-<li><a href="architecture/./testing.html">Testing Architecture</a> - Concurrent testing strategies</li>
-<li><a href="architecture/./design-decisions.html">Design Decisions</a> - Why these choices?</li>
+<li><a href="#performance-design">Performance Design</a> - Optimization techniques</li>
+<li><a href="#testing-architecture">Testing Architecture</a> - Concurrent testing strategies</li>
+<li><a href="#design-decisions">Design Decisions</a> - Why these choices?</li>
 </ul>
-<div style="break-before: page; page-break-before: always;"></div><h1 id="error-handling-architecture"><a class="header" href="#error-handling-architecture">Error Handling Architecture</a></h1>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="error-handling-architecture"><a class="header" href="#error-handling-architecture">Error Handling Architecture</a></h1>
 <p>Comprehensive error handling design for production reliability.</p>
 <h2 id="error-type-hierarchy"><a class="header" href="#error-type-hierarchy">Error Type Hierarchy</a></h2>
 <pre><code>FluxLimiterError
@@ -3426,14 +3428,14 @@ tokio::spawn(async move {
 <h2 id="design-principles"><a class="header" href="#design-principles">Design Principles</a></h2>
 <h3 id="1-explicit-error-types"><a class="header" href="#1-explicit-error-types">1. Explicit Error Types</a></h3>
 <p>No silent failures - all errors are explicitly typed:</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>pub enum FluxLimiterError {
     InvalidRate,           // Rate ≤ 0
     InvalidBurst,          // Burst &lt; 0
     ClockError(ClockError), // System time failure
 }
-<span class="boring">}</span></code></pre></pre>
+<span class="boring">}</span></code></pre>
 <h3 id="2-configuration-vs-runtime-errors"><a class="header" href="#2-configuration-vs-runtime-errors">2. Configuration vs Runtime Errors</a></h3>
 <p><strong>Configuration Errors</strong> (at startup):</p>
 <ul>
@@ -3457,7 +3459,7 @@ tokio::spawn(async move {
 <h2 id="configuration-error-handling"><a class="header" href="#configuration-error-handling">Configuration Error Handling</a></h2>
 <h3 id="early-validation"><a class="header" href="#early-validation">Early Validation</a></h3>
 <p>Validate configuration at startup:</p>
-<pre><pre class="playground"><code class="language-rust">fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
+<pre class="playground"><code class="language-rust">fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
     let config = FluxLimiterConfig::new(100.0, 50.0);
 
     let limiter = FluxLimiter::with_config(config, SystemClock)
@@ -3473,9 +3475,9 @@ tokio::spawn(async move {
 
     // Use limiter...
     Ok(())
-}</code></pre></pre>
+}</code></pre>
 <h3 id="explicit-validation"><a class="header" href="#explicit-validation">Explicit Validation</a></h3>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>impl FluxLimiterConfig {
     pub fn validate(&amp;self) -&gt; Result&lt;(), FluxLimiterError&gt; {
@@ -3488,7 +3490,7 @@ tokio::spawn(async move {
         Ok(())
     }
 }
-<span class="boring">}</span></code></pre></pre>
+<span class="boring">}</span></code></pre>
 <p><strong>When to use</strong>:</p>
 <ul>
 <li>Before storing configuration</li>
@@ -3534,7 +3536,7 @@ Application Layer → Implements error policy
 <h3 id="handling-clock-errors"><a class="header" href="#handling-clock-errors">Handling Clock Errors</a></h3>
 <h4 id="fail-open-policy-1"><a class="header" href="#fail-open-policy-1">Fail-Open Policy</a></h4>
 <p>Allow requests when clock fails:</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>match limiter.check_request(client_id) {
     Ok(decision) =&gt; decision.allowed,
@@ -3547,7 +3549,7 @@ Application Layer → Implements error policy
         true
     }
 }
-<span class="boring">}</span></code></pre></pre>
+<span class="boring">}</span></code></pre>
 <p><strong>Use when</strong>:</p>
 <ul>
 <li>Availability &gt; strict rate limiting</li>
@@ -3556,7 +3558,7 @@ Application Layer → Implements error policy
 </ul>
 <h4 id="fail-closed-policy-1"><a class="header" href="#fail-closed-policy-1">Fail-Closed Policy</a></h4>
 <p>Deny requests when clock fails:</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>match limiter.check_request(client_id) {
     Ok(decision) =&gt; decision.allowed,
@@ -3569,7 +3571,7 @@ Application Layer → Implements error policy
         false
     }
 }
-<span class="boring">}</span></code></pre></pre>
+<span class="boring">}</span></code></pre>
 <p><strong>Use when</strong>:</p>
 <ul>
 <li>Security paramount</li>
@@ -3578,7 +3580,7 @@ Application Layer → Implements error policy
 </ul>
 <h4 id="fallback-policy-1"><a class="header" href="#fallback-policy-1">Fallback Policy</a></h4>
 <p>Use alternative when clock fails:</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>use std::sync::atomic::{AtomicU64, Ordering};
 
@@ -3593,7 +3595,7 @@ match limiter.check_request(client_id) {
     }
     Err(_) =&gt; false,
 }
-<span class="boring">}</span></code></pre></pre>
+<span class="boring">}</span></code></pre>
 <p><strong>Use when</strong>:</p>
 <ul>
 <li>Need graceful degradation</li>
@@ -3602,7 +3604,7 @@ match limiter.check_request(client_id) {
 </ul>
 <h2 id="error-monitoring"><a class="header" href="#error-monitoring">Error Monitoring</a></h2>
 <h3 id="tracking-error-rates"><a class="header" href="#tracking-error-rates">Tracking Error Rates</a></h3>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>use std::sync::atomic::{AtomicU64, Ordering};
 
@@ -3639,9 +3641,9 @@ impl ErrorMetrics {
         }
     }
 }
-<span class="boring">}</span></code></pre></pre>
+<span class="boring">}</span></code></pre>
 <h3 id="alerting-on-errors"><a class="header" href="#alerting-on-errors">Alerting on Errors</a></h3>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>fn check_with_alerting(
     limiter: &amp;FluxLimiter&lt;String, SystemClock&gt;,
@@ -3665,10 +3667,10 @@ impl ErrorMetrics {
         Err(_) =&gt; false,
     }
 }
-<span class="boring">}</span></code></pre></pre>
+<span class="boring">}</span></code></pre>
 <h2 id="circuit-breaker-pattern-1"><a class="header" href="#circuit-breaker-pattern-1">Circuit Breaker Pattern</a></h2>
 <p>Temporarily bypass rate limiting after consecutive failures:</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>use std::sync::atomic::{AtomicU64, AtomicBool, Ordering};
 
@@ -3731,10 +3733,10 @@ fn check_with_circuit_breaker(
         Err(_) =&gt; false,
     }
 }
-<span class="boring">}</span></code></pre></pre>
+<span class="boring">}</span></code></pre>
 <h2 id="cleanup-error-handling-1"><a class="header" href="#cleanup-error-handling-1">Cleanup Error Handling</a></h2>
 <p>Cleanup errors are typically non-critical:</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>match limiter.cleanup_stale_clients(threshold) {
     Ok(count) =&gt; {
@@ -3748,10 +3750,10 @@ fn check_with_circuit_breaker(
         error!("Unexpected cleanup error: {}", e);
     }
 }
-<span class="boring">}</span></code></pre></pre>
+<span class="boring">}</span></code></pre>
 <h2 id="error-recovery-strategies"><a class="header" href="#error-recovery-strategies">Error Recovery Strategies</a></h2>
 <h3 id="1-retry-with-backoff"><a class="header" href="#1-retry-with-backoff">1. Retry with Backoff</a></h3>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>async fn check_with_retry(
     limiter: &amp;FluxLimiter&lt;String, SystemClock&gt;,
@@ -3774,9 +3776,9 @@ fn check_with_circuit_breaker(
         }
     }
 }
-<span class="boring">}</span></code></pre></pre>
+<span class="boring">}</span></code></pre>
 <h3 id="2-degrade-gracefully"><a class="header" href="#2-degrade-gracefully">2. Degrade Gracefully</a></h3>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>enum RateLimitStrategy {
     Primary(FluxLimiter&lt;String, SystemClock&gt;),
@@ -3802,9 +3804,9 @@ impl RateLimitStrategy {
         }
     }
 }
-<span class="boring">}</span></code></pre></pre>
+<span class="boring">}</span></code></pre>
 <h3 id="3-log-and-continue"><a class="header" href="#3-log-and-continue">3. Log and Continue</a></h3>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>fn check_with_logging(
     limiter: &amp;FluxLimiter&lt;String, SystemClock&gt;,
@@ -3825,10 +3827,10 @@ impl RateLimitStrategy {
         }
     }
 }
-<span class="boring">}</span></code></pre></pre>
+<span class="boring">}</span></code></pre>
 <h2 id="testing-error-handling"><a class="header" href="#testing-error-handling">Testing Error Handling</a></h2>
 <h3 id="simulating-clock-failures"><a class="header" href="#simulating-clock-failures">Simulating Clock Failures</a></h3>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>#[cfg(test)]
 mod tests {
@@ -3856,7 +3858,7 @@ mod tests {
         assert!(limiter.check_request("client1").unwrap().allowed);
     }
 }
-<span class="boring">}</span></code></pre></pre>
+<span class="boring">}</span></code></pre>
 <h2 id="best-practices-2"><a class="header" href="#best-practices-2">Best Practices</a></h2>
 <ol>
 <li><strong>Fail Fast on Configuration</strong>: Validate at startup</li>
@@ -3868,16 +3870,17 @@ mod tests {
 </ol>
 <h2 id="next-steps-13"><a class="header" href="#next-steps-13">Next Steps</a></h2>
 <ul>
-<li><a href="architecture/./testing.html">Testing Architecture</a> - Test error handling</li>
-<li><a href="architecture/../guide/production.html">Production Considerations</a> - Deploy with confidence</li>
-<li><a href="architecture/./design-decisions.html">Design Decisions</a> - Why these choices?</li>
+<li><a href="#testing-architecture">Testing Architecture</a> - Test error handling</li>
+<li><a href="#production-considerations">Production Considerations</a> - Deploy with confidence</li>
+<li><a href="#design-decisions">Design Decisions</a> - Why these choices?</li>
 </ul>
-<div style="break-before: page; page-break-before: always;"></div><h1 id="performance-design"><a class="header" href="#performance-design">Performance Design</a></h1>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="performance-design"><a class="header" href="#performance-design">Performance Design</a></h1>
 <p>Deep dive into performance optimization techniques and characteristics.</p>
 <h2 id="hot-path-optimization"><a class="header" href="#hot-path-optimization">Hot Path Optimization</a></h2>
 <p>The <code>check_request()</code> method is optimized for minimal latency:</p>
 <h3 id="execution-path"><a class="header" href="#execution-path">Execution Path</a></h3>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>pub fn check_request(&amp;self, client_id: T) -&gt; Result&lt;FluxLimiterDecision, FluxLimiterError&gt; {
     // 1. Single clock call (~50-100ns)
@@ -3903,7 +3906,7 @@ mod tests {
     // 5. Metadata calculation (~5-10ns)
     // 6. Return decision
 }
-<span class="boring">}</span></code></pre></pre>
+<span class="boring">}</span></code></pre>
 <p><strong>Total latency</strong>: ~100-250ns typical case</p>
 <h3 id="optimization-techniques"><a class="header" href="#optimization-techniques">Optimization Techniques</a></h3>
 <ol>
@@ -3915,7 +3918,7 @@ mod tests {
 </ol>
 <h2 id="memory-layout-1"><a class="header" href="#memory-layout-1">Memory Layout</a></h2>
 <h3 id="fluxlimiter-structure"><a class="header" href="#fluxlimiter-structure">FluxLimiter Structure</a></h3>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>FluxLimiter&lt;String, SystemClock&gt; {
     rate_nanos: u64,         // 8 bytes - cache-friendly
@@ -3924,7 +3927,7 @@ mod tests {
     clock: SystemClock,      // 0 bytes - zero-sized type
 }
 // Total: 24 bytes - fits in single cache line
-<span class="boring">}</span></code></pre></pre>
+<span class="boring">}</span></code></pre>
 <p><strong>Cache Efficiency</strong>:</p>
 <ul>
 <li>Small struct size (24-32 bytes)</li>
@@ -3933,14 +3936,14 @@ mod tests {
 <li>Zero-sized clock type (SystemClock)</li>
 </ul>
 <h3 id="per-client-state-1"><a class="header" href="#per-client-state-1">Per-Client State</a></h3>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>DashMap&lt;String, u64&gt; entry:
     String:   ~24 bytes (pointer + len + capacity)
     u64:      8 bytes (TAT)
     Overhead: ~16 bytes (hash map metadata)
 // Total: ~48 bytes per client
-<span class="boring">}</span></code></pre></pre>
+<span class="boring">}</span></code></pre>
 <h3 id="memory-scalability"><a class="header" href="#memory-scalability">Memory Scalability</a></h3>
 <pre><code>Clients         Memory Usage    Example
 1,000           ~48 KB          Small API
@@ -3952,19 +3955,31 @@ mod tests {
 <p><strong>Memory Growth</strong>: Linear with number of active clients</p>
 <h2 id="algorithmic-complexity"><a class="header" href="#algorithmic-complexity">Algorithmic Complexity</a></h2>
 <h3 id="time-complexity"><a class="header" href="#time-complexity">Time Complexity</a></h3>
-<div class="table-wrapper"><table><thead><tr><th>Operation</th><th>Complexity</th><th>Notes</th></tr></thead><tbody>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Operation</th><th>Complexity</th><th>Notes</th></tr>
+</thead>
+<tbody>
 <tr><td><code>check_request()</code></td><td>O(1)</td><td>Hash map lookup + arithmetic</td></tr>
 <tr><td><code>cleanup_stale_clients()</code></td><td>O(n)</td><td>Iterates all clients</td></tr>
 <tr><td><code>rate()</code></td><td>O(1)</td><td>Simple field access</td></tr>
 <tr><td><code>burst()</code></td><td>O(1)</td><td>Simple calculation</td></tr>
-</tbody></table>
+</tbody>
+</table>
 </div>
 <h3 id="space-complexity"><a class="header" href="#space-complexity">Space Complexity</a></h3>
-<div class="table-wrapper"><table><thead><tr><th>Component</th><th>Complexity</th><th>Notes</th></tr></thead><tbody>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Component</th><th>Complexity</th><th>Notes</th></tr>
+</thead>
+<tbody>
 <tr><td>Per-client state</td><td>O(1)</td><td>Single u64 per client</td></tr>
 <tr><td>Total state</td><td>O(n)</td><td>Where n = active clients</td></tr>
 <tr><td>Configuration</td><td>O(1)</td><td>Fixed size</td></tr>
-</tbody></table>
+</tbody>
+</table>
 </div>
 <h2 id="concurrency-performance"><a class="header" href="#concurrency-performance">Concurrency Performance</a></h2>
 <h3 id="lock-free-benefits"><a class="header" href="#lock-free-benefits">Lock-Free Benefits</a></h3>
@@ -3984,53 +3999,53 @@ mod tests {
 </ul>
 <h3 id="contention-patterns"><a class="header" href="#contention-patterns">Contention Patterns</a></h3>
 <p><strong>Low Contention</strong> (different clients):</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>// Thread 1
 limiter.check_request("client_1")?; // Shard 0
 // Thread 2
 limiter.check_request("client_2")?; // Shard 1
 // No contention - lock-free
-<span class="boring">}</span></code></pre></pre>
+<span class="boring">}</span></code></pre>
 <p><strong>Medium Contention</strong> (same shard):</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>// Thread 1
 limiter.check_request("client_1")?; // Shard 0
 // Thread 2
 limiter.check_request("client_100")?; // Shard 0
 // Brief contention - short lock
-<span class="boring">}</span></code></pre></pre>
+<span class="boring">}</span></code></pre>
 <p><strong>High Contention</strong> (same client):</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>// Thread 1
 limiter.check_request("client_1")?; // Shard 0
 // Thread 2
 limiter.check_request("client_1")?; // Shard 0
 // Serialized - correct behavior
-<span class="boring">}</span></code></pre></pre>
+<span class="boring">}</span></code></pre>
 <h2 id="benchmark-results"><a class="header" href="#benchmark-results">Benchmark Results</a></h2>
 <h3 id="single-threaded-performance"><a class="header" href="#single-threaded-performance">Single-Threaded Performance</a></h3>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>test bench_check_request_allowed ... bench:    85 ns/iter (+/- 5)
 test bench_check_request_denied  ... bench:    82 ns/iter (+/- 4)
 test bench_cleanup               ... bench:    45 μs/iter (+/- 2)
-<span class="boring">}</span></code></pre></pre>
+<span class="boring">}</span></code></pre>
 <h3 id="multi-threaded-performance"><a class="header" href="#multi-threaded-performance">Multi-Threaded Performance</a></h3>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>test bench_concurrent_8_threads  ... bench:    120 ns/iter (+/- 10)
 test bench_concurrent_16_threads ... bench:    135 ns/iter (+/- 12)
-<span class="boring">}</span></code></pre></pre>
+<span class="boring">}</span></code></pre>
 <h3 id="memory-overhead"><a class="header" href="#memory-overhead">Memory Overhead</a></h3>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>test bench_memory_1k_clients     ... ~48 KB
 test bench_memory_100k_clients   ... ~4.8 MB
 test bench_memory_1m_clients     ... ~48 MB
-<span class="boring">}</span></code></pre></pre>
+<span class="boring">}</span></code></pre>
 <h2 id="optimization-decisions"><a class="header" href="#optimization-decisions">Optimization Decisions</a></h2>
 <h3 id="integer-arithmetic-vs-floating-point"><a class="header" href="#integer-arithmetic-vs-floating-point">Integer Arithmetic vs Floating-Point</a></h3>
 <p><strong>Integer (chosen)</strong>:</p>
@@ -4055,13 +4070,13 @@ test bench_memory_1m_clients     ... ~48 MB
 <li>✅ Battle-tested</li>
 <li>✅ Ergonomic API</li>
 </ul>
-<p><strong>Mutex<HashMap> (rejected)</strong>:</p>
+<p><strong>Mutex<hashmap> (rejected)</hashmap></strong>:</p>
 <ul>
 <li>❌ Global locking</li>
 <li>❌ Poor scalability</li>
 <li>❌ Read contention</li>
 </ul>
-<p><strong>RwLock<HashMap> (rejected)</strong>:</p>
+<p><strong>RwLock<hashmap> (rejected)</hashmap></strong>:</p>
 <ul>
 <li>❌ Reader/writer contention</li>
 <li>❌ Write starvation possible</li>
@@ -4093,7 +4108,7 @@ test bench_memory_1m_clients     ... ~48 MB
 <h2 id="performance-tuning"><a class="header" href="#performance-tuning">Performance Tuning</a></h2>
 <h3 id="client-id-selection"><a class="header" href="#client-id-selection">Client ID Selection</a></h3>
 <p>Choose efficient client ID types:</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>// Fastest: Numeric IDs
 let limiter = FluxLimiter::&lt;u64, _&gt;::with_config(config, clock)?;
@@ -4106,10 +4121,10 @@ limiter.check_request(client_ip)?; // ~90ns
 // Slower: Strings (requires allocation)
 let limiter = FluxLimiter::&lt;String, _&gt;::with_config(config, clock)?;
 limiter.check_request(user_id.to_string())?; // ~120ns
-<span class="boring">}</span></code></pre></pre>
+<span class="boring">}</span></code></pre>
 <h3 id="cleanup-strategy"><a class="header" href="#cleanup-strategy">Cleanup Strategy</a></h3>
 <p>Balance memory usage vs. cleanup overhead:</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>// Frequent cleanup: Lower memory, higher overhead
 tokio::spawn(async move {
@@ -4128,9 +4143,9 @@ tokio::spawn(async move {
         let _ = limiter.cleanup_stale_clients(week_nanos);
     }
 });
-<span class="boring">}</span></code></pre></pre>
+<span class="boring">}</span></code></pre>
 <h3 id="avoid-allocations"><a class="header" href="#avoid-allocations">Avoid Allocations</a></h3>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>// Good: Reuse strings
 let client_id = format!("user_{}", user_id);
@@ -4142,10 +4157,10 @@ for _ in 0..100 {
 for _ in 0..100 {
     limiter.check_request(format!("user_{}", user_id))?;
 }
-<span class="boring">}</span></code></pre></pre>
+<span class="boring">}</span></code></pre>
 <h2 id="profiling-and-monitoring"><a class="header" href="#profiling-and-monitoring">Profiling and Monitoring</a></h2>
 <h3 id="latency-monitoring"><a class="header" href="#latency-monitoring">Latency Monitoring</a></h3>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>use std::time::Instant;
 
@@ -4156,9 +4171,9 @@ let latency = start.elapsed();
 if latency.as_micros() &gt; 10 {
     warn!("Slow rate limit check: {:?}", latency);
 }
-<span class="boring">}</span></code></pre></pre>
+<span class="boring">}</span></code></pre>
 <h3 id="memory-monitoring-1"><a class="header" href="#memory-monitoring-1">Memory Monitoring</a></h3>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>fn estimate_memory_usage&lt;T, C&gt;(limiter: &amp;FluxLimiter&lt;T, C&gt;) -&gt; usize
 where
@@ -4169,9 +4184,9 @@ where
     let bytes_per_client = std::mem::size_of::&lt;T&gt;() + 8 + 16; // ID + TAT + overhead
     client_count * bytes_per_client
 }
-<span class="boring">}</span></code></pre></pre>
+<span class="boring">}</span></code></pre>
 <h3 id="throughput-tracking"><a class="header" href="#throughput-tracking">Throughput Tracking</a></h3>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>use std::sync::atomic::{AtomicU64, Ordering};
 
@@ -4192,16 +4207,22 @@ fn report_throughput(duration: Duration) {
     let throughput = count as f64 / duration.as_secs_f64();
     println!("Throughput: {:.2} req/s", throughput);
 }
-<span class="boring">}</span></code></pre></pre>
+<span class="boring">}</span></code></pre>
 <h2 id="performance-characteristics-summary"><a class="header" href="#performance-characteristics-summary">Performance Characteristics Summary</a></h2>
-<div class="table-wrapper"><table><thead><tr><th>Metric</th><th>Value</th></tr></thead><tbody>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Metric</th><th>Value</th></tr>
+</thead>
+<tbody>
 <tr><td>Latency (typical)</td><td>100-250ns</td></tr>
 <tr><td>Throughput (single thread)</td><td>~10M req/s</td></tr>
 <tr><td>Throughput (8 threads)</td><td>~70M req/s</td></tr>
 <tr><td>Memory per client</td><td>~48 bytes</td></tr>
 <tr><td>Scalability</td><td>Near-linear</td></tr>
 <tr><td>Cleanup overhead</td><td>O(n) but infrequent</td></tr>
-</tbody></table>
+</tbody>
+</table>
 </div>
 <h2 id="best-practices-3"><a class="header" href="#best-practices-3">Best Practices</a></h2>
 <ol>
@@ -4214,11 +4235,12 @@ fn report_throughput(duration: Duration) {
 </ol>
 <h2 id="next-steps-14"><a class="header" href="#next-steps-14">Next Steps</a></h2>
 <ul>
-<li><a href="architecture/./concurrency.html">Concurrency Model</a> - Understand thread safety</li>
-<li><a href="architecture/./testing.html">Testing Architecture</a> - Performance testing</li>
-<li><a href="architecture/./design-decisions.html">Design Decisions</a> - Why these choices?</li>
+<li><a href="#concurrency-model">Concurrency Model</a> - Understand thread safety</li>
+<li><a href="#testing-architecture">Testing Architecture</a> - Performance testing</li>
+<li><a href="#design-decisions">Design Decisions</a> - Why these choices?</li>
 </ul>
-<div style="break-before: page; page-break-before: always;"></div><h1 id="testing-architecture"><a class="header" href="#testing-architecture">Testing Architecture</a></h1>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="testing-architecture"><a class="header" href="#testing-architecture">Testing Architecture</a></h1>
 <p>Comprehensive testing strategy for deterministic and reliable tests.</p>
 <h2 id="test-organization"><a class="header" href="#test-organization">Test Organization</a></h2>
 <p>Tests are organized in <code>tests/ratelimiter/</code> with clear separation of concerns:</p>
@@ -4237,7 +4259,7 @@ fn report_throughput(duration: Duration) {
 <h2 id="testclock-design"><a class="header" href="#testclock-design">TestClock Design</a></h2>
 <p>The TestClock is the foundation for deterministic testing.</p>
 <h3 id="implementation"><a class="header" href="#implementation">Implementation</a></h3>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>use std::sync::Arc;
 use std::sync::atomic::{AtomicU64, AtomicBool, Ordering};
@@ -4277,7 +4299,7 @@ impl Clock for TestClock {
         Ok(self.time.load(Ordering::SeqCst))
     }
 }
-<span class="boring">}</span></code></pre></pre>
+<span class="boring">}</span></code></pre>
 <h3 id="key-features"><a class="header" href="#key-features">Key Features</a></h3>
 <ol>
 <li><strong>Deterministic Time</strong>: Controlled time progression</li>
@@ -4286,7 +4308,7 @@ impl Clock for TestClock {
 <li><strong>Precise Control</strong>: Nanosecond-level manipulation</li>
 </ol>
 <h3 id="usage-example"><a class="header" href="#usage-example">Usage Example</a></h3>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>#[test]
 fn test_rate_limiting() {
@@ -4305,11 +4327,11 @@ fn test_rate_limiting() {
     // Second request should be allowed
     assert!(limiter.check_request("client1").unwrap().allowed);
 }
-<span class="boring">}</span></code></pre></pre>
+<span class="boring">}</span></code></pre>
 <h2 id="test-categories"><a class="header" href="#test-categories">Test Categories</a></h2>
 <h3 id="1-gcra-algorithm-tests"><a class="header" href="#1-gcra-algorithm-tests">1. GCRA Algorithm Tests</a></h3>
 <p>Test core algorithm correctness:</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>#[test]
 fn test_sustained_rate() {
@@ -4328,10 +4350,10 @@ fn test_sustained_rate() {
     clock.advance(0.05);
     assert!(limiter.check_request("client1").unwrap().allowed);
 }
-<span class="boring">}</span></code></pre></pre>
+<span class="boring">}</span></code></pre>
 <h3 id="2-burst-capacity-tests"><a class="header" href="#2-burst-capacity-tests">2. Burst Capacity Tests</a></h3>
 <p>Verify burst handling:</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>#[test]
 fn test_burst_capacity() {
@@ -4351,10 +4373,10 @@ fn test_burst_capacity() {
     clock.advance(0.1);
     assert!(limiter.check_request("client1").unwrap().allowed);
 }
-<span class="boring">}</span></code></pre></pre>
+<span class="boring">}</span></code></pre>
 <h3 id="3-configuration-tests"><a class="header" href="#3-configuration-tests">3. Configuration Tests</a></h3>
 <p>Validate configuration handling:</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>#[test]
 fn test_invalid_rate() {
@@ -4371,10 +4393,10 @@ fn test_invalid_burst() {
 
     assert!(matches!(result, Err(FluxLimiterError::InvalidBurst)));
 }
-<span class="boring">}</span></code></pre></pre>
+<span class="boring">}</span></code></pre>
 <h3 id="4-error-handling-tests"><a class="header" href="#4-error-handling-tests">4. Error Handling Tests</a></h3>
 <p>Test error scenarios and recovery:</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>#[test]
 fn test_clock_error_handling() {
@@ -4413,10 +4435,10 @@ fn test_multiple_clock_failures() {
     // Recovery
     assert!(limiter.check_request("client1").unwrap().allowed);
 }
-<span class="boring">}</span></code></pre></pre>
+<span class="boring">}</span></code></pre>
 <h3 id="5-cleanup-tests"><a class="header" href="#5-cleanup-tests">5. Cleanup Tests</a></h3>
 <p>Test memory management:</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>#[test]
 fn test_cleanup_stale_clients() {
@@ -4440,10 +4462,10 @@ fn test_cleanup_stale_clients() {
 
     assert_eq!(removed, 3);
 }
-<span class="boring">}</span></code></pre></pre>
+<span class="boring">}</span></code></pre>
 <h3 id="6-concurrency-tests"><a class="header" href="#6-concurrency-tests">6. Concurrency Tests</a></h3>
 <p>Test thread safety:</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>#[test]
 fn test_concurrent_access() {
@@ -4471,10 +4493,10 @@ fn test_concurrent_access() {
         handle.join().unwrap();
     }
 }
-<span class="boring">}</span></code></pre></pre>
+<span class="boring">}</span></code></pre>
 <h3 id="7-decision-metadata-tests"><a class="header" href="#7-decision-metadata-tests">7. Decision Metadata Tests</a></h3>
 <p>Verify decision metadata accuracy:</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>#[test]
 fn test_retry_after_metadata() {
@@ -4516,10 +4538,10 @@ fn test_remaining_capacity() {
     let decision = limiter.check_request("client1").unwrap();
     assert!(!decision.allowed);
 }
-<span class="boring">}</span></code></pre></pre>
+<span class="boring">}</span></code></pre>
 <h2 id="performance-testing"><a class="header" href="#performance-testing">Performance Testing</a></h2>
 <h3 id="latency-benchmarks"><a class="header" href="#latency-benchmarks">Latency Benchmarks</a></h3>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>#[cfg(test)]
 mod benchmarks {
@@ -4548,9 +4570,9 @@ mod benchmarks {
         assert!(avg_latency &lt; 1000); // Should be under 1μs
     }
 }
-<span class="boring">}</span></code></pre></pre>
+<span class="boring">}</span></code></pre>
 <h3 id="throughput-tests"><a class="header" href="#throughput-tests">Throughput Tests</a></h3>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>#[test]
 fn test_throughput() {
@@ -4587,10 +4609,10 @@ fn test_throughput() {
 
     println!("Throughput: {:.2} req/s", throughput);
 }
-<span class="boring">}</span></code></pre></pre>
+<span class="boring">}</span></code></pre>
 <h2 id="test-utilities"><a class="header" href="#test-utilities">Test Utilities</a></h2>
 <h3 id="helper-functions"><a class="header" href="#helper-functions">Helper Functions</a></h3>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>fn assert_allowed(result: Result&lt;FluxLimiterDecision, FluxLimiterError&gt;) {
     match result {
@@ -4609,9 +4631,9 @@ fn assert_denied(result: Result&lt;FluxLimiterDecision, FluxLimiterError&gt;) {
 fn assert_error&lt;T&gt;(result: Result&lt;T, FluxLimiterError&gt;) {
     assert!(result.is_err(), "Expected error, got success");
 }
-<span class="boring">}</span></code></pre></pre>
+<span class="boring">}</span></code></pre>
 <h3 id="test-fixtures"><a class="header" href="#test-fixtures">Test Fixtures</a></h3>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>fn create_test_limiter(rate: f64, burst: f64) -&gt; (FluxLimiter&lt;String, TestClock&gt;, TestClock) {
     let clock = TestClock::new(0.0);
@@ -4619,7 +4641,7 @@ fn assert_error&lt;T&gt;(result: Result&lt;T, FluxLimiterError&gt;) {
     let limiter = FluxLimiter::with_config(config, clock.clone()).unwrap();
     (limiter, clock)
 }
-<span class="boring">}</span></code></pre></pre>
+<span class="boring">}</span></code></pre>
 <h2 id="test-coverage"><a class="header" href="#test-coverage">Test Coverage</a></h2>
 <p>Aim for comprehensive coverage:</p>
 <ul>
@@ -4644,10 +4666,11 @@ fn assert_error&lt;T&gt;(result: Result&lt;T, FluxLimiterError&gt;) {
 </ol>
 <h2 id="next-steps-15"><a class="header" href="#next-steps-15">Next Steps</a></h2>
 <ul>
-<li><a href="architecture/./design-decisions.html">Design Decisions</a> - Understand the rationale</li>
-<li><a href="architecture/./future.html">Future Extensibility</a> - Planned enhancements</li>
+<li><a href="#design-decisions">Design Decisions</a> - Understand the rationale</li>
+<li><a href="#future-extensibility">Future Extensibility</a> - Planned enhancements</li>
 </ul>
-<div style="break-before: page; page-break-before: always;"></div><h1 id="design-decisions"><a class="header" href="#design-decisions">Design Decisions</a></h1>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="design-decisions"><a class="header" href="#design-decisions">Design Decisions</a></h1>
 <p>Detailed rationale behind key architectural choices in Flux Limiter.</p>
 <h2 id="algorithm-selection-gcra-vs-token-bucket"><a class="header" href="#algorithm-selection-gcra-vs-token-bucket">Algorithm Selection: GCRA vs Token Bucket</a></h2>
 <h3 id="decision-use-gcra"><a class="header" href="#decision-use-gcra">Decision: Use GCRA</a></h3>
@@ -4730,7 +4753,7 @@ Token Bucket: Request allowed if tokens &gt;= 1
 <li>Easy to use correctly</li>
 <li>Clear semantics</li>
 </ul>
-<h3 id="alternative-mutex"><a class="header" href="#alternative-mutex">Alternative: Mutex<HashMap></a></h3>
+<h3 id="alternative-mutex"><a class="header" href="#alternative-mutex">Alternative: Mutex<hashmap></hashmap></a></h3>
 <p>❌ <strong>Global Locking</strong></p>
 <ul>
 <li>All operations serialize</li>
@@ -4738,14 +4761,14 @@ Token Bucket: Request allowed if tokens &gt;= 1
 <li>Read contention</li>
 </ul>
 <p><strong>Why rejected</strong>: Unacceptable performance bottleneck for concurrent access.</p>
-<h3 id="alternative-rwlock"><a class="header" href="#alternative-rwlock">Alternative: RwLock<HashMap></a></h3>
+<h3 id="alternative-rwlock"><a class="header" href="#alternative-rwlock">Alternative: RwLock<hashmap></hashmap></a></h3>
 <p>❌ <strong>Reader/Writer Contention</strong></p>
 <ul>
 <li>Writers block all readers</li>
 <li>Write starvation possible</li>
 <li>Complex lock management</li>
 </ul>
-<p><strong>Why rejected</strong>: Still has contention issues, doesn't scale well.</p>
+<p><strong>Why rejected</strong>: Still has contention issues, doesn’t scale well.</p>
 <h3 id="alternative-custom-lock-free-map"><a class="header" href="#alternative-custom-lock-free-map">Alternative: Custom Lock-Free Map</a></h3>
 <p>❌ <strong>Implementation Complexity</strong></p>
 <ul>
@@ -4791,7 +4814,7 @@ Token Bucket: Request allowed if tokens &gt;= 1
 <h3 id="alternative-milliseconds"><a class="header" href="#alternative-milliseconds">Alternative: Milliseconds</a></h3>
 <p>❌ <strong>Insufficient Precision</strong></p>
 <ul>
-<li>Can't support rates &gt; 1000 req/s precisely</li>
+<li>Can’t support rates &gt; 1000 req/s precisely</li>
 <li>Precision loss for high rates</li>
 <li>Rounding errors</li>
 </ul>
@@ -4855,7 +4878,7 @@ Token Bucket: Request allowed if tokens &gt;= 1
 <h3 id="alternative-panics"><a class="header" href="#alternative-panics">Alternative: Panics</a></h3>
 <p>❌ <strong>Difficult Recovery</strong></p>
 <ul>
-<li>Can't recover from panic</li>
+<li>Can’t recover from panic</li>
 <li>Crashes entire application</li>
 <li>Poor user experience</li>
 </ul>
@@ -4881,7 +4904,7 @@ Token Bucket: Request allowed if tokens &gt;= 1
 </ul>
 <p>❌ <strong>No Observability</strong></p>
 <ul>
-<li>Can't track error rates</li>
+<li>Can’t track error rates</li>
 <li>No alerting possible</li>
 <li>Silent degradation</li>
 </ul>
@@ -4906,7 +4929,7 @@ Token Bucket: Request allowed if tokens &gt;= 1
 <p>✅ <strong>Type Safety</strong></p>
 <ul>
 <li>Compile-time type checking</li>
-<li>Can't mix different ID types</li>
+<li>Can’t mix different ID types</li>
 <li>Clear API</li>
 </ul>
 <p>✅ <strong>Performance</strong></p>
@@ -4934,7 +4957,7 @@ Token Bucket: Request allowed if tokens &gt;= 1
 <ul>
 <li>Forces string conversion</li>
 <li>Allocation overhead</li>
-<li>Can't optimize for numeric IDs</li>
+<li>Can’t optimize for numeric IDs</li>
 </ul>
 <p>❌ <strong>Performance</strong></p>
 <ul>
@@ -4974,14 +4997,14 @@ Token Bucket: Request allowed if tokens &gt;= 1
 <h3 id="alternative-direct-systemtime"><a class="header" href="#alternative-direct-systemtime">Alternative: Direct SystemTime</a></h3>
 <p>❌ <strong>Not Testable</strong></p>
 <ul>
-<li>Can't control time in tests</li>
+<li>Can’t control time in tests</li>
 <li>Non-deterministic tests</li>
 <li>Hard to test edge cases</li>
 </ul>
 <p>❌ <strong>No Error Handling</strong></p>
 <ul>
 <li>SystemTime can fail</li>
-<li>Can't recover</li>
+<li>Can’t recover</li>
 <li>Silent failures</li>
 </ul>
 <p><strong>Why rejected</strong>: Testing and error handling require abstraction.</p>
@@ -5016,7 +5039,7 @@ Token Bucket: Request allowed if tokens &gt;= 1
 </ul>
 <p>❌ <strong>Loss of Control</strong></p>
 <ul>
-<li>Can't control timing</li>
+<li>Can’t control timing</li>
 <li>Fixed thresholds</li>
 <li>May not fit all workloads</li>
 </ul>
@@ -5030,11 +5053,11 @@ Token Bucket: Request allowed if tokens &gt;= 1
 <h3 id="alternative-reference-counting"><a class="header" href="#alternative-reference-counting">Alternative: Reference Counting</a></h3>
 <p>❌ <strong>Incorrect Semantics</strong></p>
 <ul>
-<li>Clients don't have clear ownership</li>
+<li>Clients don’t have clear ownership</li>
 <li>Memory leak if client keeps requesting</li>
-<li>Doesn't solve problem</li>
+<li>Doesn’t solve problem</li>
 </ul>
-<p><strong>Why rejected</strong>: Doesn't match use case.</p>
+<p><strong>Why rejected</strong>: Doesn’t match use case.</p>
 <h2 id="configuration-builder-pattern"><a class="header" href="#configuration-builder-pattern">Configuration: Builder Pattern</a></h2>
 <h3 id="decision-support-builder-pattern"><a class="header" href="#decision-support-builder-pattern">Decision: Support Builder Pattern</a></h3>
 <p><strong>Rationale</strong>: Builder pattern provides ergonomic API while maintaining validation.</p>
@@ -5058,20 +5081,25 @@ Token Bucket: Request allowed if tokens &gt;= 1
 <li>Fail fast</li>
 </ul>
 <h3 id="example"><a class="header" href="#example">Example</a></h3>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>let config = FluxLimiterConfig::new(0.0, 0.0)
     .rate(100.0)
     .burst(50.0);
-<span class="boring">}</span></code></pre></pre>
+<span class="boring">}</span></code></pre>
 <p>vs.</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>let config = FluxLimiterConfig::new(100.0, 50.0);
-<span class="boring">}</span></code></pre></pre>
+<span class="boring">}</span></code></pre>
 <p>Both are supported.</p>
 <h2 id="decision-summary"><a class="header" href="#decision-summary">Decision Summary</a></h2>
-<div class="table-wrapper"><table><thead><tr><th>Decision</th><th>Chosen</th><th>Rejected</th><th>Rationale</th></tr></thead><tbody>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Decision</th><th>Chosen</th><th>Rejected</th><th>Rationale</th></tr>
+</thead>
+<tbody>
 <tr><td>Algorithm</td><td>GCRA</td><td>Token Bucket</td><td>Precision, simplicity</td></tr>
 <tr><td>Storage</td><td>DashMap</td><td>Mutex, RwLock</td><td>Performance, scalability</td></tr>
 <tr><td>Time</td><td>u64 nanos</td><td>ms, Duration, f64</td><td>Precision, performance</td></tr>
@@ -5080,19 +5108,21 @@ Token Bucket: Request allowed if tokens &gt;= 1
 <tr><td>Clock</td><td>Trait</td><td>Direct SystemTime</td><td>Testing, error handling</td></tr>
 <tr><td>Cleanup</td><td>Manual</td><td>Automatic</td><td>Control, simplicity</td></tr>
 <tr><td>Config</td><td>Builder</td><td>Constructor only</td><td>Ergonomics</td></tr>
-</tbody></table>
+</tbody>
+</table>
 </div>
 <h2 id="next-steps-16"><a class="header" href="#next-steps-16">Next Steps</a></h2>
 <ul>
-<li><a href="architecture/./future.html">Future Extensibility</a> - Planned enhancements</li>
-<li><a href="architecture/./performance.html">Performance Design</a> - Performance implications</li>
+<li><a href="#future-extensibility">Future Extensibility</a> - Planned enhancements</li>
+<li><a href="#performance-design">Performance Design</a> - Performance implications</li>
 </ul>
-<div style="break-before: page; page-break-before: always;"></div><h1 id="future-extensibility"><a class="header" href="#future-extensibility">Future Extensibility</a></h1>
+<div style="break-before: page; page-break-before: always;"></div>
+<h1 id="future-extensibility"><a class="header" href="#future-extensibility">Future Extensibility</a></h1>
 <p>Planned architecture enhancements and extension points.</p>
 <h2 id="planned-features"><a class="header" href="#planned-features">Planned Features</a></h2>
 <h3 id="1-async-support"><a class="header" href="#1-async-support">1. Async Support</a></h3>
 <p>Add async variants of key methods for better integration with async runtimes.</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>impl&lt;T, C&gt; FluxLimiter&lt;T, C&gt;
 where
@@ -5115,7 +5145,7 @@ where
         // Async cleanup without blocking
     }
 }
-<span class="boring">}</span></code></pre></pre>
+<span class="boring">}</span></code></pre>
 <p><strong>Benefits</strong>:</p>
 <ul>
 <li>Better integration with Tokio/async-std</li>
@@ -5130,7 +5160,7 @@ where
 </ul>
 <h3 id="2-persistence-layer"><a class="header" href="#2-persistence-layer">2. Persistence Layer</a></h3>
 <p>Support for persisting rate limit state across restarts.</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>#[async_trait]
 pub trait StateStore: Send + Sync {
@@ -5150,10 +5180,10 @@ pub trait StateStore: Send + Sync {
         threshold: u64,
     ) -&gt; Result&lt;usize, StoreError&gt;;
 }
-<span class="boring">}</span></code></pre></pre>
+<span class="boring">}</span></code></pre>
 <p><strong>Implementations</strong>:</p>
 <h4 id="redis-backend"><a class="header" href="#redis-backend">Redis Backend</a></h4>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>pub struct RedisStateStore {
     client: redis::Client,
@@ -5171,9 +5201,9 @@ impl StateStore for RedisStateStore {
         // Save TAT to Redis with TTL
     }
 }
-<span class="boring">}</span></code></pre></pre>
+<span class="boring">}</span></code></pre>
 <h4 id="database-backend"><a class="header" href="#database-backend">Database Backend</a></h4>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>pub struct DatabaseStateStore {
     pool: sqlx::PgPool,
@@ -5188,7 +5218,7 @@ impl StateStore for DatabaseStateStore {
             .map_err(Into::into)
     }
 }
-<span class="boring">}</span></code></pre></pre>
+<span class="boring">}</span></code></pre>
 <p><strong>Benefits</strong>:</p>
 <ul>
 <li>State survives restarts</li>
@@ -5203,7 +5233,7 @@ impl StateStore for DatabaseStateStore {
 </ul>
 <h3 id="3-observability-integration"><a class="header" href="#3-observability-integration">3. Observability Integration</a></h3>
 <p>Built-in metrics and tracing support.</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>pub trait RateLimiterMetrics: Send + Sync {
     fn record_decision(
@@ -5217,10 +5247,10 @@ impl StateStore for DatabaseStateStore {
 
     fn record_cleanup(&amp;self, removed: usize, duration: Duration);
 }
-<span class="boring">}</span></code></pre></pre>
+<span class="boring">}</span></code></pre>
 <p><strong>Implementations</strong>:</p>
 <h4 id="prometheus-metrics"><a class="header" href="#prometheus-metrics">Prometheus Metrics</a></h4>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>pub struct PrometheusMetrics {
     requests_total: IntCounterVec,
@@ -5245,9 +5275,9 @@ impl RateLimiterMetrics for PrometheusMetrics {
             .observe(latency.as_secs_f64());
     }
 }
-<span class="boring">}</span></code></pre></pre>
+<span class="boring">}</span></code></pre>
 <h4 id="opentelemetry-tracing"><a class="header" href="#opentelemetry-tracing">OpenTelemetry Tracing</a></h4>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>pub struct OpenTelemetryMetrics {
     meter: Meter,
@@ -5265,7 +5295,7 @@ impl RateLimiterMetrics for OpenTelemetryMetrics {
         let _enter = span.enter();
     }
 }
-<span class="boring">}</span></code></pre></pre>
+<span class="boring">}</span></code></pre>
 <p><strong>Benefits</strong>:</p>
 <ul>
 <li>Built-in monitoring</li>
@@ -5280,7 +5310,7 @@ impl RateLimiterMetrics for OpenTelemetryMetrics {
 </ul>
 <h3 id="4-alternative-algorithms"><a class="header" href="#4-alternative-algorithms">4. Alternative Algorithms</a></h3>
 <p>Support for multiple rate limiting algorithms.</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>pub trait RateLimitAlgorithm&lt;T&gt;: Send + Sync {
     fn check_request(
@@ -5294,10 +5324,10 @@ impl RateLimiterMetrics for OpenTelemetryMetrics {
         threshold: u64,
     ) -&gt; Result&lt;usize, FluxLimiterError&gt;;
 }
-<span class="boring">}</span></code></pre></pre>
+<span class="boring">}</span></code></pre>
 <p><strong>Implementations</strong>:</p>
 <h4 id="token-bucket-1"><a class="header" href="#token-bucket-1">Token Bucket</a></h4>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>pub struct TokenBucketAlgorithm {
     rate: f64,
@@ -5309,25 +5339,25 @@ struct TokenBucketState {
     tokens: f64,
     last_refill: u64,
 }
-<span class="boring">}</span></code></pre></pre>
+<span class="boring">}</span></code></pre>
 <h4 id="sliding-window"><a class="header" href="#sliding-window">Sliding Window</a></h4>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>pub struct SlidingWindowAlgorithm {
     window_size_nanos: u64,
     max_requests: u64,
     client_state: DashMap&lt;String, VecDeque&lt;u64&gt;&gt;,
 }
-<span class="boring">}</span></code></pre></pre>
+<span class="boring">}</span></code></pre>
 <h4 id="leaky-bucket"><a class="header" href="#leaky-bucket">Leaky Bucket</a></h4>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>pub struct LeakyBucketAlgorithm {
     rate: f64,
     capacity: u64,
     client_state: DashMap&lt;String, LeakyBucketState&gt;,
 }
-<span class="boring">}</span></code></pre></pre>
+<span class="boring">}</span></code></pre>
 <p><strong>Benefits</strong>:</p>
 <ul>
 <li>Algorithm flexibility</li>
@@ -5342,7 +5372,7 @@ struct TokenBucketState {
 </ul>
 <h3 id="5-distributed-rate-limiting"><a class="header" href="#5-distributed-rate-limiting">5. Distributed Rate Limiting</a></h3>
 <p>Coordinate rate limits across multiple instances.</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>pub struct DistributedFluxLimiter&lt;T, C, S&gt;
 where
@@ -5370,7 +5400,7 @@ impl&lt;T, C, S&gt; DistributedFluxLimiter&lt;T, C, S&gt; {
         // Periodic sync with remote store
     }
 }
-<span class="boring">}</span></code></pre></pre>
+<span class="boring">}</span></code></pre>
 <p><strong>Strategies</strong>:</p>
 <ul>
 <li><strong>Best-effort</strong>: Local-first with periodic sync</li>
@@ -5385,7 +5415,7 @@ impl&lt;T, C, S&gt; DistributedFluxLimiter&lt;T, C, S&gt; {
 </ul>
 <h3 id="6-adaptive-rate-limiting"><a class="header" href="#6-adaptive-rate-limiting">6. Adaptive Rate Limiting</a></h3>
 <p>Dynamically adjust rates based on backend health.</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>pub struct AdaptiveRateLimiter&lt;T, C, H&gt;
 where
@@ -5414,7 +5444,7 @@ impl&lt;T, C, H&gt; AdaptiveRateLimiter&lt;T, C, H&gt; {
         // ... recreate limiter ...
     }
 }
-<span class="boring">}</span></code></pre></pre>
+<span class="boring">}</span></code></pre>
 <p><strong>Benefits</strong>:</p>
 <ul>
 <li>Protect degraded backends</li>
@@ -5423,7 +5453,7 @@ impl&lt;T, C, H&gt; AdaptiveRateLimiter&lt;T, C, H&gt; {
 </ul>
 <h3 id="7-quota-management"><a class="header" href="#7-quota-management">7. Quota Management</a></h3>
 <p>Track cumulative usage over longer periods.</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>pub struct QuotaManager&lt;T&gt;
 where
@@ -5450,7 +5480,7 @@ impl&lt;T&gt; QuotaManager&lt;T&gt; {
         // 4. Return combined decision
     }
 }
-<span class="boring">}</span></code></pre></pre>
+<span class="boring">}</span></code></pre>
 <p><strong>Benefits</strong>:</p>
 <ul>
 <li>Long-term limits (daily, monthly)</li>
@@ -5459,7 +5489,7 @@ impl&lt;T&gt; QuotaManager&lt;T&gt; {
 </ul>
 <h2 id="extensibility-patterns"><a class="header" href="#extensibility-patterns">Extensibility Patterns</a></h2>
 <h3 id="plugin-architecture"><a class="header" href="#plugin-architecture">Plugin Architecture</a></h3>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>pub trait FluxLimiterPlugin: Send + Sync {
     fn before_check(&amp;self, client_id: &amp;str);
@@ -5475,9 +5505,9 @@ where
     limiter: FluxLimiter&lt;T, C&gt;,
     plugins: Vec&lt;Box&lt;dyn FluxLimiterPlugin&gt;&gt;,
 }
-<span class="boring">}</span></code></pre></pre>
+<span class="boring">}</span></code></pre>
 <h3 id="middleware-pattern"><a class="header" href="#middleware-pattern">Middleware Pattern</a></h3>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>pub trait RateLimitMiddleware {
     fn wrap(
@@ -5499,7 +5529,7 @@ impl RateLimitMiddleware for LoggingMiddleware {
         })
     }
 }
-<span class="boring">}</span></code></pre></pre>
+<span class="boring">}</span></code></pre>
 <h2 id="backward-compatibility-strategy"><a class="header" href="#backward-compatibility-strategy">Backward Compatibility Strategy</a></h2>
 <h3 id="semantic-versioning"><a class="header" href="#semantic-versioning">Semantic Versioning</a></h3>
 <ul>
@@ -5525,50 +5555,38 @@ algorithms = []
 </ol>
 <h3 id="type-aliases"><a class="header" href="#type-aliases">Type Aliases</a></h3>
 <p>Maintain existing API surface:</p>
-<pre><pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>// Existing users can continue using this
 pub type FluxLimiter&lt;T&gt; = FluxLimiter&lt;T, SystemClock&gt;;
 
 // New users can use explicit clock type
 pub type FluxLimiter&lt;T, C&gt; = core::FluxLimiter&lt;T, C&gt;;
-<span class="boring">}</span></code></pre></pre>
+<span class="boring">}</span></code></pre>
 <h2 id="implementation-roadmap"><a class="header" href="#implementation-roadmap">Implementation Roadmap</a></h2>
 <h3 id="phase-1-core-improvements-v05"><a class="header" href="#phase-1-core-improvements-v05">Phase 1: Core Improvements (v0.5)</a></h3>
 <ul>
-<li><input disabled="" type="checkbox"/>
-Async support</li>
-<li><input disabled="" type="checkbox"/>
-Enhanced metrics</li>
-<li><input disabled="" type="checkbox"/>
-Performance optimizations</li>
+<li><input disabled="" type="checkbox"> Async support</li>
+<li><input disabled="" type="checkbox"> Enhanced metrics</li>
+<li><input disabled="" type="checkbox"> Performance optimizations</li>
 </ul>
 <h3 id="phase-2-persistence-v06"><a class="header" href="#phase-2-persistence-v06">Phase 2: Persistence (v0.6)</a></h3>
 <ul>
-<li><input disabled="" type="checkbox"/>
-State store trait</li>
-<li><input disabled="" type="checkbox"/>
-Redis backend</li>
-<li><input disabled="" type="checkbox"/>
-PostgreSQL backend</li>
+<li><input disabled="" type="checkbox"> State store trait</li>
+<li><input disabled="" type="checkbox"> Redis backend</li>
+<li><input disabled="" type="checkbox"> PostgreSQL backend</li>
 </ul>
 <h3 id="phase-3-advanced-features-v07"><a class="header" href="#phase-3-advanced-features-v07">Phase 3: Advanced Features (v0.7)</a></h3>
 <ul>
-<li><input disabled="" type="checkbox"/>
-Alternative algorithms</li>
-<li><input disabled="" type="checkbox"/>
-Distributed coordination</li>
-<li><input disabled="" type="checkbox"/>
-Adaptive rate limiting</li>
+<li><input disabled="" type="checkbox"> Alternative algorithms</li>
+<li><input disabled="" type="checkbox"> Distributed coordination</li>
+<li><input disabled="" type="checkbox"> Adaptive rate limiting</li>
 </ul>
 <h3 id="phase-4-enterprise-features-v10"><a class="header" href="#phase-4-enterprise-features-v10">Phase 4: Enterprise Features (v1.0)</a></h3>
 <ul>
-<li><input disabled="" type="checkbox"/>
-Quota management</li>
-<li><input disabled="" type="checkbox"/>
-Multi-tier support</li>
-<li><input disabled="" type="checkbox"/>
-Advanced monitoring</li>
+<li><input disabled="" type="checkbox"> Quota management</li>
+<li><input disabled="" type="checkbox"> Multi-tier support</li>
+<li><input disabled="" type="checkbox"> Advanced monitoring</li>
 </ul>
 <h2 id="contributing"><a class="header" href="#contributing">Contributing</a></h2>
 <p>We welcome contributions! Areas of interest:</p>
@@ -5582,9 +5600,9 @@ Advanced monitoring</li>
 </ol>
 <h2 id="next-steps-17"><a class="header" href="#next-steps-17">Next Steps</a></h2>
 <ul>
-<li><a href="architecture/./overview.html">Overview</a> - Understand current architecture</li>
-<li><a href="architecture/./design-decisions.html">Design Decisions</a> - Why we made these choices</li>
-<li><a href="architecture/../../README.html">Contributing</a> - How to contribute</li>
+<li><a href="#architecture-overview">Overview</a> - Understand current architecture</li>
+<li><a href="#design-decisions">Design Decisions</a> - Why we made these choices</li>
+<li><a href="../README.html">Contributing</a> - How to contribute</li>
 </ul>
 
                     </main>
@@ -5604,6 +5622,11 @@ Advanced monitoring</li>
 
         </div>
 
+        <template id=fa-eye><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 576 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M288 32c-80.8 0-145.5 36.8-192.6 80.6C48.6 156 17.3 208 2.5 243.7c-3.3 7.9-3.3 16.7 0 24.6C17.3 304 48.6 356 95.4 399.4C142.5 443.2 207.2 480 288 480s145.5-36.8 192.6-80.6c46.8-43.5 78.1-95.4 93-131.1c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C433.5 68.8 368.8 32 288 32zM432 256c0 79.5-64.5 144-144 144s-144-64.5-144-144s64.5-144 144-144s144 64.5 144 144zM288 192c0 35.3-28.7 64-64 64c-11.5 0-22.3-3-31.6-8.4c-.2 2.8-.4 5.5-.4 8.4c0 53 43 96 96 96s96-43 96-96s-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6z"/></svg></span></template>
+        <template id=fa-eye-slash><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 640 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M38.8 5.1C28.4-3.1 13.3-1.2 5.1 9.2S-1.2 34.7 9.2 42.9l592 464c10.4 8.2 25.5 6.3 33.7-4.1s6.3-25.5-4.1-33.7L525.6 386.7c39.6-40.6 66.4-86.1 79.9-118.4c3.3-7.9 3.3-16.7 0-24.6c-14.9-35.7-46.2-87.7-93-131.1C465.5 68.8 400.8 32 320 32c-68.2 0-125 26.3-169.3 60.8L38.8 5.1zM223.1 149.5C248.6 126.2 282.7 112 320 112c79.5 0 144 64.5 144 144c0 24.9-6.3 48.3-17.4 68.7L408 294.5c5.2-11.8 8-24.8 8-38.5c0-53-43-96-96-96c-2.8 0-5.6 .1-8.4 .4c5.3 9.3 8.4 20.1 8.4 31.6c0 10.2-2.4 19.8-6.6 28.3l-90.3-70.8zm223.1 298L373 389.9c-16.4 6.5-34.3 10.1-53 10.1c-79.5 0-144-64.5-144-144c0-6.9 .5-13.6 1.4-20.2L83.1 161.5C60.3 191.2 44 220.8 34.5 243.7c-3.3 7.9-3.3 16.7 0 24.6c14.9 35.7 46.2 87.7 93 131.1C174.5 443.2 239.2 480 320 480c47.8 0 89.9-12.9 126.2-32.5z"/></svg></span></template>
+        <template id=fa-copy><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M502.6 70.63l-61.25-61.25C435.4 3.371 427.2 0 418.7 0H255.1c-35.35 0-64 28.66-64 64l.0195 256C192 355.4 220.7 384 256 384h192c35.2 0 64-28.8 64-64V93.25C512 84.77 508.6 76.63 502.6 70.63zM464 320c0 8.836-7.164 16-16 16H255.1c-8.838 0-16-7.164-16-16L239.1 64.13c0-8.836 7.164-16 16-16h128L384 96c0 17.67 14.33 32 32 32h47.1V320zM272 448c0 8.836-7.164 16-16 16H63.1c-8.838 0-16-7.164-16-16L47.98 192.1c0-8.836 7.164-16 16-16H160V128H63.99c-35.35 0-64 28.65-64 64l.0098 256C.002 483.3 28.66 512 64 512h192c35.2 0 64-28.8 64-64v-32h-47.1L272 448z"/></svg></span></template>
+        <template id=fa-play><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 384 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M73 39c-14.8-9.1-33.4-9.4-48.5-.9S0 62.6 0 80V432c0 17.4 9.4 33.4 24.5 41.9s33.7 8.1 48.5-.9L361 297c14.3-8.7 23-24.2 23-41s-8.7-32.2-23-41L73 39z"/></svg></span></template>
+        <template id=fa-clock-rotate-left><span class=fa-svg><svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512"><!--! Font Awesome Free 6.2.0 by @fontawesome - https://fontawesome.com License - https://fontawesome.com/license/free (Icons: CC BY 4.0, Fonts: SIL OFL 1.1, Code: MIT License) Copyright 2022 Fonticons, Inc. --><path d="M75 75L41 41C25.9 25.9 0 36.6 0 57.9V168c0 13.3 10.7 24 24 24H134.1c21.4 0 32.1-25.9 17-41l-30.8-30.8C155 85.5 203 64 256 64c106 0 192 86 192 192s-86 192-192 192c-40.8 0-78.6-12.7-109.7-34.4c-14.5-10.1-34.4-6.6-44.6 7.9s-6.6 34.4 7.9 44.6C151.2 495 201.7 512 256 512c141.4 0 256-114.6 256-256S397.4 0 256 0C185.3 0 121.3 28.7 75 75zm181 53c-13.3 0-24 10.7-24 24V256c0 6.4 2.5 12.5 7 17l72 72c9.4 9.4 24.6 9.4 33.9 0s9.4-24.6 0-33.9l-65-65V152c0-13.3-10.7-24-24-24z"/></svg></span></template>
 
 
 
@@ -5612,13 +5635,13 @@ Advanced monitoring</li>
         </script>
 
 
-        <script src="elasticlunr.min.js"></script>
-        <script src="mark.min.js"></script>
-        <script src="searcher.js"></script>
+        <script src="elasticlunr-ef4e11c1.min.js"></script>
+        <script src="mark-09e88c2c.min.js"></script>
+        <script src="searcher-c2a407aa.js"></script>
 
-        <script src="clipboard.min.js"></script>
-        <script src="highlight.js"></script>
-        <script src="book.js"></script>
+        <script src="clipboard-1626706a.min.js"></script>
+        <script src="highlight-abc7f01d.js"></script>
+        <script src="book-a0b12cfe.js"></script>
 
         <!-- Custom JS scripts -->
 
