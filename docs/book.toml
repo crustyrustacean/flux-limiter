@@ -9,5 +9,5 @@ description = "A high-performance rate limiter based on the Generic Cell Rate Al
 build-dir = "book"
 
 [output.html]
-git-repository-url = "https://github.com/anthropics/flux-limiter"
-edit-url-template = "https://github.com/anthropics/flux-limiter/edit/main/docs/{path}"
+git-repository-url = "https://github.com/crustyrustacean/flux-limiter"
+edit-url-template = "https://github.com/crustyrustacean/flux-limiter/edit/main/docs/{path}"
