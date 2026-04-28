@@ -13,21 +13,30 @@ pub fn check_request(&self, client_id: T) -> Result<FluxLimiterDecision, FluxLim
     // 1. Single clock call (~50-100ns)
     let current_time_nanos = self.clock.now()?;
 
-    // 2. Single map lookup (~10-50ns)
-    let previous_tat_nanos = self.client_state
-        .get(&client_id)
-        .map(|entry| *entry.value())
-        .unwrap_or(current_time_nanos);
+    // 2. Atomic read-modify-write via entry() (~20-100ns)
+    //    Shard lock held across read + write, preventing TOCTOU races
+    match self.client_state.entry(client_id) {
+        Entry::Occupied(mut occupied) => {
+            let previous_tat_nanos = *occupied.get();
 
-    // 3. Integer arithmetic (~5-10ns)
-    let is_conforming = current_time_nanos >=
-        previous_tat_nanos.saturating_sub(self.tolerance_nanos);
+            // 3. Integer arithmetic (~5-10ns)
+            let is_conforming = current_time_nanos >=
+                previous_tat_nanos.saturating_sub(self.tolerance_nanos);
 
-    // 4. Conditional update (~10-50ns)
-    if is_conforming {
-        let new_tat_nanos = current_time_nanos
-            .max(previous_tat_nanos) + self.rate_nanos;
-        self.client_state.insert(client_id, new_tat_nanos);
+            // 4. Conditional update (within same shard lock)
+            if is_conforming {
+                let new_tat_nanos = current_time_nanos
+                    .max(previous_tat_nanos) + self.rate_nanos;
+                occupied.insert(new_tat_nanos);
+            }
+            // ... return decision
+        }
+        Entry::Vacant(vacant) => {
+            // First request from this client — always allowed
+            let new_tat_nanos = current_time_nanos + self.rate_nanos;
+            vacant.insert(new_tat_nanos);
+            // ... return allowed decision
+        }
     }
 
     // 5. Metadata calculation (~5-10ns)
@@ -40,7 +49,7 @@ pub fn check_request(&self, client_id: T) -> Result<FluxLimiterDecision, FluxLim
 ### Optimization Techniques
 
 1. **Single Clock Call**: One time source access per request
-2. **Single Map Operation**: Either get or get+insert
+2. **Single Atomic Entry Operation**: `entry()` handles lookup + update within one shard lock
 3. **Integer Arithmetic**: No floating-point operations in hot path
 4. **No Allocations**: Reuses existing memory
 5. **Minimal Branching**: Straight-line execution

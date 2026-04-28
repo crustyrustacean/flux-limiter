@@ -34,14 +34,25 @@ limiter.check_request("client_2")?;
 
 ### 2. Write Operations
 
-Atomic updates with minimal contention:
+Atomic read-modify-write using DashMap's `entry()` API:
 
 ```rust
-// Atomic TAT update
-client_state.insert(client_id, new_tat);
+use dashmap::mapref::entry::Entry;
+
+match client_state.entry(client_id) {
+    Entry::Occupied(mut entry) => {
+        let previous_tat = *entry.get();
+        // ... compute new_tat ...
+        entry.insert(new_tat);
+    }
+    Entry::Vacant(entry) => {
+        entry.insert(new_tat);
+    }
+}
 ```
 
-Each client's state is independent, allowing parallel updates.
+Each client's state is updated atomically — the read and write happen within a single
+shard lock, preventing TOCTOU race conditions when the same client makes concurrent requests.
 
 ### 3. Memory Ordering
 
@@ -61,8 +72,9 @@ limiter.check_request("client_1")?; // TAT = 100ms
 // Thread 2 (concurrent)
 limiter.check_request("client_1")?; // TAT = 200ms
 
-// DashMap serializes access to same key
-// Ordering determined by DashMap's internal locking
+// DashMap's entry() API holds the shard lock across
+// the read and write, serializing same-client updates
+// atomically and preventing TOCTOU races
 ```
 
 **Different Clients, Different Threads**:
@@ -109,20 +121,26 @@ shard_index = hash(client_id) % num_shards
 
 ### Operations on DashMap
 
-**Get (Read)**:
+**Entry (Atomic Read-Modify-Write)**:
 ```rust
-if let Some(previous_tat) = client_state.get(&client_id) {
-    // Read lock on single shard
-    // Other shards remain accessible
+use dashmap::mapref::entry::Entry;
+
+match client_state.entry(client_id) {
+    Entry::Occupied(mut entry) => {
+        let previous_tat = *entry.get();
+        // ... compute new_tat ...
+        entry.insert(new_tat);
+        // Shard lock held across read + write
+        // Prevents TOCTOU race conditions
+    }
+    Entry::Vacant(entry) => {
+        entry.insert(new_tat);
+    }
 }
 ```
 
-**Insert (Write)**:
-```rust
-client_state.insert(client_id, new_tat);
-// Write lock on single shard
-// Other shards remain accessible
-```
+This ensures the conformance check and TAT update are atomic per-client,
+preserving the GCRA invariant even under concurrent access.
 
 **Cleanup (Iteration)**:
 ```rust
@@ -154,11 +172,16 @@ The write in Thread 1 happens-before the read in Thread 2.
 All updates to client state are immediately visible:
 
 ```rust
-// Thread 1
-client_state.insert("client_1", 100);
+// Thread 1: via entry() API
+match client_state.entry("client_1") {
+    Entry::Occupied(mut e) => { e.insert(100); }
+    Entry::Vacant(e) => { e.insert(100); }
+}
 
 // Thread 2
-let tat = client_state.get("client_1"); // Sees 100
+if let Some(tat) = client_state.get("client_1") {
+    // Sees 100
+}
 ```
 
 DashMap ensures proper memory synchronization.

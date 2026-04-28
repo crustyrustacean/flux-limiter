@@ -75,28 +75,52 @@ Examples with `rate = 10.0`:
 
 ```rust
 let current_time_nanos = clock.now()?;
-let previous_tat_nanos = client_state
-    .get(&client_id)
-    .unwrap_or(current_time_nanos);
 
-// Check if request conforms (is within tolerance)
-let is_conforming = current_time_nanos >=
-    previous_tat_nanos.saturating_sub(tolerance_nanos);
+use dashmap::mapref::entry::Entry;
+
+match client_state.entry(client_id) {
+    Entry::Occupied(mut occupied) => {
+        let previous_tat_nanos = *occupied.get();
+
+        // Check if request conforms (is within tolerance)
+        let is_conforming = current_time_nanos >=
+            previous_tat_nanos.saturating_sub(tolerance_nanos);
+
+        if is_conforming {
+            let new_tat_nanos = current_time_nanos
+                .max(previous_tat_nanos) + rate_nanos;
+            occupied.insert(new_tat_nanos);
+            // Return allowed decision
+        } else {
+            // Return denied decision with retry_after
+        }
+    }
+    Entry::Vacant(vacant) => {
+        // First request from this client — always allowed
+        let new_tat_nanos = current_time_nanos + rate_nanos;
+        vacant.insert(new_tat_nanos);
+        // Return allowed decision
+    }
+}
 ```
 
 **Conforming Request**: `current_time >= TAT - τ`
 
 This allows requests to arrive up to `τ` nanoseconds early (burst capacity).
 
+The `entry()` API holds the shard lock across the read and write, ensuring
+the conformance check and TAT update are atomic — no TOCTOU race when the
+same client makes concurrent requests.
+
 ### TAT Update (Allowed Request)
 
 ```rust
 if is_conforming {
-    // Allow request and update TAT
+    // Allow request and update TAT atomically
     let new_tat_nanos = current_time_nanos
         .max(previous_tat_nanos) + rate_nanos;
 
-    client_state.insert(client_id, new_tat_nanos);
+    occupied.insert(new_tat_nanos);
 
     // Return allowed decision
 }

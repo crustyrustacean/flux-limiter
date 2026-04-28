@@ -7,6 +7,7 @@ use crate::clock::{Clock, SystemClock};
 use crate::config::FluxLimiterConfig;
 use crate::errors::FluxLimiterError;
 use dashmap::DashMap;
+use dashmap::mapref::entry::Entry;
 use std::hash::Hash;
 use std::sync::Arc;
 
@@ -89,38 +90,54 @@ where
 
     pub fn check_request(&self, client_id: T) -> Result<FluxLimiterDecision, FluxLimiterError> {
         let current_time_nanos = self.clock.now()?;
-        let previous_tat_nanos = self
-            .client_state
-            .get(&client_id)
-            .map(|entry| *entry.value())
-            .unwrap_or(current_time_nanos);
 
-        let is_conforming =
-            current_time_nanos >= previous_tat_nanos.saturating_sub(self.tolerance_nanos);
+        // Use DashMap entry API for atomic read-modify-write to prevent
+        // TOCTOU race conditions when the same client makes concurrent requests.
+        match self.client_state.entry(client_id) {
+            Entry::Occupied(mut occupied) => {
+                let previous_tat_nanos = *occupied.get();
+                let is_conforming =
+                    current_time_nanos >= previous_tat_nanos.saturating_sub(self.tolerance_nanos);
 
-        if is_conforming {
-            let new_tat_nanos = current_time_nanos.max(previous_tat_nanos) + self.rate_nanos;
-            self.client_state.insert(client_id, new_tat_nanos);
+                if is_conforming {
+                    let new_tat_nanos = current_time_nanos.max(previous_tat_nanos) + self.rate_nanos;
+                    occupied.insert(new_tat_nanos);
 
-            Ok(FluxLimiterDecision {
-                allowed: true,
-                retry_after_seconds: None,
-                remaining_capacity: Some(
-                    self.calculate_remaining_capacity(current_time_nanos, new_tat_nanos),
-                ),
-                reset_time_nanos: new_tat_nanos,
-            })
-        } else {
-            let retry_after_nanos = previous_tat_nanos
-                .saturating_sub(self.tolerance_nanos)
-                .saturating_sub(current_time_nanos);
+                    Ok(FluxLimiterDecision {
+                        allowed: true,
+                        retry_after_seconds: None,
+                        remaining_capacity: Some(
+                            self.calculate_remaining_capacity(current_time_nanos, new_tat_nanos),
+                        ),
+                        reset_time_nanos: new_tat_nanos,
+                    })
+                } else {
+                    let retry_after_nanos = previous_tat_nanos
+                        .saturating_sub(self.tolerance_nanos)
+                        .saturating_sub(current_time_nanos);
 
-            Ok(FluxLimiterDecision {
-                allowed: false,
-                retry_after_seconds: Some(retry_after_nanos as f64 / 1_000_000_000.0),
-                remaining_capacity: Some(0.0),
-                reset_time_nanos: previous_tat_nanos,
-            })
+                    Ok(FluxLimiterDecision {
+                        allowed: false,
+                        retry_after_seconds: Some(retry_after_nanos as f64 / 1_000_000_000.0),
+                        remaining_capacity: Some(0.0),
+                        reset_time_nanos: previous_tat_nanos,
+                    })
+                }
+            }
+            Entry::Vacant(vacant) => {
+                // First request from this client is always allowed
+                let new_tat_nanos = current_time_nanos + self.rate_nanos;
+                vacant.insert(new_tat_nanos);
+
+                Ok(FluxLimiterDecision {
+                    allowed: true,
+                    retry_after_seconds: None,
+                    remaining_capacity: Some(
+                        self.calculate_remaining_capacity(current_time_nanos, new_tat_nanos),
+                    ),
+                    reset_time_nanos: new_tat_nanos,
+                })
+            }
         }
     }
 
@@ -146,6 +163,7 @@ where
 }
 
 /// Result of a rate limiting decision with metadata for HTTP responses
+#[non_exhaustive]
 #[derive(Debug, Clone)]
 pub struct FluxLimiterDecision {
     /// Whether the request should be allowed

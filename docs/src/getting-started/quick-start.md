@@ -52,6 +52,7 @@ Let's break down what's happening:
 The `FluxLimiterDecision` struct provides detailed information:
 
 ```rust
+#[non_exhaustive]
 pub struct FluxLimiterDecision {
     pub allowed: bool,                    // Whether to allow the request
     pub retry_after_seconds: Option<f64>, // When to retry (if denied)
@@ -59,6 +60,9 @@ pub struct FluxLimiterDecision {
     pub reset_time_nanos: u64,           // When the window resets
 }
 ```
+
+The `#[non_exhaustive]` attribute means fields may be added in future versions
+without a breaking change. You can still access all fields via dot notation.
 
 ### Using Decision Metadata
 

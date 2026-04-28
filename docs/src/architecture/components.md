@@ -135,6 +135,7 @@ Rich metadata returned from rate limiting decisions.
 ### Structure Definition
 
 ```rust
+#[non_exhaustive]
 #[derive(Debug, Clone)]
 pub struct FluxLimiterDecision {
     pub allowed: bool,                    // Primary decision
@@ -143,6 +144,11 @@ pub struct FluxLimiterDecision {
     pub reset_time_nanos: u64,           // When window resets
 }
 ```
+
+The `#[non_exhaustive]` attribute ensures that adding fields in future versions
+is not a breaking change. Consumers can still access all public fields via dot
+notation, but cannot construct or destructure the struct exhaustively. This is
+consistent with `FluxLimiterError`, which is also `#[non_exhaustive]`.
 
 ### Design Rationale
 

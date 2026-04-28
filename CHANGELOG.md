@@ -7,6 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.1] - 2026-04-28
+
+### Fixed
+- Fixed TOCTOU race condition in `check_request()` — concurrent requests for the same client could both read the same TAT and be over-allowed. Now uses DashMap's `entry()` API for atomic read-modify-write (`Entry::Occupied`/`Entry::Vacant`) ensuring the conformance check and TAT update happen within a single shard lock (#1)
+- Added `#[non_exhaustive]` to `FluxLimiterDecision` to prevent breaking changes when fields are added in future versions, consistent with `FluxLimiterError` (#2)
+
+### Changed
+- Updated documentation across concurrency, GCRA algorithm, performance, components, and quick-start pages to reflect the new `entry()` API pattern and `#[non_exhaustive]` attribute
+
 ## [0.8.0] - 2026-04-27
 
 ### Added
@@ -108,7 +117,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - O(number of active clients) memory usage
 - Support for configurable rate and burst capacity
 
-[Unreleased]: https://github.com/crustyrustacean/flux-limiter/compare/v0.8.0...HEAD
+[Unreleased]: https://github.com/crustyrustacean/flux-limiter/compare/v0.8.1...HEAD
+[0.8.1]: https://github.com/crustyrustacean/flux-limiter/compare/v0.8.0...v0.8.1
 [0.8.0]: https://github.com/crustyrustacean/flux-limiter/compare/v0.7.2...v0.8.0
 [0.7.2]: https://github.com/crustyrustacean/flux-limiter/compare/v0.7.1...v0.7.2
 [0.7.1]: https://github.com/crustyrustacean/flux-limiter/compare/v0.6.3...v0.7.1
