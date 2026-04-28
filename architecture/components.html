@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-c5fe4c06.js";
+            window.path_to_searchindex_js = "../searchindex-5d917635.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-ed966b5f.js"></script>
@@ -310,7 +310,8 @@ pub struct FluxLimiterConfig {
 <h3 id="structure-definition-2"><a class="header" href="#structure-definition-2">Structure Definition</a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>#[derive(Debug, Clone)]
+</span>#[non_exhaustive]
+#[derive(Debug, Clone)]
 pub struct FluxLimiterDecision {
     pub allowed: bool,                    // Primary decision
     pub retry_after_seconds: Option&lt;f64&gt;, // When to retry (if denied)
@@ -318,6 +319,10 @@ pub struct FluxLimiterDecision {
     pub reset_time_nanos: u64,           // When window resets
 }
 <span class="boring">}</span></code></pre>
+<p>The <code>#[non_exhaustive]</code> attribute ensures that adding fields in future versions
+is not a breaking change. Consumers can still access all public fields via dot
+notation, but cannot construct or destructure the struct exhaustively. This is
+consistent with <code>FluxLimiterError</code>, which is also <code>#[non_exhaustive]</code>.</p>
 <h3 id="design-rationale-2"><a class="header" href="#design-rationale-2">Design Rationale</a></h3>
 <p><strong>Rich Metadata Enables</strong>:</p>
 <ul>

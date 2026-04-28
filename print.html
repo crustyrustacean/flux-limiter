@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-c5fe4c06.js";
+            window.path_to_searchindex_js = "searchindex-5d917635.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-ed966b5f.js"></script>
@@ -333,13 +333,16 @@ match limiter.check_request("user_123") {
 <p>The <code>FluxLimiterDecision</code> struct provides detailed information:</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>pub struct FluxLimiterDecision {
+</span>#[non_exhaustive]
+pub struct FluxLimiterDecision {
     pub allowed: bool,                    // Whether to allow the request
     pub retry_after_seconds: Option&lt;f64&gt;, // When to retry (if denied)
     pub remaining_capacity: Option&lt;f64&gt;,  // Remaining burst capacity
     pub reset_time_nanos: u64,           // When the window resets
 }
 <span class="boring">}</span></code></pre>
+<p>The <code>#[non_exhaustive]</code> attribute means fields may be added in future versions
+without a breaking change. You can still access all fields via dot notation.</p>
 <h3 id="using-decision-metadata"><a class="header" href="#using-decision-metadata">Using Decision Metadata</a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
@@ -2600,25 +2603,48 @@ T_nanos = 1_000_000_000 / rate_per_second
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>let current_time_nanos = clock.now()?;
-let previous_tat_nanos = client_state
-    .get(&amp;client_id)
-    .unwrap_or(current_time_nanos);
 
-// Check if request conforms (is within tolerance)
-let is_conforming = current_time_nanos &gt;=
-    previous_tat_nanos.saturating_sub(tolerance_nanos);
+use dashmap::mapref::entry::Entry;
+
+match client_state.entry(client_id) {
+    Entry::Occupied(mut occupied) =&gt; {
+        let previous_tat_nanos = *occupied.get();
+
+        // Check if request conforms (is within tolerance)
+        let is_conforming = current_time_nanos &gt;=
+            previous_tat_nanos.saturating_sub(tolerance_nanos);
+
+        if is_conforming {
+            let new_tat_nanos = current_time_nanos
+                .max(previous_tat_nanos) + rate_nanos;
+            occupied.insert(new_tat_nanos);
+            // Return allowed decision
+        } else {
+            // Return denied decision with retry_after
+        }
+    }
+    Entry::Vacant(vacant) =&gt; {
+        // First request from this client — always allowed
+        let new_tat_nanos = current_time_nanos + rate_nanos;
+        vacant.insert(new_tat_nanos);
+        // Return allowed decision
+    }
+}
 <span class="boring">}</span></code></pre>
 <p><strong>Conforming Request</strong>: <code>current_time &gt;= TAT - τ</code></p>
 <p>This allows requests to arrive up to <code>τ</code> nanoseconds early (burst capacity).</p>
+<p>The <code>entry()</code> API holds the shard lock across the read and write, ensuring
+the conformance check and TAT update are atomic — no TOCTOU race when the
+same client makes concurrent requests.</p>
 <h3 id="tat-update-allowed-request"><a class="header" href="#tat-update-allowed-request">TAT Update (Allowed Request)</a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>if is_conforming {
-    // Allow request and update TAT
+    // Allow request and update TAT atomically
     let new_tat_nanos = current_time_nanos
         .max(previous_tat_nanos) + rate_nanos;
 
-    client_state.insert(client_id, new_tat_nanos);
+    occupied.insert(new_tat_nanos);
 
     // Return allowed decision
 }
@@ -2884,7 +2910,8 @@ pub struct FluxLimiterConfig {
 <h3 id="structure-definition-2"><a class="header" href="#structure-definition-2">Structure Definition</a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>#[derive(Debug, Clone)]
+</span>#[non_exhaustive]
+#[derive(Debug, Clone)]
 pub struct FluxLimiterDecision {
     pub allowed: bool,                    // Primary decision
     pub retry_after_seconds: Option&lt;f64&gt;, // When to retry (if denied)
@@ -2892,6 +2919,10 @@ pub struct FluxLimiterDecision {
     pub reset_time_nanos: u64,           // When window resets
 }
 <span class="boring">}</span></code></pre>
+<p>The <code>#[non_exhaustive]</code> attribute ensures that adding fields in future versions
+is not a breaking change. Consumers can still access all public fields via dot
+notation, but cannot construct or destructure the struct exhaustively. This is
+consistent with <code>FluxLimiterError</code>, which is also <code>#[non_exhaustive]</code>.</p>
 <h3 id="design-rationale-2"><a class="header" href="#design-rationale-2">Design Rationale</a></h3>
 <p><strong>Rich Metadata Enables</strong>:</p>
 <ul>
@@ -3114,13 +3145,24 @@ limiter.check_request("client_2")?;
 // No lock contention - different shards
 <span class="boring">}</span></code></pre>
 <h3 id="2-write-operations"><a class="header" href="#2-write-operations">2. Write Operations</a></h3>
-<p>Atomic updates with minimal contention:</p>
+<p>Atomic read-modify-write using DashMap’s <code>entry()</code> API:</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>// Atomic TAT update
-client_state.insert(client_id, new_tat);
+</span>use dashmap::mapref::entry::Entry;
+
+match client_state.entry(client_id) {
+    Entry::Occupied(mut entry) =&gt; {
+        let previous_tat = *entry.get();
+        // ... compute new_tat ...
+        entry.insert(new_tat);
+    }
+    Entry::Vacant(entry) =&gt; {
+        entry.insert(new_tat);
+    }
+}
 <span class="boring">}</span></code></pre>
-<p>Each client’s state is independent, allowing parallel updates.</p>
+<p>Each client’s state is updated atomically — the read and write happen within a single
+shard lock, preventing TOCTOU race conditions when the same client makes concurrent requests.</p>
 <h3 id="3-memory-ordering"><a class="header" href="#3-memory-ordering">3. Memory Ordering</a></h3>
 <p>Relaxed ordering is sufficient for TAT updates:</p>
 <ul>
@@ -3138,8 +3180,9 @@ limiter.check_request("client_1")?; // TAT = 100ms
 // Thread 2 (concurrent)
 limiter.check_request("client_1")?; // TAT = 200ms
 
-// DashMap serializes access to same key
-// Ordering determined by DashMap's internal locking
+// DashMap's entry() API holds the shard lock across
+// the read and write, serializing same-client updates
+// atomically and preventing TOCTOU races
 <span class="boring">}</span></code></pre>
 <p><strong>Different Clients, Different Threads</strong>:</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
@@ -3179,21 +3222,26 @@ shard_index = hash(client_id) % num_shards
 // Same client always in same shard (consistency)
 <span class="boring">}</span></code></pre>
 <h3 id="operations-on-dashmap"><a class="header" href="#operations-on-dashmap">Operations on DashMap</a></h3>
-<p><strong>Get (Read)</strong>:</p>
+<p><strong>Entry (Atomic Read-Modify-Write)</strong>:</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>if let Some(previous_tat) = client_state.get(&amp;client_id) {
-    // Read lock on single shard
-    // Other shards remain accessible
+</span>use dashmap::mapref::entry::Entry;
+
+match client_state.entry(client_id) {
+    Entry::Occupied(mut entry) =&gt; {
+        let previous_tat = *entry.get();
+        // ... compute new_tat ...
+        entry.insert(new_tat);
+        // Shard lock held across read + write
+        // Prevents TOCTOU race conditions
+    }
+    Entry::Vacant(entry) =&gt; {
+        entry.insert(new_tat);
+    }
 }
 <span class="boring">}</span></code></pre>
-<p><strong>Insert (Write)</strong>:</p>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>client_state.insert(client_id, new_tat);
-// Write lock on single shard
-// Other shards remain accessible
-<span class="boring">}</span></code></pre>
+<p>This ensures the conformance check and TAT update are atomic per-client,
+preserving the GCRA invariant even under concurrent access.</p>
 <p><strong>Cleanup (Iteration)</strong>:</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
@@ -3219,11 +3267,16 @@ limiter.check_request("client_1")?; // Reads TAT &gt;= 100ms
 <p>All updates to client state are immediately visible:</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>// Thread 1
-client_state.insert("client_1", 100);
+</span>// Thread 1: via entry() API
+match client_state.entry("client_1") {
+    Entry::Occupied(mut e) =&gt; { e.insert(100); }
+    Entry::Vacant(e) =&gt; { e.insert(100); }
+}
 
 // Thread 2
-let tat = client_state.get("client_1"); // Sees 100
+if let Some(tat) = client_state.get("client_1") {
+    // Sees 100
+}
 <span class="boring">}</span></code></pre>
 <p>DashMap ensures proper memory synchronization.</p>
 <h2 id="sharing-across-threads-1"><a class="header" href="#sharing-across-threads-1">Sharing Across Threads</a></h2>
@@ -3930,21 +3983,30 @@ mod tests {
     // 1. Single clock call (~50-100ns)
     let current_time_nanos = self.clock.now()?;
 
-    // 2. Single map lookup (~10-50ns)
-    let previous_tat_nanos = self.client_state
-        .get(&amp;client_id)
-        .map(|entry| *entry.value())
-        .unwrap_or(current_time_nanos);
+    // 2. Atomic read-modify-write via entry() (~20-100ns)
+    //    Shard lock held across read + write, preventing TOCTOU races
+    match self.client_state.entry(client_id) {
+        Entry::Occupied(mut occupied) =&gt; {
+            let previous_tat_nanos = *occupied.get();
 
-    // 3. Integer arithmetic (~5-10ns)
-    let is_conforming = current_time_nanos &gt;=
-        previous_tat_nanos.saturating_sub(self.tolerance_nanos);
+            // 3. Integer arithmetic (~5-10ns)
+            let is_conforming = current_time_nanos &gt;=
+                previous_tat_nanos.saturating_sub(self.tolerance_nanos);
 
-    // 4. Conditional update (~10-50ns)
-    if is_conforming {
-        let new_tat_nanos = current_time_nanos
-            .max(previous_tat_nanos) + self.rate_nanos;
-        self.client_state.insert(client_id, new_tat_nanos);
+            // 4. Conditional update (within same shard lock)
+            if is_conforming {
+                let new_tat_nanos = current_time_nanos
+                    .max(previous_tat_nanos) + self.rate_nanos;
+                occupied.insert(new_tat_nanos);
+            }
+            // ... return decision
+        }
+        Entry::Vacant(vacant) =&gt; {
+            // First request from this client — always allowed
+            let new_tat_nanos = current_time_nanos + self.rate_nanos;
+            vacant.insert(new_tat_nanos);
+            // ... return allowed decision
+        }
     }
 
     // 5. Metadata calculation (~5-10ns)
@@ -3955,7 +4017,7 @@ mod tests {
 <h3 id="optimization-techniques"><a class="header" href="#optimization-techniques">Optimization Techniques</a></h3>
 <ol>
 <li><strong>Single Clock Call</strong>: One time source access per request</li>
-<li><strong>Single Map Operation</strong>: Either get or get+insert</li>
+<li><strong>Single Atomic Entry Operation</strong>: <code>entry()</code> handles lookup + update within one shard lock</li>
 <li><strong>Integer Arithmetic</strong>: No floating-point operations in hot path</li>
 <li><strong>No Allocations</strong>: Reuses existing memory</li>
 <li><strong>Minimal Branching</strong>: Straight-line execution</li>

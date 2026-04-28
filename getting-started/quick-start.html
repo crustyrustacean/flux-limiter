@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-c5fe4c06.js";
+            window.path_to_searchindex_js = "../searchindex-5d917635.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-ed966b5f.js"></script>
@@ -239,13 +239,16 @@ match limiter.check_request("user_123") {
 <p>The <code>FluxLimiterDecision</code> struct provides detailed information:</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>pub struct FluxLimiterDecision {
+</span>#[non_exhaustive]
+pub struct FluxLimiterDecision {
     pub allowed: bool,                    // Whether to allow the request
     pub retry_after_seconds: Option&lt;f64&gt;, // When to retry (if denied)
     pub remaining_capacity: Option&lt;f64&gt;,  // Remaining burst capacity
     pub reset_time_nanos: u64,           // When the window resets
 }
 <span class="boring">}</span></code></pre>
+<p>The <code>#[non_exhaustive]</code> attribute means fields may be added in future versions
+without a breaking change. You can still access all fields via dot notation.</p>
 <h3 id="using-decision-metadata"><a class="header" href="#using-decision-metadata">Using Decision Metadata</a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
