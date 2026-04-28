@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-44c82bb1.js";
+            window.path_to_searchindex_js = "searchindex-c5fe4c06.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-ed966b5f.js"></script>
@@ -238,7 +238,7 @@
 <h2 id="adding-to-cargotoml"><a class="header" href="#adding-to-cargotoml">Adding to Cargo.toml</a></h2>
 <p>Add this to your <code>Cargo.toml</code>:</p>
 <pre><code class="language-toml">[dependencies]
-flux-limiter = "0.7.2"
+flux-limiter = "0.8.0"
 </code></pre>
 <h2 id="alternative-using-cargo-add"><a class="header" href="#alternative-using-cargo-add">Alternative: Using Cargo Add</a></h2>
 <p>If you have <code>cargo-edit</code> installed, you can use:</p>
@@ -719,6 +719,7 @@ match limiter.check_request("user_123") {
 <span class="boring">}</span></code></pre>
 <h2 id="sharing-across-threads"><a class="header" href="#sharing-across-threads">Sharing Across Threads</a></h2>
 <p>Flux Limiter is thread-safe and designed to be shared:</p>
+<h3 id="using-arc"><a class="header" href="#using-arc">Using Arc</a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>use std::sync::Arc;
@@ -744,6 +745,29 @@ for handle in handles {
         Err(e) =&gt; eprintln!("Error: {}", e),
     }
 }
+<span class="boring">}</span></code></pre>
+<h3 id="using-clone"><a class="header" href="#using-clone">Using Clone</a></h3>
+<p><code>FluxLimiter</code> implements <code>Clone</code> — cloning shares the same <code>DashMap</code> client
+state, providing the same shared-state semantics without an outer <code>Arc</code>:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>let config = FluxLimiterConfig::new(100.0, 50.0);
+let limiter = FluxLimiter::with_config(config, SystemClock).unwrap();
+
+// Clone directly — both share the same client state
+let limiter1 = limiter.clone();
+let limiter2 = limiter.clone();
+
+let handles: Vec&lt;_&gt; = (0..10)
+    .map(|i| {
+        // Clone for each thread
+        let limiter = limiter.clone();
+        thread::spawn(move || {
+            let client_id = format!("client_{}", i);
+            limiter.check_request(client_id)
+        })
+    })
+    .collect();
 <span class="boring">}</span></code></pre>
 <h2 id="async-usage"><a class="header" href="#async-usage">Async Usage</a></h2>
 <p>While Flux Limiter is synchronous, it works seamlessly in async contexts:</p>
@@ -2737,7 +2761,8 @@ let remaining_capacity = Some(burst_capacity - consumed + recovered);
 <h3 id="structure-definition"><a class="header" href="#structure-definition">Structure Definition</a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>pub struct FluxLimiter&lt;T, C = SystemClock&gt;
+</span>#[derive(Debug)]
+pub struct FluxLimiter&lt;T, C = SystemClock&gt;
 where
     T: Hash + Eq + Clone,  // Client identifier type
     C: Clock,              // Time source
@@ -2748,6 +2773,11 @@ where
     clock: C,                           // Time abstraction
 }
 <span class="boring">}</span></code></pre>
+<p><strong>Implemented Traits</strong>:</p>
+<ul>
+<li><code>Debug</code> — via <code>#[derive]</code></li>
+<li><code>Clone</code> — manual implementation; requires <code>C: Clone</code>. Cloning shares the same <code>DashMap</code> via <code>Arc::clone</code>, so both the original and clone operate on the same client state.</li>
+</ul>
 <h3 id="design-rationale"><a class="header" href="#design-rationale">Design Rationale</a></h3>
 <p><strong>Generic Client ID (T)</strong>:</p>
 <ul>
@@ -2795,8 +2825,8 @@ where
 
     pub fn cleanup_stale_clients(
         &amp;self,
-        stale_threshold_nanos: u64,
-    ) -&gt; Result&lt;usize, FluxLimiterError&gt;
+        max_stale_nanos: u64,
+    ) -&gt; Result&lt;(), FluxLimiterError&gt;
 
     pub fn rate(&amp;self) -&gt; f64
     pub fn burst(&amp;self) -&gt; f64
@@ -2854,7 +2884,7 @@ pub struct FluxLimiterConfig {
 <h3 id="structure-definition-2"><a class="header" href="#structure-definition-2">Structure Definition</a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>#[derive(Debug, Clone, PartialEq)]
+</span>#[derive(Debug, Clone)]
 pub struct FluxLimiterDecision {
     pub allowed: bool,                    // Primary decision
     pub retry_after_seconds: Option&lt;f64&gt;, // When to retry (if denied)
@@ -2909,14 +2939,15 @@ pub struct FluxLimiterDecision {
 <h3 id="enum-definition"><a class="header" href="#enum-definition">Enum Definition</a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>#[derive(Debug, Clone, PartialEq)]
+</span>#[non_exhaustive]
+#[derive(Debug)]
 pub enum FluxLimiterError {
     InvalidRate,           // Configuration: rate ≤ 0
     InvalidBurst,          // Configuration: burst &lt; 0
     ClockError(ClockError), // Runtime: clock failure
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug)]
 pub enum ClockError {
     SystemTimeError,       // System time unavailable
 }
@@ -2934,19 +2965,10 @@ pub enum ClockError {
 </span>impl std::fmt::Display for FluxLimiterError {
     fn fmt(&amp;self, f: &amp;mut std::fmt::Formatter) -&gt; std::fmt::Result {
         match self {
-            Self::InvalidRate =&gt; write!(f, "Invalid rate: must be positive"),
-            Self::InvalidBurst =&gt; write!(f, "Invalid burst: must be non-negative"),
-            Self::ClockError(e) =&gt; write!(f, "Clock error: {}", e),
+            Self::InvalidRate =&gt; write!(f, "Rate must be positive"),
+            Self::InvalidBurst =&gt; write!(f, "Burst must be non-negative"),
+            Self::ClockError(_) =&gt; write!(f, "Clock error occurred"),
         }
-    }
-}
-<span class="boring">}</span></code></pre>
-<p><strong>Error Conversion</strong>:</p>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>impl From&lt;ClockError&gt; for FluxLimiterError {
-    fn from(error: ClockError) -&gt; Self {
-        FluxLimiterError::ClockError(error)
     }
 }
 <span class="boring">}</span></code></pre>
@@ -2976,7 +2998,7 @@ pub enum ClockError {
 <p>Production time source using system time:</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>#[derive(Clone, Copy, Debug)]
+</span>#[derive(Debug, Clone)]
 pub struct SystemClock;
 
 impl Clock for SystemClock {
@@ -3228,6 +3250,24 @@ thread::spawn(move || limiter2.check_request("client_2"));
 <li>Cheap to clone (increments counter)</li>
 <li>No data duplication</li>
 </ul>
+<h3 id="clone-for-shared-state"><a class="header" href="#clone-for-shared-state">Clone for Shared State</a></h3>
+<p><code>FluxLimiter</code> implements <code>Clone</code> (when <code>C: Clone</code>), which shares the same
+client state via <code>Arc::clone</code> on the internal <code>DashMap</code>:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>let config = FluxLimiterConfig::new(100.0, 50.0);
+let limiter = FluxLimiter::with_config(config, SystemClock)?;
+
+// Clone the limiter directly — shares the same DashMap
+let limiter1 = limiter.clone();
+let limiter2 = limiter.clone();
+
+// Both operate on the same client state
+thread::spawn(move || limiter1.check_request("client_1"));
+thread::spawn(move || limiter2.check_request("client_2"));
+<span class="boring">}</span></code></pre>
+<p>This provides the same shared-state semantics as <code>Arc&lt;FluxLimiter&lt;..&gt;&gt;</code>
+without the extra indirection.</p>
 <h3 id="internal-arc-usage"><a class="header" href="#internal-arc-usage">Internal Arc Usage</a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
@@ -3355,11 +3395,15 @@ limiter.check_request("client_2")?;
 <li>Minimal impact on concurrent operations</li>
 </ul>
 <h2 id="best-practices-1"><a class="header" href="#best-practices-1">Best Practices</a></h2>
-<h3 id="1-share-via-arc"><a class="header" href="#1-share-via-arc">1. Share via Arc</a></h3>
+<h3 id="1-share-via-arc-or-clone"><a class="header" href="#1-share-via-arc-or-clone">1. Share via Arc or Clone</a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>// Good: Share limiter across threads
+</span>// Option A: Share limiter across threads via Arc
 let limiter = Arc::new(FluxLimiter::with_config(config, clock)?);
+
+// Option B: Clone the limiter directly (shares the same DashMap)
+let limiter = FluxLimiter::with_config(config, clock)?;
+let limiter2 = limiter.clone();
 
 // Bad: Create multiple limiters (separate state)
 let limiter1 = FluxLimiter::with_config(config, clock1)?;

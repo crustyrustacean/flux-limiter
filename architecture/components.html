@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-44c82bb1.js";
+            window.path_to_searchindex_js = "../searchindex-c5fe4c06.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-ed966b5f.js"></script>
@@ -187,7 +187,8 @@
 <h3 id="structure-definition"><a class="header" href="#structure-definition">Structure Definition</a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>pub struct FluxLimiter&lt;T, C = SystemClock&gt;
+</span>#[derive(Debug)]
+pub struct FluxLimiter&lt;T, C = SystemClock&gt;
 where
     T: Hash + Eq + Clone,  // Client identifier type
     C: Clock,              // Time source
@@ -198,6 +199,11 @@ where
     clock: C,                           // Time abstraction
 }
 <span class="boring">}</span></code></pre>
+<p><strong>Implemented Traits</strong>:</p>
+<ul>
+<li><code>Debug</code> — via <code>#[derive]</code></li>
+<li><code>Clone</code> — manual implementation; requires <code>C: Clone</code>. Cloning shares the same <code>DashMap</code> via <code>Arc::clone</code>, so both the original and clone operate on the same client state.</li>
+</ul>
 <h3 id="design-rationale"><a class="header" href="#design-rationale">Design Rationale</a></h3>
 <p><strong>Generic Client ID (T)</strong>:</p>
 <ul>
@@ -245,8 +251,8 @@ where
 
     pub fn cleanup_stale_clients(
         &amp;self,
-        stale_threshold_nanos: u64,
-    ) -&gt; Result&lt;usize, FluxLimiterError&gt;
+        max_stale_nanos: u64,
+    ) -&gt; Result&lt;(), FluxLimiterError&gt;
 
     pub fn rate(&amp;self) -&gt; f64
     pub fn burst(&amp;self) -&gt; f64
@@ -304,7 +310,7 @@ pub struct FluxLimiterConfig {
 <h3 id="structure-definition-2"><a class="header" href="#structure-definition-2">Structure Definition</a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>#[derive(Debug, Clone, PartialEq)]
+</span>#[derive(Debug, Clone)]
 pub struct FluxLimiterDecision {
     pub allowed: bool,                    // Primary decision
     pub retry_after_seconds: Option&lt;f64&gt;, // When to retry (if denied)
@@ -359,14 +365,15 @@ pub struct FluxLimiterDecision {
 <h3 id="enum-definition"><a class="header" href="#enum-definition">Enum Definition</a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>#[derive(Debug, Clone, PartialEq)]
+</span>#[non_exhaustive]
+#[derive(Debug)]
 pub enum FluxLimiterError {
     InvalidRate,           // Configuration: rate ≤ 0
     InvalidBurst,          // Configuration: burst &lt; 0
     ClockError(ClockError), // Runtime: clock failure
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug)]
 pub enum ClockError {
     SystemTimeError,       // System time unavailable
 }
@@ -384,19 +391,10 @@ pub enum ClockError {
 </span>impl std::fmt::Display for FluxLimiterError {
     fn fmt(&amp;self, f: &amp;mut std::fmt::Formatter) -&gt; std::fmt::Result {
         match self {
-            Self::InvalidRate =&gt; write!(f, "Invalid rate: must be positive"),
-            Self::InvalidBurst =&gt; write!(f, "Invalid burst: must be non-negative"),
-            Self::ClockError(e) =&gt; write!(f, "Clock error: {}", e),
+            Self::InvalidRate =&gt; write!(f, "Rate must be positive"),
+            Self::InvalidBurst =&gt; write!(f, "Burst must be non-negative"),
+            Self::ClockError(_) =&gt; write!(f, "Clock error occurred"),
         }
-    }
-}
-<span class="boring">}</span></code></pre>
-<p><strong>Error Conversion</strong>:</p>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>impl From&lt;ClockError&gt; for FluxLimiterError {
-    fn from(error: ClockError) -&gt; Self {
-        FluxLimiterError::ClockError(error)
     }
 }
 <span class="boring">}</span></code></pre>
@@ -426,7 +424,7 @@ pub enum ClockError {
 <p>Production time source using system time:</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>#[derive(Clone, Copy, Debug)]
+</span>#[derive(Debug, Clone)]
 pub struct SystemClock;
 
 impl Clock for SystemClock {

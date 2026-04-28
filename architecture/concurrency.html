@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-44c82bb1.js";
+            window.path_to_searchindex_js = "../searchindex-c5fe4c06.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-ed966b5f.js"></script>
@@ -342,6 +342,24 @@ thread::spawn(move || limiter2.check_request("client_2"));
 <li>Cheap to clone (increments counter)</li>
 <li>No data duplication</li>
 </ul>
+<h3 id="clone-for-shared-state"><a class="header" href="#clone-for-shared-state">Clone for Shared State</a></h3>
+<p><code>FluxLimiter</code> implements <code>Clone</code> (when <code>C: Clone</code>), which shares the same
+client state via <code>Arc::clone</code> on the internal <code>DashMap</code>:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>let config = FluxLimiterConfig::new(100.0, 50.0);
+let limiter = FluxLimiter::with_config(config, SystemClock)?;
+
+// Clone the limiter directly — shares the same DashMap
+let limiter1 = limiter.clone();
+let limiter2 = limiter.clone();
+
+// Both operate on the same client state
+thread::spawn(move || limiter1.check_request("client_1"));
+thread::spawn(move || limiter2.check_request("client_2"));
+<span class="boring">}</span></code></pre>
+<p>This provides the same shared-state semantics as <code>Arc&lt;FluxLimiter&lt;..&gt;&gt;</code>
+without the extra indirection.</p>
 <h3 id="internal-arc-usage"><a class="header" href="#internal-arc-usage">Internal Arc Usage</a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
@@ -469,11 +487,15 @@ limiter.check_request("client_2")?;
 <li>Minimal impact on concurrent operations</li>
 </ul>
 <h2 id="best-practices"><a class="header" href="#best-practices">Best Practices</a></h2>
-<h3 id="1-share-via-arc"><a class="header" href="#1-share-via-arc">1. Share via Arc</a></h3>
+<h3 id="1-share-via-arc-or-clone"><a class="header" href="#1-share-via-arc-or-clone">1. Share via Arc or Clone</a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>// Good: Share limiter across threads
+</span>// Option A: Share limiter across threads via Arc
 let limiter = Arc::new(FluxLimiter::with_config(config, clock)?);
+
+// Option B: Clone the limiter directly (shares the same DashMap)
+let limiter = FluxLimiter::with_config(config, clock)?;
+let limiter2 = limiter.clone();
 
 // Bad: Create multiple limiters (separate state)
 let limiter1 = FluxLimiter::with_config(config, clock1)?;

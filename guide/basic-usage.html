@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-44c82bb1.js";
+            window.path_to_searchindex_js = "../searchindex-c5fe4c06.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-ed966b5f.js"></script>
@@ -307,6 +307,7 @@ match limiter.check_request("user_123") {
 <span class="boring">}</span></code></pre>
 <h2 id="sharing-across-threads"><a class="header" href="#sharing-across-threads">Sharing Across Threads</a></h2>
 <p>Flux Limiter is thread-safe and designed to be shared:</p>
+<h3 id="using-arc"><a class="header" href="#using-arc">Using Arc</a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>use std::sync::Arc;
@@ -332,6 +333,29 @@ for handle in handles {
         Err(e) =&gt; eprintln!("Error: {}", e),
     }
 }
+<span class="boring">}</span></code></pre>
+<h3 id="using-clone"><a class="header" href="#using-clone">Using Clone</a></h3>
+<p><code>FluxLimiter</code> implements <code>Clone</code> — cloning shares the same <code>DashMap</code> client
+state, providing the same shared-state semantics without an outer <code>Arc</code>:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>let config = FluxLimiterConfig::new(100.0, 50.0);
+let limiter = FluxLimiter::with_config(config, SystemClock).unwrap();
+
+// Clone directly — both share the same client state
+let limiter1 = limiter.clone();
+let limiter2 = limiter.clone();
+
+let handles: Vec&lt;_&gt; = (0..10)
+    .map(|i| {
+        // Clone for each thread
+        let limiter = limiter.clone();
+        thread::spawn(move || {
+            let client_id = format!("client_{}", i);
+            limiter.check_request(client_id)
+        })
+    })
+    .collect();
 <span class="boring">}</span></code></pre>
 <h2 id="async-usage"><a class="header" href="#async-usage">Async Usage</a></h2>
 <p>While Flux Limiter is synchronous, it works seamlessly in async contexts:</p>
