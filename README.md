@@ -19,7 +19,7 @@ Add this to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-flux-limiter = "0.7.2"
+flux-limiter = "0.8.0"
 ```
 
 ## Quick Start

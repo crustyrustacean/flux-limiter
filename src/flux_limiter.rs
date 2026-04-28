@@ -1,4 +1,4 @@
-// lib/rate_limiter.rs
+// src/flux_limiter.rs
 
 // flux-limiter: A rate limiter based on the Generic Cell Rate Algorithm (GCRA).
 
@@ -9,6 +9,21 @@ use crate::errors::FluxLimiterError;
 use dashmap::DashMap;
 use std::hash::Hash;
 use std::sync::Arc;
+
+impl<T, C> Clone for FluxLimiter<T, C>
+where
+    T: Hash + Eq + Clone,
+    C: Clock + Clone,
+{
+    fn clone(&self) -> Self {
+        Self {
+            rate_nanos: self.rate_nanos,
+            tolerance_nanos: self.tolerance_nanos,
+            client_state: Arc::clone(&self.client_state),
+            clock: self.clock.clone(),
+        }
+    }
+}
 
 /// The main FluxLimiter model.
 /// T is the type used to identify clients (e.g., String, u64, etc.).
@@ -22,7 +37,7 @@ where
 {
     rate_nanos: u64,
     tolerance_nanos: u64,
-    pub client_state: Arc<DashMap<T, u64>>,
+    pub(crate) client_state: Arc<DashMap<T, u64>>,
     clock: C,
 }
 
@@ -62,32 +77,18 @@ where
         self.tolerance_nanos as f64 / self.rate_nanos as f64
     }
 
-    // internal method to get the increment in nanoseconds
-    #[allow(dead_code)]
-    fn increment_nanos(&self) -> u64 {
-        self.rate_nanos
+    /// Returns the number of active clients currently tracked.
+    pub fn client_count(&self) -> usize {
+        self.client_state.len()
     }
 
-    // Optional: internal method to get the tolerance in nanoseconds
-    #[allow(dead_code)]
-    fn tolerance_nanos(&self) -> u64 {
-        self.tolerance_nanos
-    }
-
-    // Optional: keep the old method names for backwards compatibility
-    #[allow(dead_code)]
-    fn increment(&self) -> f64 {
-        self.rate_nanos as f64 / 1_000_000_000.0
-    }
-
-    // Optional: internal method to get the tolerance in seconds
-    #[allow(dead_code)]
-    fn tolerance(&self) -> f64 {
-        self.tolerance_nanos as f64 / 1_000_000_000.0
+    /// Returns `true` if the given client ID is currently tracked.
+    pub fn contains_client(&self, client_id: &T) -> bool {
+        self.client_state.contains_key(client_id)
     }
 
     pub fn check_request(&self, client_id: T) -> Result<FluxLimiterDecision, FluxLimiterError> {
-        let current_time_nanos = self.clock.now().map_err(FluxLimiterError::ClockError)?;
+        let current_time_nanos = self.clock.now()?;
         let previous_tat_nanos = self
             .client_state
             .get(&client_id)
@@ -135,7 +136,7 @@ where
 
     // method to clean up stale clients
     pub fn cleanup_stale_clients(&self, max_stale_nanos: u64) -> Result<(), FluxLimiterError> {
-        let current_time_nanos = self.clock.now().map_err(FluxLimiterError::ClockError)?;
+        let current_time_nanos = self.clock.now()?;
         self.client_state.retain(|_, &mut tat| {
             tat + self.tolerance_nanos > current_time_nanos.saturating_sub(max_stale_nanos)
         });

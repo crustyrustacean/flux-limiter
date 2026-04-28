@@ -188,6 +188,27 @@ thread::spawn(move || limiter2.check_request("client_2"));
 - Cheap to clone (increments counter)
 - No data duplication
 
+### Clone for Shared State
+
+`FluxLimiter` implements `Clone` (when `C: Clone`), which shares the same
+client state via `Arc::clone` on the internal `DashMap`:
+
+```rust
+let config = FluxLimiterConfig::new(100.0, 50.0);
+let limiter = FluxLimiter::with_config(config, SystemClock)?;
+
+// Clone the limiter directly — shares the same DashMap
+let limiter1 = limiter.clone();
+let limiter2 = limiter.clone();
+
+// Both operate on the same client state
+thread::spawn(move || limiter1.check_request("client_1"));
+thread::spawn(move || limiter2.check_request("client_2"));
+```
+
+This provides the same shared-state semantics as `Arc<FluxLimiter<..>>`
+without the extra indirection.
+
 ### Internal Arc Usage
 
 ```rust
@@ -339,11 +360,15 @@ DashMap's `retain` method:
 
 ## Best Practices
 
-### 1. Share via Arc
+### 1. Share via Arc or Clone
 
 ```rust
-// Good: Share limiter across threads
+// Option A: Share limiter across threads via Arc
 let limiter = Arc::new(FluxLimiter::with_config(config, clock)?);
+
+// Option B: Clone the limiter directly (shares the same DashMap)
+let limiter = FluxLimiter::with_config(config, clock)?;
+let limiter2 = limiter.clone();
 
 // Bad: Create multiple limiters (separate state)
 let limiter1 = FluxLimiter::with_config(config, clock1)?;

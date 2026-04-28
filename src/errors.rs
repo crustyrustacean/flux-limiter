@@ -23,12 +23,26 @@ impl fmt::Display for FluxLimiterError {
         match self {
             FluxLimiterError::InvalidRate => write!(f, "Rate must be positive"),
             FluxLimiterError::InvalidBurst => write!(f, "Burst must be non-negative"),
-            FluxLimiterError::ClockError(_) => {
-                write!(f, "Clock error occurred")
+            FluxLimiterError::ClockError(err) => {
+                write!(f, "Clock error occurred: {}", err)
             }
         }
     }
 }
 
-// implement the Error trait for the RateLimiter type
-impl Error for FluxLimiterError {}
+// implement the Error trait for the FluxLimiterError type
+impl Error for FluxLimiterError {
+    fn source(&self) -> Option<&(dyn Error + 'static)> {
+        match self {
+            FluxLimiterError::ClockError(err) => Some(err),
+            _ => None,
+        }
+    }
+}
+
+// implement From<ClockError> for ergonomic ? conversion
+impl From<ClockError> for FluxLimiterError {
+    fn from(err: ClockError) -> Self {
+        FluxLimiterError::ClockError(err)
+    }
+}

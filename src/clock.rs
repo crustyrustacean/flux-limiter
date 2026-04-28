@@ -3,6 +3,7 @@
 // clock module definition and implementations
 
 // dependencies
+use std::fmt;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 /// Clock trait to abstract time retrieval.
@@ -19,6 +20,16 @@ pub trait Clock: Send + Sync {
 pub enum ClockError {
     SystemTimeError,
 }
+
+impl fmt::Display for ClockError {
+    fn fmt(&self, f: &mut fmt::Formatter) -> fmt::Result {
+        match self {
+            ClockError::SystemTimeError => write!(f, "System time error"),
+        }
+    }
+}
+
+impl std::error::Error for ClockError {}
 
 /// SystemClock implementation using the system time.
 /// Returns the current time in nanoseconds since the Unix epoch.

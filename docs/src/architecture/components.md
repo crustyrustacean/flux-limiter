@@ -9,6 +9,7 @@ The main rate limiter struct uses generics for flexibility.
 ### Structure Definition
 
 ```rust
+#[derive(Debug)]
 pub struct FluxLimiter<T, C = SystemClock>
 where
     T: Hash + Eq + Clone,  // Client identifier type
@@ -20,6 +21,10 @@ where
     clock: C,                           // Time abstraction
 }
 ```
+
+**Implemented Traits**:
+- `Debug` — via `#[derive]`
+- `Clone` — manual implementation; requires `C: Clone`. Cloning shares the same `DashMap` via `Arc::clone`, so both the original and clone operate on the same client state.
 
 ### Design Rationale
 
@@ -65,8 +70,8 @@ where
 
     pub fn cleanup_stale_clients(
         &self,
-        stale_threshold_nanos: u64,
-    ) -> Result<usize, FluxLimiterError>
+        max_stale_nanos: u64,
+    ) -> Result<(), FluxLimiterError>
 
     pub fn rate(&self) -> f64
     pub fn burst(&self) -> f64
@@ -130,7 +135,7 @@ Rich metadata returned from rate limiting decisions.
 ### Structure Definition
 
 ```rust
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug, Clone)]
 pub struct FluxLimiterDecision {
     pub allowed: bool,                    // Primary decision
     pub retry_after_seconds: Option<f64>, // When to retry (if denied)
@@ -175,14 +180,15 @@ Comprehensive error handling for robust production usage.
 ### Enum Definition
 
 ```rust
-#[derive(Debug, Clone, PartialEq)]
+#[non_exhaustive]
+#[derive(Debug)]
 pub enum FluxLimiterError {
     InvalidRate,           // Configuration: rate ≤ 0
     InvalidBurst,          // Configuration: burst < 0
     ClockError(ClockError), // Runtime: clock failure
 }
 
-#[derive(Debug, Clone, PartialEq)]
+#[derive(Debug)]
 pub enum ClockError {
     SystemTimeError,       // System time unavailable
 }
@@ -200,19 +206,10 @@ pub enum ClockError {
 impl std::fmt::Display for FluxLimiterError {
     fn fmt(&self, f: &mut std::fmt::Formatter) -> std::fmt::Result {
         match self {
-            Self::InvalidRate => write!(f, "Invalid rate: must be positive"),
-            Self::InvalidBurst => write!(f, "Invalid burst: must be non-negative"),
-            Self::ClockError(e) => write!(f, "Clock error: {}", e),
+            Self::InvalidRate => write!(f, "Rate must be positive"),
+            Self::InvalidBurst => write!(f, "Burst must be non-negative"),
+            Self::ClockError(_) => write!(f, "Clock error occurred"),
         }
-    }
-}
-```
-
-**Error Conversion**:
-```rust
-impl From<ClockError> for FluxLimiterError {
-    fn from(error: ClockError) -> Self {
-        FluxLimiterError::ClockError(error)
     }
 }
 ```
@@ -246,7 +243,7 @@ pub trait Clock: Send + Sync {
 Production time source using system time:
 
 ```rust
-#[derive(Clone, Copy, Debug)]
+#[derive(Debug, Clone)]
 pub struct SystemClock;
 
 impl Clock for SystemClock {

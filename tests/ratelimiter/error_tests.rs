@@ -120,7 +120,7 @@ mod tests {
         assert!(limiter.check_request("client2").unwrap().allowed);
 
         // Verify clients are in the map
-        assert_eq!(limiter.client_state.len(), 2);
+        assert_eq!(limiter.client_count(), 2);
 
         // Clock fails during operation
         clock.fail_next_call();
@@ -128,12 +128,12 @@ mod tests {
         assert!(result.is_err());
 
         // Previous clients should still be in the map (operation didn't complete)
-        assert_eq!(limiter.client_state.len(), 2);
+        assert_eq!(limiter.client_count(), 2);
 
         // Should work again after clock recovery
         let result = limiter.check_request("client3");
         assert!(result.is_ok());
-        assert_eq!(limiter.client_state.len(), 3);
+        assert_eq!(limiter.client_count(), 3);
     }
 
     #[test]
@@ -168,7 +168,7 @@ mod tests {
         // Add some clients
         let _ = limiter.check_request("client1").unwrap();
         let _ = limiter.check_request("client2").unwrap();
-        assert_eq!(limiter.client_state.len(), 2);
+        assert_eq!(limiter.client_count(), 2);
 
         // Cleanup fails due to clock error
         clock.fail_next_call();
@@ -176,7 +176,7 @@ mod tests {
         assert!(result.is_err());
 
         // Clients should still be there (cleanup didn't succeed)
-        assert_eq!(limiter.client_state.len(), 2);
+        assert_eq!(limiter.client_count(), 2);
 
         // Cleanup should work after clock recovery
         clock.advance(2.0); // Move time forward

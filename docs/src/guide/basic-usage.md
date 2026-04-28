@@ -141,6 +141,8 @@ match limiter.check_request("user_123") {
 
 Flux Limiter is thread-safe and designed to be shared:
 
+### Using Arc
+
 ```rust
 use std::sync::Arc;
 use std::thread;
@@ -165,6 +167,31 @@ for handle in handles {
         Err(e) => eprintln!("Error: {}", e),
     }
 }
+```
+
+### Using Clone
+
+`FluxLimiter` implements `Clone` — cloning shares the same `DashMap` client
+state, providing the same shared-state semantics without an outer `Arc`:
+
+```rust
+let config = FluxLimiterConfig::new(100.0, 50.0);
+let limiter = FluxLimiter::with_config(config, SystemClock).unwrap();
+
+// Clone directly — both share the same client state
+let limiter1 = limiter.clone();
+let limiter2 = limiter.clone();
+
+let handles: Vec<_> = (0..10)
+    .map(|i| {
+        // Clone for each thread
+        let limiter = limiter.clone();
+        thread::spawn(move || {
+            let client_id = format!("client_{}", i);
+            limiter.check_request(client_id)
+        })
+    })
+    .collect();
 ```
 
 ## Async Usage

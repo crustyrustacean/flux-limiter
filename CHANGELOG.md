@@ -7,6 +7,26 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.0] - 2026-04-27
+
+### Added
+- `Clone` implementation for `FluxLimiter<T, C>` — clones share the same `DashMap` client state via `Arc`, providing lightweight sharing without needing `Arc<FluxLimiter<..>>`
+- `client_count()` and `contains_client()` public accessor methods on `FluxLimiter`
+- `Display` and `Error` trait implementations for `ClockError`
+- `From<ClockError>` conversion for `FluxLimiterError`, enabling ergonomic `?` operator
+- `source()` implementation on `FluxLimiterError::Error` for error chain inspection
+
+### Changed
+- `client_state` field visibility changed from `pub` to `pub(crate)` — use `client_count()` and `contains_client()` instead
+- `FluxLimiterError::ClockError` display now chains the inner `ClockError` message
+- Simplified clock error handling in `check_request()` and `cleanup_stale_clients()` to use `?` via `From` conversion
+- Fixed stale file path comment in `src/flux_limiter.rs`
+- Fixed documentation discrepancies in `docs/src/architecture/components.md` (struct derives, return types, Display strings, phantom `From` impl)
+- Updated `docs/src/architecture/concurrency.md` and `docs/src/guide/basic-usage.md` to document `Clone` as an alternative to `Arc`
+
+### Removed
+- Dead code: `increment_nanos()`, `tolerance_nanos()`, `increment()`, and `tolerance()` internal methods
+
 ## [0.7.2] - 2025-12-20
 
 ### Changed
@@ -88,7 +108,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - O(number of active clients) memory usage
 - Support for configurable rate and burst capacity
 
-[Unreleased]: https://github.com/crustyrustacean/flux-limiter/compare/v0.7.2...HEAD
+[Unreleased]: https://github.com/crustyrustacean/flux-limiter/compare/v0.8.0...HEAD
+[0.8.0]: https://github.com/crustyrustacean/flux-limiter/compare/v0.7.2...v0.8.0
 [0.7.2]: https://github.com/crustyrustacean/flux-limiter/compare/v0.7.1...v0.7.2
 [0.7.1]: https://github.com/crustyrustacean/flux-limiter/compare/v0.6.3...v0.7.1
 [0.6.3]: https://github.com/crustyrustacean/flux-limiter/compare/v0.6.2...v0.6.3
