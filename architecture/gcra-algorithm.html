@@ -8,15 +8,15 @@
 
         <!-- Custom HTML head -->
 
-        <meta name="description" content="A high-performance rate limiter based on the Generic Cell Rate Algorithm (GCRA)">
+        <meta name="description" content="A rate limiter based on the Generic Cell Rate Algorithm (GCRA)">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="theme-color" content="#ffffff">
 
         <link rel="icon" href="../favicon-de23e50b.svg">
         <link rel="shortcut icon" href="../favicon-8114d1fc.png">
         <link rel="stylesheet" href="../css/variables-8adf115d.css">
-        <link rel="stylesheet" href="../css/general-2459343d.css">
-        <link rel="stylesheet" href="../css/chrome-ae938929.css">
+        <link rel="stylesheet" href="../css/general-e96d0476.css">
+        <link rel="stylesheet" href="../css/chrome-d279d366.css">
         <link rel="stylesheet" href="../css/print-9e4910d8.css" media="print">
 
         <!-- Fonts -->
@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-5d917635.js";
+            window.path_to_searchindex_js = "../searchindex-174558b3.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-ed966b5f.js"></script>
+        <script src="../toc-a16be429.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -392,22 +392,27 @@ t=1.0s:   6 requests → All allowed, TAT=1.6s
 <h3 id="remaining-capacity"><a class="header" href="#remaining-capacity">Remaining Capacity</a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>let elapsed = current_time_nanos.saturating_sub(previous_tat_nanos);
-let recovered = (elapsed as f64 / rate_nanos as f64).min(burst_capacity);
-let remaining_capacity = Some(burst_capacity - consumed + recovered);
+</span>fn calculate_remaining_capacity(&amp;self, current_time: u64, tat: u64) -&gt; f64 {
+    if current_time &gt;= tat.saturating_sub(self.tolerance_nanos) {
+        let time_until_tat = tat.saturating_sub(current_time) as f64 / 1_000_000_000.0;
+        let rate_per_second = self.rate();
+        (self.burst() - (time_until_tat * rate_per_second)).max(0.0)
+    } else {
+        0.0
+    }
+}
 <span class="boring">}</span></code></pre>
 <p>Tracks how much burst capacity is currently available.</p>
 <h3 id="reset-time"><a class="header" href="#reset-time">Reset Time</a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>let reset_time_nanos = new_tat_nanos + tolerance_nanos;
+</span>let reset_time_nanos = new_tat_nanos;
 <span class="boring">}</span></code></pre>
-<p>When the rate limit window will fully reset (all burst capacity recovered).</p>
+<p>The reset time is set to the new TAT value — the theoretical arrival time for the next request.</p>
 <h2 id="performance-characteristics"><a class="header" href="#performance-characteristics">Performance Characteristics</a></h2>
 <ul>
 <li><strong>Time Complexity</strong>: O(1) - constant time for all operations</li>
 <li><strong>Space Complexity</strong>: O(1) per client - single u64 timestamp</li>
-<li><strong>Calculation Overhead</strong>: ~10-20 CPU cycles for GCRA calculation</li>
 <li><strong>Memory Access</strong>: Single DashMap lookup/insert</li>
 </ul>
 <h2 id="next-steps"><a class="header" href="#next-steps">Next Steps</a></h2>
@@ -461,11 +466,11 @@ let remaining_capacity = Some(burst_capacity - consumed + recovered);
 
         <script src="../elasticlunr-ef4e11c1.min.js"></script>
         <script src="../mark-09e88c2c.min.js"></script>
-        <script src="../searcher-c2a407aa.js"></script>
+        <script src="../searcher-09f2665d.js"></script>
 
         <script src="../clipboard-1626706a.min.js"></script>
         <script src="../highlight-abc7f01d.js"></script>
-        <script src="../book-a0b12cfe.js"></script>
+        <script src="../book-609e4cb8.js"></script>
 
         <!-- Custom JS scripts -->
 

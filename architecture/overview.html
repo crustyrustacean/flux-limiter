@@ -8,15 +8,15 @@
 
         <!-- Custom HTML head -->
 
-        <meta name="description" content="A high-performance rate limiter based on the Generic Cell Rate Algorithm (GCRA)">
+        <meta name="description" content="A rate limiter based on the Generic Cell Rate Algorithm (GCRA)">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="theme-color" content="#ffffff">
 
         <link rel="icon" href="../favicon-de23e50b.svg">
         <link rel="shortcut icon" href="../favicon-8114d1fc.png">
         <link rel="stylesheet" href="../css/variables-8adf115d.css">
-        <link rel="stylesheet" href="../css/general-2459343d.css">
-        <link rel="stylesheet" href="../css/chrome-ae938929.css">
+        <link rel="stylesheet" href="../css/general-e96d0476.css">
+        <link rel="stylesheet" href="../css/chrome-d279d366.css">
         <link rel="stylesheet" href="../css/print-9e4910d8.css" media="print">
 
         <!-- Fonts -->
@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-5d917635.js";
+            window.path_to_searchindex_js = "../searchindex-174558b3.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-ed966b5f.js"></script>
+        <script src="../toc-a16be429.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -186,7 +186,6 @@
 <p>Flux Limiter is built on several key architectural principles:</p>
 <ol>
 <li><strong>Lock-Free Concurrency</strong>: Uses atomic operations and lock-free data structures</li>
-<li><strong>Zero-Allocation Hot Path</strong>: Minimizes memory allocation in rate limiting decisions</li>
 <li><strong>Clock Abstraction</strong>: Enables testing and handles time-related failures</li>
 <li><strong>Type Safety</strong>: Leverages Rust’s type system for correctness guarantees</li>
 <li><strong>Graceful Degradation</strong>: Continues operation despite partial failures</li>
@@ -243,13 +242,13 @@ Return FluxLimiterDecision
 <li><strong>O(1) operations</strong>: Constant time complexity for rate limit checks</li>
 <li><strong>Lock-free concurrency</strong>: No global locks or contention</li>
 <li><strong>Nanosecond precision</strong>: Integer arithmetic avoids floating-point overhead</li>
-<li><strong>Minimal allocations</strong>: Hot path reuses existing memory</li>
+<li><strong>Nanosecond precision</strong>: Integer arithmetic avoids floating-point overhead</li>
 </ul>
 <h3 id="correctness-guaranteed"><a class="header" href="#correctness-guaranteed">Correctness Guaranteed</a></h3>
 <ul>
 <li><strong>Mathematical precision</strong>: Exact GCRA implementation</li>
 <li><strong>Type safety</strong>: Rust’s type system prevents common errors</li>
-<li><strong>Comprehensive testing</strong>: &gt;95% code coverage with deterministic tests</li>
+<li><strong>Comprehensive testing</strong>: Deterministic tests with TestClock</li>
 <li><strong>No silent failures</strong>: All errors are explicitly handled</li>
 </ul>
 <h3 id="observability-built-in"><a class="header" href="#observability-built-in">Observability Built-in</a></h3>
@@ -279,14 +278,14 @@ Return FluxLimiterDecision
 <li><strong>Time complexity</strong>: O(1) for check_request()</li>
 <li><strong>Concurrency</strong>: Lock-free reads and writes</li>
 <li><strong>Precision</strong>: Nanosecond timing accuracy</li>
-<li><strong>Throughput</strong>: Millions of operations per second</li>
+<li><strong>Throughput</strong>: Depends on workload and hardware</li>
 </ul>
 <h3 id="scalability"><a class="header" href="#scalability">Scalability</a></h3>
-<pre><code>Clients     Memory Usage    Latency
-1K          ~32KB          &lt; 1μs
-100K        ~3.2MB         &lt; 1μs
-1M          ~32MB          &lt; 1μs
-10M         ~320MB         &lt; 1μs
+<pre><code>Clients     Memory Usage
+1K          ~48KB
+100K        ~4.8MB
+1M          ~48MB
+10M         ~480MB
 </code></pre>
 <h2 id="architecture-layers"><a class="header" href="#architecture-layers">Architecture Layers</a></h2>
 <h3 id="1-api-layer"><a class="header" href="#1-api-layer">1. API Layer</a></h3>
@@ -369,11 +368,11 @@ Return FluxLimiterDecision
 
         <script src="../elasticlunr-ef4e11c1.min.js"></script>
         <script src="../mark-09e88c2c.min.js"></script>
-        <script src="../searcher-c2a407aa.js"></script>
+        <script src="../searcher-09f2665d.js"></script>
 
         <script src="../clipboard-1626706a.min.js"></script>
         <script src="../highlight-abc7f01d.js"></script>
-        <script src="../book-a0b12cfe.js"></script>
+        <script src="../book-609e4cb8.js"></script>
 
         <!-- Custom JS scripts -->
 

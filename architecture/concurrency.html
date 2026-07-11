@@ -8,15 +8,15 @@
 
         <!-- Custom HTML head -->
 
-        <meta name="description" content="A high-performance rate limiter based on the Generic Cell Rate Algorithm (GCRA)">
+        <meta name="description" content="A rate limiter based on the Generic Cell Rate Algorithm (GCRA)">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="theme-color" content="#ffffff">
 
         <link rel="icon" href="../favicon-de23e50b.svg">
         <link rel="shortcut icon" href="../favicon-8114d1fc.png">
         <link rel="stylesheet" href="../css/variables-8adf115d.css">
-        <link rel="stylesheet" href="../css/general-2459343d.css">
-        <link rel="stylesheet" href="../css/chrome-ae938929.css">
+        <link rel="stylesheet" href="../css/general-e96d0476.css">
+        <link rel="stylesheet" href="../css/chrome-d279d366.css">
         <link rel="stylesheet" href="../css/print-9e4910d8.css" media="print">
 
         <!-- Fonts -->
@@ -35,10 +35,10 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-5d917635.js";
+            window.path_to_searchindex_js = "../searchindex-174558b3.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="../toc-ed966b5f.js"></script>
+        <script src="../toc-a16be429.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -422,14 +422,10 @@ Result:  Serialized access (expected for consistency)
 <p><strong>This is correct behavior</strong>: Rate limiting the same client from multiple threads should be serialized to maintain correctness.</p>
 <h2 id="performance-under-concurrency"><a class="header" href="#performance-under-concurrency">Performance Under Concurrency</a></h2>
 <h3 id="scalability-characteristics"><a class="header" href="#scalability-characteristics">Scalability Characteristics</a></h3>
-<pre><code>Threads  Throughput  Latency
-1        1.0x        1.0μs
-2        1.9x        1.0μs
-4        3.7x        1.1μs
-8        7.0x        1.2μs
-16       12.5x       1.3μs
+<pre><code>Different clients  → different shards  (low contention, scales well)
+Same client        → same shard       (necessary serialization)
 </code></pre>
-<p>Nearly linear scalability with different clients.</p>
+<p>Different clients scale well since they map to different shards. Same-client access is serialized, which is correct behavior for rate limiting consistency.</p>
 <h3 id="benchmark-concurrent-access"><a class="header" href="#benchmark-concurrent-access">Benchmark: Concurrent Access</a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
@@ -618,11 +614,11 @@ tokio::spawn(async move {
 
         <script src="../elasticlunr-ef4e11c1.min.js"></script>
         <script src="../mark-09e88c2c.min.js"></script>
-        <script src="../searcher-c2a407aa.js"></script>
+        <script src="../searcher-09f2665d.js"></script>
 
         <script src="../clipboard-1626706a.min.js"></script>
         <script src="../highlight-abc7f01d.js"></script>
-        <script src="../book-a0b12cfe.js"></script>
+        <script src="../book-609e4cb8.js"></script>
 
         <!-- Custom JS scripts -->
 

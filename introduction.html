@@ -8,15 +8,15 @@
 
         <!-- Custom HTML head -->
 
-        <meta name="description" content="A high-performance rate limiter based on the Generic Cell Rate Algorithm (GCRA)">
+        <meta name="description" content="A rate limiter based on the Generic Cell Rate Algorithm (GCRA)">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="theme-color" content="#ffffff">
 
         <link rel="icon" href="favicon-de23e50b.svg">
         <link rel="shortcut icon" href="favicon-8114d1fc.png">
         <link rel="stylesheet" href="css/variables-8adf115d.css">
-        <link rel="stylesheet" href="css/general-2459343d.css">
-        <link rel="stylesheet" href="css/chrome-ae938929.css">
+        <link rel="stylesheet" href="css/general-e96d0476.css">
+        <link rel="stylesheet" href="css/chrome-d279d366.css">
         <link rel="stylesheet" href="css/print-9e4910d8.css" media="print">
 
         <!-- Fonts -->
@@ -35,10 +35,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-5d917635.js";
+            window.path_to_searchindex_js = "searchindex-174558b3.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-ed966b5f.js"></script>
+        <script src="toc-a16be429.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -181,18 +181,16 @@
                 <div id="mdbook-content" class="content">
                     <main>
                         <h1 id="flux-limiter"><a class="header" href="#flux-limiter">Flux Limiter</a></h1>
-<p>A high-performance rate limiter based on the Generic Cell Rate Algorithm (GCRA) with nanosecond precision and lock-free concurrent access.</p>
+<p>A simple rate limiter based on the Generic Cell Rate Algorithm (GCRA) with nanosecond precision and lock-free concurrent access.</p>
 <h2 id="features"><a class="header" href="#features">Features</a></h2>
 <ul>
 <li><strong>Mathematically precise</strong>: Implements the GCRA algorithm with exact nanosecond timing</li>
-<li><strong>High performance</strong>: Lock-free concurrent access using DashMap</li>
 <li><strong>Generic client IDs</strong>: Works with any hashable client identifier (<code>String</code>, <code>IpAddr</code>, <code>u64</code>, etc.)</li>
 <li><strong>Rich metadata</strong>: Returns detailed decision information for HTTP response construction</li>
 <li><strong>Memory efficient</strong>: Automatic cleanup of stale client entries</li>
 <li><strong>Robust error handling</strong>: Graceful handling of clock failures and configuration errors</li>
 <li><strong>Testable</strong>: Clock abstraction enables deterministic testing</li>
 <li><strong>Thread-safe</strong>: Safe to use across multiple threads</li>
-<li><strong>Zero allocations</strong>: Efficient hot path with minimal overhead</li>
 </ul>
 <h2 id="what-is-rate-limiting"><a class="header" href="#what-is-rate-limiting">What is Rate Limiting?</a></h2>
 <p>Rate limiting is a technique used to control the rate at which requests or operations are processed. It’s commonly used to:</p>
@@ -225,7 +223,6 @@
 <li><strong>Time complexity</strong>: O(1) for <code>check_request()</code> operations</li>
 <li><strong>Concurrency</strong>: Lock-free reads and writes via DashMap</li>
 <li><strong>Precision</strong>: Nanosecond timing accuracy</li>
-<li><strong>Throughput</strong>: Millions of operations per second</li>
 <li><strong>Reliability</strong>: Graceful degradation on system clock issues</li>
 </ul>
 <h2 id="next-steps"><a class="header" href="#next-steps">Next Steps</a></h2>
@@ -273,11 +270,11 @@
 
         <script src="elasticlunr-ef4e11c1.min.js"></script>
         <script src="mark-09e88c2c.min.js"></script>
-        <script src="searcher-c2a407aa.js"></script>
+        <script src="searcher-09f2665d.js"></script>
 
         <script src="clipboard-1626706a.min.js"></script>
         <script src="highlight-abc7f01d.js"></script>
-        <script src="book-a0b12cfe.js"></script>
+        <script src="book-609e4cb8.js"></script>
 
         <!-- Custom JS scripts -->
 

@@ -9,15 +9,15 @@
 
         <!-- Custom HTML head -->
 
-        <meta name="description" content="A high-performance rate limiter based on the Generic Cell Rate Algorithm (GCRA)">
+        <meta name="description" content="A rate limiter based on the Generic Cell Rate Algorithm (GCRA)">
         <meta name="viewport" content="width=device-width, initial-scale=1">
         <meta name="theme-color" content="#ffffff">
 
         <link rel="icon" href="favicon-de23e50b.svg">
         <link rel="shortcut icon" href="favicon-8114d1fc.png">
         <link rel="stylesheet" href="css/variables-8adf115d.css">
-        <link rel="stylesheet" href="css/general-2459343d.css">
-        <link rel="stylesheet" href="css/chrome-ae938929.css">
+        <link rel="stylesheet" href="css/general-e96d0476.css">
+        <link rel="stylesheet" href="css/chrome-d279d366.css">
         <link rel="stylesheet" href="css/print-9e4910d8.css" media="print">
 
         <!-- Fonts -->
@@ -36,10 +36,10 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-5d917635.js";
+            window.path_to_searchindex_js = "searchindex-174558b3.js";
         </script>
         <!-- Start loading toc.js asap -->
-        <script src="toc-ed966b5f.js"></script>
+        <script src="toc-a16be429.js"></script>
     </head>
     <body>
     <div id="mdbook-help-container">
@@ -179,18 +179,16 @@
                 <div id="mdbook-content" class="content">
                     <main>
                         <h1 id="flux-limiter"><a class="header" href="#flux-limiter">Flux Limiter</a></h1>
-<p>A high-performance rate limiter based on the Generic Cell Rate Algorithm (GCRA) with nanosecond precision and lock-free concurrent access.</p>
+<p>A simple rate limiter based on the Generic Cell Rate Algorithm (GCRA) with nanosecond precision and lock-free concurrent access.</p>
 <h2 id="features"><a class="header" href="#features">Features</a></h2>
 <ul>
 <li><strong>Mathematically precise</strong>: Implements the GCRA algorithm with exact nanosecond timing</li>
-<li><strong>High performance</strong>: Lock-free concurrent access using DashMap</li>
 <li><strong>Generic client IDs</strong>: Works with any hashable client identifier (<code>String</code>, <code>IpAddr</code>, <code>u64</code>, etc.)</li>
 <li><strong>Rich metadata</strong>: Returns detailed decision information for HTTP response construction</li>
 <li><strong>Memory efficient</strong>: Automatic cleanup of stale client entries</li>
 <li><strong>Robust error handling</strong>: Graceful handling of clock failures and configuration errors</li>
 <li><strong>Testable</strong>: Clock abstraction enables deterministic testing</li>
 <li><strong>Thread-safe</strong>: Safe to use across multiple threads</li>
-<li><strong>Zero allocations</strong>: Efficient hot path with minimal overhead</li>
 </ul>
 <h2 id="what-is-rate-limiting"><a class="header" href="#what-is-rate-limiting">What is Rate Limiting?</a></h2>
 <p>Rate limiting is a technique used to control the rate at which requests or operations are processed. It’s commonly used to:</p>
@@ -223,7 +221,6 @@
 <li><strong>Time complexity</strong>: O(1) for <code>check_request()</code> operations</li>
 <li><strong>Concurrency</strong>: Lock-free reads and writes via DashMap</li>
 <li><strong>Precision</strong>: Nanosecond timing accuracy</li>
-<li><strong>Throughput</strong>: Millions of operations per second</li>
 <li><strong>Reliability</strong>: Graceful degradation on system clock issues</li>
 </ul>
 <h2 id="next-steps"><a class="header" href="#next-steps">Next Steps</a></h2>
@@ -238,7 +235,7 @@
 <h2 id="adding-to-cargotoml"><a class="header" href="#adding-to-cargotoml">Adding to Cargo.toml</a></h2>
 <p>Add this to your <code>Cargo.toml</code>:</p>
 <pre><code class="language-toml">[dependencies]
-flux-limiter = "0.8.0"
+flux-limiter = "0.8.2"
 </code></pre>
 <h2 id="alternative-using-cargo-add"><a class="header" href="#alternative-using-cargo-add">Alternative: Using Cargo Add</a></h2>
 <p>If you have <code>cargo-edit</code> installed, you can use:</p>
@@ -645,7 +642,7 @@ limiter.check_request(client_ip)?;
 <h3 id="numeric-client-ids"><a class="header" href="#numeric-client-ids">Numeric Client IDs</a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>// High-performance numeric IDs
+</span>// Numeric IDs avoid string allocation overhead
 let limiter = FluxLimiter::&lt;u64, _&gt;::with_config(config, SystemClock).unwrap();
 
 limiter.check_request(12345)?;
@@ -1138,8 +1135,8 @@ impl CircuitBreakerLimiter {
 </span><span class="boring">fn main() {
 </span>// Cleanup errors are typically not critical
 match limiter.cleanup_stale_clients(one_hour_nanos) {
-    Ok(count) =&gt; {
-        println!("Cleaned up {} stale clients", count);
+    Ok(()) =&gt; {
+        // Cleanup succeeded
     }
     Err(FluxLimiterError::ClockError(_)) =&gt; {
         eprintln!("Clock error during cleanup - will retry later");
@@ -1184,8 +1181,8 @@ match limiter.cleanup_stale_clients(one_hour_nanos) {
 let one_hour_nanos = 60 * 60 * 1_000_000_000u64;
 
 match limiter.cleanup_stale_clients(one_hour_nanos) {
-    Ok(removed_count) =&gt; {
-        println!("Cleaned up {} stale clients", removed_count);
+    Ok(()) =&gt; {
+        // Cleanup succeeded
     }
     Err(e) =&gt; {
         eprintln!("Cleanup failed: {}", e);
@@ -1206,8 +1203,8 @@ async fn start_cleanup_task(limiter: Arc&lt;FluxLimiter&lt;String, SystemClock&g
         let threshold = 24 * 60 * 60 * 1_000_000_000u64; // 24 hours
 
         match limiter.cleanup_stale_clients(threshold) {
-            Ok(count) =&gt; {
-                println!("Cleaned up {} stale clients", count);
+            Ok(()) =&gt; {
+                // Cleanup succeeded
             }
             Err(e) =&gt; {
                 eprintln!("Cleanup failed: {}", e);
@@ -1939,8 +1936,8 @@ async fn cleanup_task(limiter: Arc&lt;FluxLimiter&lt;String, SystemClock&gt;&gt;
         let threshold = 24 * 60 * 60 * 1_000_000_000u64; // 24 hours
 
         match limiter.cleanup_stale_clients(threshold) {
-            Ok(count) =&gt; {
-                println!("Rate limiter: cleaned up {} stale clients", count);
+            Ok(()) =&gt; {
+                // Cleanup succeeded
             }
             Err(e) =&gt; {
                 eprintln!("Rate limiter cleanup failed: {}", e);
@@ -2201,8 +2198,8 @@ impl ManagedRateLimiter {
             let threshold = 24 * 60 * 60 * 1_000_000_000u64; // 24 hours
 
             match limiter.cleanup_stale_clients(threshold) {
-                Ok(count) =&gt; {
-                    info!("Cleaned up {} stale rate limit entries", count);
+                Ok(()) =&gt; {
+                    // Cleanup succeeded
                 }
                 Err(e) =&gt; {
                     error!("Rate limiter cleanup failed: {}", e);
@@ -2404,7 +2401,6 @@ mod load_tests {
 <p>Flux Limiter is built on several key architectural principles:</p>
 <ol>
 <li><strong>Lock-Free Concurrency</strong>: Uses atomic operations and lock-free data structures</li>
-<li><strong>Zero-Allocation Hot Path</strong>: Minimizes memory allocation in rate limiting decisions</li>
 <li><strong>Clock Abstraction</strong>: Enables testing and handles time-related failures</li>
 <li><strong>Type Safety</strong>: Leverages Rust’s type system for correctness guarantees</li>
 <li><strong>Graceful Degradation</strong>: Continues operation despite partial failures</li>
@@ -2461,13 +2457,13 @@ Return FluxLimiterDecision
 <li><strong>O(1) operations</strong>: Constant time complexity for rate limit checks</li>
 <li><strong>Lock-free concurrency</strong>: No global locks or contention</li>
 <li><strong>Nanosecond precision</strong>: Integer arithmetic avoids floating-point overhead</li>
-<li><strong>Minimal allocations</strong>: Hot path reuses existing memory</li>
+<li><strong>Nanosecond precision</strong>: Integer arithmetic avoids floating-point overhead</li>
 </ul>
 <h3 id="correctness-guaranteed"><a class="header" href="#correctness-guaranteed">Correctness Guaranteed</a></h3>
 <ul>
 <li><strong>Mathematical precision</strong>: Exact GCRA implementation</li>
 <li><strong>Type safety</strong>: Rust’s type system prevents common errors</li>
-<li><strong>Comprehensive testing</strong>: &gt;95% code coverage with deterministic tests</li>
+<li><strong>Comprehensive testing</strong>: Deterministic tests with TestClock</li>
 <li><strong>No silent failures</strong>: All errors are explicitly handled</li>
 </ul>
 <h3 id="observability-built-in"><a class="header" href="#observability-built-in">Observability Built-in</a></h3>
@@ -2497,14 +2493,14 @@ Return FluxLimiterDecision
 <li><strong>Time complexity</strong>: O(1) for check_request()</li>
 <li><strong>Concurrency</strong>: Lock-free reads and writes</li>
 <li><strong>Precision</strong>: Nanosecond timing accuracy</li>
-<li><strong>Throughput</strong>: Millions of operations per second</li>
+<li><strong>Throughput</strong>: Depends on workload and hardware</li>
 </ul>
 <h3 id="scalability"><a class="header" href="#scalability">Scalability</a></h3>
-<pre><code>Clients     Memory Usage    Latency
-1K          ~32KB          &lt; 1μs
-100K        ~3.2MB         &lt; 1μs
-1M          ~32MB          &lt; 1μs
-10M         ~320MB         &lt; 1μs
+<pre><code>Clients     Memory Usage
+1K          ~48KB
+100K        ~4.8MB
+1M          ~48MB
+10M         ~480MB
 </code></pre>
 <h2 id="architecture-layers"><a class="header" href="#architecture-layers">Architecture Layers</a></h2>
 <h3 id="1-api-layer"><a class="header" href="#1-api-layer">1. API Layer</a></h3>
@@ -2755,22 +2751,27 @@ t=1.0s:   6 requests → All allowed, TAT=1.6s
 <h3 id="remaining-capacity"><a class="header" href="#remaining-capacity">Remaining Capacity</a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>let elapsed = current_time_nanos.saturating_sub(previous_tat_nanos);
-let recovered = (elapsed as f64 / rate_nanos as f64).min(burst_capacity);
-let remaining_capacity = Some(burst_capacity - consumed + recovered);
+</span>fn calculate_remaining_capacity(&amp;self, current_time: u64, tat: u64) -&gt; f64 {
+    if current_time &gt;= tat.saturating_sub(self.tolerance_nanos) {
+        let time_until_tat = tat.saturating_sub(current_time) as f64 / 1_000_000_000.0;
+        let rate_per_second = self.rate();
+        (self.burst() - (time_until_tat * rate_per_second)).max(0.0)
+    } else {
+        0.0
+    }
+}
 <span class="boring">}</span></code></pre>
 <p>Tracks how much burst capacity is currently available.</p>
 <h3 id="reset-time"><a class="header" href="#reset-time">Reset Time</a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>let reset_time_nanos = new_tat_nanos + tolerance_nanos;
+</span>let reset_time_nanos = new_tat_nanos;
 <span class="boring">}</span></code></pre>
-<p>When the rate limit window will fully reset (all burst capacity recovered).</p>
+<p>The reset time is set to the new TAT value — the theoretical arrival time for the next request.</p>
 <h2 id="performance-characteristics-2"><a class="header" href="#performance-characteristics-2">Performance Characteristics</a></h2>
 <ul>
 <li><strong>Time Complexity</strong>: O(1) - constant time for all operations</li>
 <li><strong>Space Complexity</strong>: O(1) per client - single u64 timestamp</li>
-<li><strong>Calculation Overhead</strong>: ~10-20 CPU cycles for GCRA calculation</li>
 <li><strong>Memory Access</strong>: Single DashMap lookup/insert</li>
 </ul>
 <h2 id="next-steps-10"><a class="header" href="#next-steps-10">Next Steps</a></h2>
@@ -2998,7 +2999,7 @@ pub enum ClockError {
         match self {
             Self::InvalidRate =&gt; write!(f, "Rate must be positive"),
             Self::InvalidBurst =&gt; write!(f, "Burst must be non-negative"),
-            Self::ClockError(_) =&gt; write!(f, "Clock error occurred"),
+            Self::ClockError(err) =&gt; write!(f, "Clock error occurred: {}", err),
         }
     }
 }
@@ -3361,14 +3362,10 @@ Result:  Serialized access (expected for consistency)
 <p><strong>This is correct behavior</strong>: Rate limiting the same client from multiple threads should be serialized to maintain correctness.</p>
 <h2 id="performance-under-concurrency"><a class="header" href="#performance-under-concurrency">Performance Under Concurrency</a></h2>
 <h3 id="scalability-characteristics"><a class="header" href="#scalability-characteristics">Scalability Characteristics</a></h3>
-<pre><code>Threads  Throughput  Latency
-1        1.0x        1.0μs
-2        1.9x        1.0μs
-4        3.7x        1.1μs
-8        7.0x        1.2μs
-16       12.5x       1.3μs
+<pre><code>Different clients  → different shards  (low contention, scales well)
+Same client        → same shard       (necessary serialization)
 </code></pre>
-<p>Nearly linear scalability with different clients.</p>
+<p>Different clients scale well since they map to different shards. Same-client access is serialized, which is correct behavior for rate limiting consistency.</p>
 <h3 id="benchmark-concurrent-access"><a class="header" href="#benchmark-concurrent-access">Benchmark: Concurrent Access</a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
@@ -3836,8 +3833,8 @@ fn check_with_circuit_breaker(
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>match limiter.cleanup_stale_clients(threshold) {
-    Ok(count) =&gt; {
-        info!("Cleaned up {} stale clients", count);
+    Ok(()) =&gt; {
+        // Cleanup succeeded
     }
     Err(FluxLimiterError::ClockError(_)) =&gt; {
         warn!("Clock error during cleanup - will retry later");
@@ -3980,16 +3977,16 @@ mod tests {
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>pub fn check_request(&amp;self, client_id: T) -&gt; Result&lt;FluxLimiterDecision, FluxLimiterError&gt; {
-    // 1. Single clock call (~50-100ns)
+    // 1. Single clock call
     let current_time_nanos = self.clock.now()?;
 
-    // 2. Atomic read-modify-write via entry() (~20-100ns)
+    // 2. Atomic read-modify-write via entry()
     //    Shard lock held across read + write, preventing TOCTOU races
     match self.client_state.entry(client_id) {
         Entry::Occupied(mut occupied) =&gt; {
             let previous_tat_nanos = *occupied.get();
 
-            // 3. Integer arithmetic (~5-10ns)
+            // 3. Integer arithmetic
             let is_conforming = current_time_nanos &gt;=
                 previous_tat_nanos.saturating_sub(self.tolerance_nanos);
 
@@ -4009,17 +4006,16 @@ mod tests {
         }
     }
 
-    // 5. Metadata calculation (~5-10ns)
+    // 5. Metadata calculation
     // 6. Return decision
 }
 <span class="boring">}</span></code></pre>
-<p><strong>Total latency</strong>: ~100-250ns typical case</p>
+<p>The hot path involves a single clock call, a single DashMap entry operation, and simple integer arithmetic — all O(1).</p>
 <h3 id="optimization-techniques"><a class="header" href="#optimization-techniques">Optimization Techniques</a></h3>
 <ol>
 <li><strong>Single Clock Call</strong>: One time source access per request</li>
 <li><strong>Single Atomic Entry Operation</strong>: <code>entry()</code> handles lookup + update within one shard lock</li>
 <li><strong>Integer Arithmetic</strong>: No floating-point operations in hot path</li>
-<li><strong>No Allocations</strong>: Reuses existing memory</li>
 <li><strong>Minimal Branching</strong>: Straight-line execution</li>
 </ol>
 <h2 id="memory-layout-1"><a class="header" href="#memory-layout-1">Memory Layout</a></h2>
@@ -4089,13 +4085,10 @@ mod tests {
 </div>
 <h2 id="concurrency-performance"><a class="header" href="#concurrency-performance">Concurrency Performance</a></h2>
 <h3 id="lock-free-benefits"><a class="header" href="#lock-free-benefits">Lock-Free Benefits</a></h3>
-<p>DashMap provides near-linear scalability:</p>
-<pre><code>Threads  Throughput   Latency
-1        1.0x         100ns
-2        1.9x         105ns
-4        3.7x         110ns
-8        7.0x         120ns
-16       12.5x        130ns
+<p>DashMap uses segmented locking for concurrent access:</p>
+<pre><code>Different clients → different shards (low contention)
+Same client     → same shard (necessary serialization)
+Short critical sections → minimal lock duration
 </code></pre>
 <p><strong>Key factors</strong>:</p>
 <ul>
@@ -4130,27 +4123,6 @@ limiter.check_request("client_1")?; // Shard 0
 // Thread 2
 limiter.check_request("client_1")?; // Shard 0
 // Serialized - correct behavior
-<span class="boring">}</span></code></pre>
-<h2 id="benchmark-results"><a class="header" href="#benchmark-results">Benchmark Results</a></h2>
-<h3 id="single-threaded-performance"><a class="header" href="#single-threaded-performance">Single-Threaded Performance</a></h3>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>test bench_check_request_allowed ... bench:    85 ns/iter (+/- 5)
-test bench_check_request_denied  ... bench:    82 ns/iter (+/- 4)
-test bench_cleanup               ... bench:    45 μs/iter (+/- 2)
-<span class="boring">}</span></code></pre>
-<h3 id="multi-threaded-performance"><a class="header" href="#multi-threaded-performance">Multi-Threaded Performance</a></h3>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>test bench_concurrent_8_threads  ... bench:    120 ns/iter (+/- 10)
-test bench_concurrent_16_threads ... bench:    135 ns/iter (+/- 12)
-<span class="boring">}</span></code></pre>
-<h3 id="memory-overhead"><a class="header" href="#memory-overhead">Memory Overhead</a></h3>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>test bench_memory_1k_clients     ... ~48 KB
-test bench_memory_100k_clients   ... ~4.8 MB
-test bench_memory_1m_clients     ... ~48 MB
 <span class="boring">}</span></code></pre>
 <h2 id="optimization-decisions"><a class="header" href="#optimization-decisions">Optimization Decisions</a></h2>
 <h3 id="integer-arithmetic-vs-floating-point"><a class="header" href="#integer-arithmetic-vs-floating-point">Integer Arithmetic vs Floating-Point</a></h3>
@@ -4216,17 +4188,17 @@ test bench_memory_1m_clients     ... ~48 MB
 <p>Choose efficient client ID types:</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>// Fastest: Numeric IDs
+</span>// Numeric IDs avoid String allocation overhead
 let limiter = FluxLimiter::&lt;u64, _&gt;::with_config(config, clock)?;
-limiter.check_request(user_id_numeric)?; // ~80ns
+limiter.check_request(user_id_numeric)?;
 
-// Fast: IP addresses
+// IP addresses
 let limiter = FluxLimiter::&lt;IpAddr, _&gt;::with_config(config, clock)?;
-limiter.check_request(client_ip)?; // ~90ns
+limiter.check_request(client_ip)?;
 
-// Slower: Strings (requires allocation)
+// Strings (convenient but involves allocation per request)
 let limiter = FluxLimiter::&lt;String, _&gt;::with_config(config, clock)?;
-limiter.check_request(user_id.to_string())?; // ~120ns
+limiter.check_request(user_id.to_string())?;
 <span class="boring">}</span></code></pre>
 <h3 id="cleanup-strategy"><a class="header" href="#cleanup-strategy">Cleanup Strategy</a></h3>
 <p>Balance memory usage vs. cleanup overhead:</p>
@@ -4321,11 +4293,9 @@ fn report_throughput(duration: Duration) {
 <tr><th>Metric</th><th>Value</th></tr>
 </thead>
 <tbody>
-<tr><td>Latency (typical)</td><td>100-250ns</td></tr>
-<tr><td>Throughput (single thread)</td><td>~10M req/s</td></tr>
-<tr><td>Throughput (8 threads)</td><td>~70M req/s</td></tr>
 <tr><td>Memory per client</td><td>~48 bytes</td></tr>
-<tr><td>Scalability</td><td>Near-linear</td></tr>
+<tr><td>Time complexity</td><td>O(1)</td></tr>
+<tr><td>Space complexity</td><td>O(n)</td></tr>
 <tr><td>Cleanup overhead</td><td>O(n) but infrequent</td></tr>
 </tbody>
 </table>
@@ -4564,9 +4534,10 @@ fn test_cleanup_stale_clients() {
 
     // Cleanup clients older than 30 minutes
     let threshold = 30 * 60 * 1_000_000_000u64;
-    let removed = limiter.cleanup_stale_clients(threshold).unwrap();
+    limiter.cleanup_stale_clients(threshold).unwrap();
 
-    assert_eq!(removed, 3);
+    // All clients should be removed
+    assert_eq!(limiter.client_count(), 0);
 }
 <span class="boring">}</span></code></pre>
 <h3 id="6-concurrency-tests"><a class="header" href="#6-concurrency-tests">6. Concurrency Tests</a></h3>
@@ -4849,7 +4820,7 @@ Token Bucket: Request allowed if tokens &gt;= 1
 </ul>
 <p>✅ <strong>Good Performance</strong></p>
 <ul>
-<li>~100ns for get/insert</li>
+<li>Efficient operations</li>
 <li>Minimal overhead</li>
 <li>Efficient memory layout</li>
 </ul>
@@ -5247,7 +5218,7 @@ where
     pub async fn cleanup_stale_clients_async(
         &amp;self,
         stale_threshold_nanos: u64,
-    ) -&gt; Result&lt;usize, FluxLimiterError&gt; {
+    ) -&gt; Result&lt;(), FluxLimiterError&gt; {
         // Async cleanup without blocking
     }
 }
@@ -5743,11 +5714,11 @@ pub type FluxLimiter&lt;T, C&gt; = core::FluxLimiter&lt;T, C&gt;;
 
         <script src="elasticlunr-ef4e11c1.min.js"></script>
         <script src="mark-09e88c2c.min.js"></script>
-        <script src="searcher-c2a407aa.js"></script>
+        <script src="searcher-09f2665d.js"></script>
 
         <script src="clipboard-1626706a.min.js"></script>
         <script src="highlight-abc7f01d.js"></script>
-        <script src="book-a0b12cfe.js"></script>
+        <script src="book-609e4cb8.js"></script>
 
         <!-- Custom JS scripts -->
 
