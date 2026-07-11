@@ -127,9 +127,12 @@ pub fn assert_request_sequence<T: AsRef<str>>(
             .check_request(client_id.as_ref().to_string())
             .expect("Request should succeed");
         assert_eq!(
-            decision.allowed, expected_allowed,
+            decision.allowed,
+            expected_allowed,
             "Request {} expected allowed={}, got allowed={}",
-            i + 1, expected_allowed, decision.allowed
+            i + 1,
+            expected_allowed,
+            decision.allowed
         );
     }
 }
@@ -150,7 +153,9 @@ pub fn assert_retry_after_in_range(
             assert!(
                 retry_after >= min_seconds && retry_after <= max_seconds,
                 "Expected retry_after between {} and {} seconds, got {}",
-                min_seconds, max_seconds, retry_after
+                min_seconds,
+                max_seconds,
+                retry_after
             );
         }
         None => panic!("Expected retry_after_seconds to be Some, got None"),
@@ -173,7 +178,9 @@ pub fn assert_remaining_capacity_in_range(
             assert!(
                 remaining >= min_capacity && remaining <= max_capacity,
                 "Expected remaining capacity between {} and {}, got {}",
-                min_capacity, max_capacity, remaining
+                min_capacity,
+                max_capacity,
+                remaining
             );
         }
         None => panic!("Expected remaining_capacity to be Some, got None"),

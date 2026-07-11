@@ -22,13 +22,13 @@
 //! ```
 
 // private modules
+mod clock;
 mod config;
 mod errors;
 mod flux_limiter;
-mod clock;
 
 // public API exports
-pub use clock::{Clock, SystemClock, ClockError};
+pub use clock::{Clock, ClockError, SystemClock};
 pub use config::FluxLimiterConfig;
 pub use errors::FluxLimiterError;
 pub use flux_limiter::{FluxLimiter, FluxLimiterDecision};

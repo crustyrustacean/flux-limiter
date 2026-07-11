@@ -2,7 +2,7 @@
 
 #[cfg(test)]
 mod tests {
-    use crate::helpers::{setup_limiter, assert_request_allowed};
+    use crate::helpers::{assert_request_allowed, setup_limiter};
 
     #[test]
     fn cleanup_removes_stale_clients() {

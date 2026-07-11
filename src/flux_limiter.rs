@@ -100,7 +100,8 @@ where
                     current_time_nanos >= previous_tat_nanos.saturating_sub(self.tolerance_nanos);
 
                 if is_conforming {
-                    let new_tat_nanos = current_time_nanos.max(previous_tat_nanos) + self.rate_nanos;
+                    let new_tat_nanos =
+                        current_time_nanos.max(previous_tat_nanos) + self.rate_nanos;
                     occupied.insert(new_tat_nanos);
 
                     Ok(FluxLimiterDecision {
