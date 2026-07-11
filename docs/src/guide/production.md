@@ -246,8 +246,8 @@ impl ManagedRateLimiter {
             let threshold = 24 * 60 * 60 * 1_000_000_000u64; // 24 hours
 
             match limiter.cleanup_stale_clients(threshold) {
-                Ok(count) => {
-                    info!("Cleaned up {} stale rate limit entries", count);
+                Ok(()) => {
+                    // Cleanup succeeded
                 }
                 Err(e) => {
                     error!("Rate limiter cleanup failed: {}", e);

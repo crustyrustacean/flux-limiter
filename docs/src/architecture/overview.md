@@ -7,10 +7,9 @@ This document provides a comprehensive overview of the Flux Limiter's architectu
 Flux Limiter is built on several key architectural principles:
 
 1. **Lock-Free Concurrency**: Uses atomic operations and lock-free data structures
-2. **Zero-Allocation Hot Path**: Minimizes memory allocation in rate limiting decisions
-3. **Clock Abstraction**: Enables testing and handles time-related failures
-4. **Type Safety**: Leverages Rust's type system for correctness guarantees
-5. **Graceful Degradation**: Continues operation despite partial failures
+2. **Clock Abstraction**: Enables testing and handles time-related failures
+3. **Type Safety**: Leverages Rust's type system for correctness guarantees
+4. **Graceful Degradation**: Continues operation despite partial failures
 
 ## Core Architecture
 
@@ -71,13 +70,13 @@ Return FluxLimiterDecision
 - **O(1) operations**: Constant time complexity for rate limit checks
 - **Lock-free concurrency**: No global locks or contention
 - **Nanosecond precision**: Integer arithmetic avoids floating-point overhead
-- **Minimal allocations**: Hot path reuses existing memory
+- **Nanosecond precision**: Integer arithmetic avoids floating-point overhead
 
 ### Correctness Guaranteed
 
 - **Mathematical precision**: Exact GCRA implementation
 - **Type safety**: Rust's type system prevents common errors
-- **Comprehensive testing**: >95% code coverage with deterministic tests
+- **Comprehensive testing**: Deterministic tests with TestClock
 - **No silent failures**: All errors are explicitly handled
 
 ### Observability Built-in
@@ -108,16 +107,16 @@ Return FluxLimiterDecision
 - **Time complexity**: O(1) for check_request()
 - **Concurrency**: Lock-free reads and writes
 - **Precision**: Nanosecond timing accuracy
-- **Throughput**: Millions of operations per second
+- **Throughput**: Depends on workload and hardware
 
 ### Scalability
 
 ```
-Clients     Memory Usage    Latency
-1K          ~32KB          < 1μs
-100K        ~3.2MB         < 1μs
-1M          ~32MB          < 1μs
-10M         ~320MB         < 1μs
+Clients     Memory Usage
+1K          ~48KB
+100K        ~4.8MB
+1M          ~48MB
+10M         ~480MB
 ```
 
 ## Architecture Layers

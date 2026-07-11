@@ -55,7 +55,7 @@ limiter.check_request(client_ip)?;
 ### Numeric Client IDs
 
 ```rust
-// High-performance numeric IDs
+// Numeric IDs avoid string allocation overhead
 let limiter = FluxLimiter::<u64, _>::with_config(config, SystemClock).unwrap();
 
 limiter.check_request(12345)?;

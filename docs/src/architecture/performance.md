@@ -10,16 +10,16 @@ The `check_request()` method is optimized for minimal latency:
 
 ```rust
 pub fn check_request(&self, client_id: T) -> Result<FluxLimiterDecision, FluxLimiterError> {
-    // 1. Single clock call (~50-100ns)
+    // 1. Single clock call
     let current_time_nanos = self.clock.now()?;
 
-    // 2. Atomic read-modify-write via entry() (~20-100ns)
+    // 2. Atomic read-modify-write via entry()
     //    Shard lock held across read + write, preventing TOCTOU races
     match self.client_state.entry(client_id) {
         Entry::Occupied(mut occupied) => {
             let previous_tat_nanos = *occupied.get();
 
-            // 3. Integer arithmetic (~5-10ns)
+            // 3. Integer arithmetic
             let is_conforming = current_time_nanos >=
                 previous_tat_nanos.saturating_sub(self.tolerance_nanos);
 
@@ -39,20 +39,19 @@ pub fn check_request(&self, client_id: T) -> Result<FluxLimiterDecision, FluxLim
         }
     }
 
-    // 5. Metadata calculation (~5-10ns)
+    // 5. Metadata calculation
     // 6. Return decision
 }
 ```
 
-**Total latency**: ~100-250ns typical case
+The hot path involves a single clock call, a single DashMap entry operation, and simple integer arithmetic — all O(1).
 
 ### Optimization Techniques
 
 1. **Single Clock Call**: One time source access per request
 2. **Single Atomic Entry Operation**: `entry()` handles lookup + update within one shard lock
 3. **Integer Arithmetic**: No floating-point operations in hot path
-4. **No Allocations**: Reuses existing memory
-5. **Minimal Branching**: Straight-line execution
+4. **Minimal Branching**: Straight-line execution
 
 ## Memory Layout
 
@@ -120,15 +119,12 @@ Clients         Memory Usage    Example
 
 ### Lock-Free Benefits
 
-DashMap provides near-linear scalability:
+DashMap uses segmented locking for concurrent access:
 
 ```
-Threads  Throughput   Latency
-1        1.0x         100ns
-2        1.9x         105ns
-4        3.7x         110ns
-8        7.0x         120ns
-16       12.5x        130ns
+Different clients → different shards (low contention)
+Same client     → same shard (necessary serialization)
+Short critical sections → minimal lock duration
 ```
 
 **Key factors**:
@@ -165,30 +161,6 @@ limiter.check_request("client_1")?; // Shard 0
 // Serialized - correct behavior
 ```
 
-## Benchmark Results
-
-### Single-Threaded Performance
-
-```rust
-test bench_check_request_allowed ... bench:    85 ns/iter (+/- 5)
-test bench_check_request_denied  ... bench:    82 ns/iter (+/- 4)
-test bench_cleanup               ... bench:    45 μs/iter (+/- 2)
-```
-
-### Multi-Threaded Performance
-
-```rust
-test bench_concurrent_8_threads  ... bench:    120 ns/iter (+/- 10)
-test bench_concurrent_16_threads ... bench:    135 ns/iter (+/- 12)
-```
-
-### Memory Overhead
-
-```rust
-test bench_memory_1k_clients     ... ~48 KB
-test bench_memory_100k_clients   ... ~4.8 MB
-test bench_memory_1m_clients     ... ~48 MB
-```
 
 ## Optimization Decisions
 
@@ -251,17 +223,17 @@ test bench_memory_1m_clients     ... ~48 MB
 Choose efficient client ID types:
 
 ```rust
-// Fastest: Numeric IDs
+// Numeric IDs avoid String allocation overhead
 let limiter = FluxLimiter::<u64, _>::with_config(config, clock)?;
-limiter.check_request(user_id_numeric)?; // ~80ns
+limiter.check_request(user_id_numeric)?;
 
-// Fast: IP addresses
+// IP addresses
 let limiter = FluxLimiter::<IpAddr, _>::with_config(config, clock)?;
-limiter.check_request(client_ip)?; // ~90ns
+limiter.check_request(client_ip)?;
 
-// Slower: Strings (requires allocation)
+// Strings (convenient but involves allocation per request)
 let limiter = FluxLimiter::<String, _>::with_config(config, clock)?;
-limiter.check_request(user_id.to_string())?; // ~120ns
+limiter.check_request(user_id.to_string())?;
 ```
 
 ### Cleanup Strategy
@@ -361,11 +333,9 @@ fn report_throughput(duration: Duration) {
 
 | Metric | Value |
 |--------|-------|
-| Latency (typical) | 100-250ns |
-| Throughput (single thread) | ~10M req/s |
-| Throughput (8 threads) | ~70M req/s |
 | Memory per client | ~48 bytes |
-| Scalability | Near-linear |
+| Time complexity | O(1) |
+| Space complexity | O(n) |
 | Cleanup overhead | O(n) but infrequent |
 
 ## Best Practices

@@ -214,7 +214,7 @@ impl std::fmt::Display for FluxLimiterError {
         match self {
             Self::InvalidRate => write!(f, "Rate must be positive"),
             Self::InvalidBurst => write!(f, "Burst must be non-negative"),
-            Self::ClockError(_) => write!(f, "Clock error occurred"),
+            Self::ClockError(err) => write!(f, "Clock error occurred: {}", err),
         }
     }
 }

@@ -19,8 +19,8 @@ Flux Limiter tracks state for each client, which can grow over time. Use cleanup
 let one_hour_nanos = 60 * 60 * 1_000_000_000u64;
 
 match limiter.cleanup_stale_clients(one_hour_nanos) {
-    Ok(removed_count) => {
-        println!("Cleaned up {} stale clients", removed_count);
+    Ok(()) => {
+        // Cleanup succeeded
     }
     Err(e) => {
         eprintln!("Cleanup failed: {}", e);
@@ -44,8 +44,8 @@ async fn start_cleanup_task(limiter: Arc<FluxLimiter<String, SystemClock>>) {
         let threshold = 24 * 60 * 60 * 1_000_000_000u64; // 24 hours
 
         match limiter.cleanup_stale_clients(threshold) {
-            Ok(count) => {
-                println!("Cleaned up {} stale clients", count);
+            Ok(()) => {
+                // Cleanup succeeded
             }
             Err(e) => {
                 eprintln!("Cleanup failed: {}", e);

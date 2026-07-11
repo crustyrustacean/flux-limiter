@@ -260,9 +260,15 @@ t=1.0s:   6 requests → All allowed, TAT=1.6s
 ### Remaining Capacity
 
 ```rust
-let elapsed = current_time_nanos.saturating_sub(previous_tat_nanos);
-let recovered = (elapsed as f64 / rate_nanos as f64).min(burst_capacity);
-let remaining_capacity = Some(burst_capacity - consumed + recovered);
+fn calculate_remaining_capacity(&self, current_time: u64, tat: u64) -> f64 {
+    if current_time >= tat.saturating_sub(self.tolerance_nanos) {
+        let time_until_tat = tat.saturating_sub(current_time) as f64 / 1_000_000_000.0;
+        let rate_per_second = self.rate();
+        (self.burst() - (time_until_tat * rate_per_second)).max(0.0)
+    } else {
+        0.0
+    }
+}
 ```
 
 Tracks how much burst capacity is currently available.
@@ -270,16 +276,15 @@ Tracks how much burst capacity is currently available.
 ### Reset Time
 
 ```rust
-let reset_time_nanos = new_tat_nanos + tolerance_nanos;
+let reset_time_nanos = new_tat_nanos;
 ```
 
-When the rate limit window will fully reset (all burst capacity recovered).
+The reset time is set to the new TAT value — the theoretical arrival time for the next request.
 
 ## Performance Characteristics
 
 - **Time Complexity**: O(1) - constant time for all operations
 - **Space Complexity**: O(1) per client - single u64 timestamp
-- **Calculation Overhead**: ~10-20 CPU cycles for GCRA calculation
 - **Memory Access**: Single DashMap lookup/insert
 
 ## Next Steps

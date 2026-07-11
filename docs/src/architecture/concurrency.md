@@ -288,16 +288,11 @@ Result:  Serialized access (expected for consistency)
 ### Scalability Characteristics
 
 ```
-Threads  Throughput  Latency
-1        1.0x        1.0μs
-2        1.9x        1.0μs
-4        3.7x        1.1μs
-8        7.0x        1.2μs
-16       12.5x       1.3μs
+Different clients  → different shards  (low contention, scales well)
+Same client        → same shard       (necessary serialization)
 ```
 
-Nearly linear scalability with different clients.
-
+Different clients scale well since they map to different shards. Same-client access is serialized, which is correct behavior for rate limiting consistency.
 ### Benchmark: Concurrent Access
 
 ```rust

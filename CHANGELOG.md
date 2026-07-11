@@ -7,6 +7,27 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.8.2] - 2026-07-11
+
+### Added
+- GitHub Actions CI workflow (`.github/workflows/ci.yaml`) — runs `cargo fmt --check`, `cargo clippy -- -D warnings`, `cargo test --all-targets`, and `cargo audit` on push and pull request to main (#9)
+- Trust badges in README.md — crates.io version, docs.rs, MIT license, Rust edition 2024, and CI status (#5)
+
+### Fixed
+- Corrected `cleanup_stale_clients()` return type in documentation — was shown as `Ok(count)` / `Ok(removed_count)` returning `usize`, but the method returns `Result<(), FluxLimiterError>`. Fixed across error-handling guide, advanced-usage guide, web-integration guide, production guide, error-handling architecture, testing architecture, and future-extensibility pages
+- Fixed `FluxLimiterError::ClockError` Display in `components.md` to chain the inner error message (`"Clock error occurred: {}"`), matching the actual implementation
+- Fixed GCRA algorithm pseudocode in `gcra-algorithm.md` — `calculate_remaining_capacity()` now matches the actual implementation; `reset_time_nanos` correctly shown as `new_tat_nanos` (not `new_tat_nanos + tolerance_nanos`)
+- Fixed `README.md` field name: `remaining_after_capacity` → `remaining_capacity` (matching the actual `FluxLimiterDecision` field)
+- Fixed version number in installation guide: `0.8.0` → `0.8.1` (now `0.8.2`)
+
+### Changed
+- Removed unsupported "high-performance" and "zero allocations" claims from README.md, `docs/book.toml`, and all mdbook documentation pages — no in-repo benchmarks exist to substantiate these claims
+- Removed unverified benchmark numbers (specific ns/iter, throughput figures, scalability tables) from `performance.md`, `concurrency.md`, `overview.md`, and `design-decisions.md`
+- Removed unsubstantiated ">95% code coverage" claim from `overview.md`
+- Removed "Zero-Allocation Hot Path" design principle from `overview.md`
+- Softened "High-performance numeric IDs" comment in `basic-usage.md` to "Numeric IDs avoid string allocation overhead"
+- Updated `book.toml` description from "A high-performance rate limiter..." to "A rate limiter based on the Generic Cell Rate Algorithm (GCRA)"
+
 ## [0.8.1] - 2026-04-28
 
 ### Fixed
@@ -117,7 +138,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - O(number of active clients) memory usage
 - Support for configurable rate and burst capacity
 
-[Unreleased]: https://github.com/crustyrustacean/flux-limiter/compare/v0.8.1...HEAD
+[Unreleased]: https://github.com/crustyrustacean/flux-limiter/compare/v0.8.2...HEAD
+[0.8.2]: https://github.com/crustyrustacean/flux-limiter/compare/v0.8.1...v0.8.2
 [0.8.1]: https://github.com/crustyrustacean/flux-limiter/compare/v0.8.0...v0.8.1
 [0.8.0]: https://github.com/crustyrustacean/flux-limiter/compare/v0.7.2...v0.8.0
 [0.7.2]: https://github.com/crustyrustacean/flux-limiter/compare/v0.7.1...v0.7.2

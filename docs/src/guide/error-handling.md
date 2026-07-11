@@ -308,8 +308,8 @@ The `cleanup_stale_clients` method can also return clock errors:
 ```rust
 // Cleanup errors are typically not critical
 match limiter.cleanup_stale_clients(one_hour_nanos) {
-    Ok(count) => {
-        println!("Cleaned up {} stale clients", count);
+    Ok(()) => {
+        // Cleanup succeeded
     }
     Err(FluxLimiterError::ClockError(_)) => {
         eprintln!("Clock error during cleanup - will retry later");

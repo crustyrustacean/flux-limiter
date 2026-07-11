@@ -1,18 +1,16 @@
 # Flux Limiter
 
-A high-performance rate limiter based on the Generic Cell Rate Algorithm (GCRA) with nanosecond precision and lock-free concurrent access.
+A simple rate limiter based on the Generic Cell Rate Algorithm (GCRA) with nanosecond precision and lock-free concurrent access.
 
 ## Features
 
 - **Mathematically precise**: Implements the GCRA algorithm with exact nanosecond timing
-- **High performance**: Lock-free concurrent access using DashMap
 - **Generic client IDs**: Works with any hashable client identifier (`String`, `IpAddr`, `u64`, etc.)
 - **Rich metadata**: Returns detailed decision information for HTTP response construction
 - **Memory efficient**: Automatic cleanup of stale client entries
 - **Robust error handling**: Graceful handling of clock failures and configuration errors
 - **Testable**: Clock abstraction enables deterministic testing
 - **Thread-safe**: Safe to use across multiple threads
-- **Zero allocations**: Efficient hot path with minimal overhead
 
 ## What is Rate Limiting?
 
@@ -48,7 +46,6 @@ Flux Limiter implements the Generic Cell Rate Algorithm (GCRA), which is mathema
 - **Time complexity**: O(1) for `check_request()` operations
 - **Concurrency**: Lock-free reads and writes via DashMap
 - **Precision**: Nanosecond timing accuracy
-- **Throughput**: Millions of operations per second
 - **Reliability**: Graceful degradation on system clock issues
 
 ## Next Steps

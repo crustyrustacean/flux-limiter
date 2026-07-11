@@ -1,17 +1,20 @@
 # Flux Limiter
 
-A high-performance rate limiter based on the Generic Cell Rate Algorithm (GCRA) with nanosecond precision and lock-free concurrent access.
+A simple rate limiter based on the Generic Cell Rate Algorithm (GCRA) with nanosecond precision and lock-free concurrent access.
+
+[![Crates.io](https://img.shields.io/crates/v/flux-limiter)](https://crates.io/crates/flux-limiter) [![Documentation](https://docs.rs/flux-limiter/badge.svg)](https://docs.rs/flux-limiter) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](License.txt) [![Rust](https://img.shields.io/badge/Rust-edition%202024-orange.svg)](https://www.rust-lang.org) [![CI](https://github.com/crustyrustacean/flux-limiter/actions/workflows/ci.yaml/badge.svg)](https://github.com/crustyrustacean/flux-limiter/actions/workflows/ci.yaml)
 
 ## Features
 
 - **Mathematically precise**: Implements the GCRA algorithm with exact nanosecond timing
-- **High performance**: Lock-free concurrent access using DashMap
 - **Generic client IDs**: Works with any hashable client identifier (`String`, `IpAddr`, `u64`, etc.)
-- **Rich metadata**: Returns detailed decision information for HTTP headers
+- **Rich metadata**: Returns detailed decision information for HTTP headers, including:
+    - `retry_after_seconds`
+    - `remaining_capacity`
+    - `reset_time_nanos`
 - **Memory efficient**: Configurable cleanup of stale client entries
 - **Robust error handling**: Graceful handling of clock failures and configuration errors
 - **Thread-safe**: Safe concurrent use across multiple threads
-- **Zero allocations**: Efficient hot path with minimal overhead
 
 ## Installation
 
@@ -19,7 +22,7 @@ Add this to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-flux-limiter = "0.8.1"
+flux-limiter = "0.8.2"
 ```
 
 ## Quick Start
@@ -27,7 +30,7 @@ flux-limiter = "0.8.1"
 ```rust
 use flux_limiter::{FluxLimiter, FluxLimiterConfig, SystemClock};
 
-// Create a rate limiter: 10 requests per second with burst of 5
+// Create a rate limiter: 10 requests per second with allowable burst of 5
 let config = FluxLimiterConfig::new(10.0, 5.0);
 let limiter = FluxLimiter::with_config(config, SystemClock).unwrap();
 

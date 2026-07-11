@@ -339,8 +339,8 @@ Cleanup errors are typically non-critical:
 
 ```rust
 match limiter.cleanup_stale_clients(threshold) {
-    Ok(count) => {
-        info!("Cleaned up {} stale clients", count);
+    Ok(()) => {
+        // Cleanup succeeded
     }
     Err(FluxLimiterError::ClockError(_)) => {
         warn!("Clock error during cleanup - will retry later");

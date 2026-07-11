@@ -77,7 +77,7 @@ The difference is implementation, not behavior.
 - Proven in production
 
 ✅ **Good Performance**
-- ~100ns for get/insert
+- Efficient operations
 - Minimal overhead
 - Efficient memory layout
 

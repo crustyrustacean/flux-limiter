@@ -26,7 +26,7 @@ where
     pub async fn cleanup_stale_clients_async(
         &self,
         stale_threshold_nanos: u64,
-    ) -> Result<usize, FluxLimiterError> {
+    ) -> Result<(), FluxLimiterError> {
         // Async cleanup without blocking
     }
 }

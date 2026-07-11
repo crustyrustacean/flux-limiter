@@ -236,9 +236,10 @@ fn test_cleanup_stale_clients() {
 
     // Cleanup clients older than 30 minutes
     let threshold = 30 * 60 * 1_000_000_000u64;
-    let removed = limiter.cleanup_stale_clients(threshold).unwrap();
+    limiter.cleanup_stale_clients(threshold).unwrap();
 
-    assert_eq!(removed, 3);
+    // All clients should be removed
+    assert_eq!(limiter.client_count(), 0);
 }
 ```
 

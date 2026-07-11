@@ -412,8 +412,8 @@ async fn cleanup_task(limiter: Arc<FluxLimiter<String, SystemClock>>) {
         let threshold = 24 * 60 * 60 * 1_000_000_000u64; // 24 hours
 
         match limiter.cleanup_stale_clients(threshold) {
-            Ok(count) => {
-                println!("Rate limiter: cleaned up {} stale clients", count);
+            Ok(()) => {
+                // Cleanup succeeded
             }
             Err(e) => {
                 eprintln!("Rate limiter cleanup failed: {}", e);

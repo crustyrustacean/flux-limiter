@@ -2,7 +2,7 @@
 
 //! # Flux Limiter
 //!
-//! A high-performance rate limiter based on the Generic Cell Rate Algorithm (GCRA).
+//! A rate limiter based on the Generic Cell Rate Algorithm (GCRA).
 //!
 //! ## Quick Example
 //!
