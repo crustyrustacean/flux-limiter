@@ -8,7 +8,7 @@ Add this to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-flux-limiter = "0.8.2"
+flux-limiter = "0.8.3"
 ```
 
 ## Alternative: Using Cargo Add

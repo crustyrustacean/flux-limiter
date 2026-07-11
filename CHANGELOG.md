@@ -5,7 +5,8 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+
+## [0.8.3] - 2026-07-11
 
 ### Fixed
 - Fixed broken documentation link in README.md — `[full documentation](./docs/src/SUMMARY.md)` was a relative repo path that 404s on crates.io; now points to `https://docs.rs/flux-limiter` (#4)
@@ -144,7 +145,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - O(number of active clients) memory usage
 - Support for configurable rate and burst capacity
 
-[Unreleased]: https://github.com/crustyrustacean/flux-limiter/compare/v0.8.2...HEAD
+[Unreleased]: https://github.com/crustyrustacean/flux-limiter/compare/v0.8.3...HEAD
+[0.8.3]: https://github.com/crustyrustacean/flux-limiter/compare/v0.8.2...v0.8.3
 [0.8.2]: https://github.com/crustyrustacean/flux-limiter/compare/v0.8.1...v0.8.2
 [0.8.1]: https://github.com/crustyrustacean/flux-limiter/compare/v0.8.0...v0.8.1
 [0.8.0]: https://github.com/crustyrustacean/flux-limiter/compare/v0.7.2...v0.8.0
