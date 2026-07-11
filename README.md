@@ -2,7 +2,7 @@
 
 A simple rate limiter based on the Generic Cell Rate Algorithm (GCRA) with nanosecond precision and lock-free concurrent access.
 
-[![Crates.io](https://img.shields.io/crates/v/flux-limiter)](https://crates.io/crates/flux-limiter) [![Documentation](https://docs.rs/flux-limiter/badge.svg)](https://docs.rs/flux-limiter) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](License.txt) [![Rust](https://img.shields.io/badge/Rust-edition%202024-orange.svg)](https://www.rust-lang.org) [![CI](https://github.com/crustyrustacean/flux-limiter/actions/workflows/ci.yaml/badge.svg)](https://github.com/crustyrustacean/flux-limiter/actions/workflows/ci.yaml)
+[![Crates.io](https://img.shields.io/crates/v/flux-limiter)](https://crates.io/crates/flux-limiter) [![Documentation](https://docs.rs/flux-limiter/badge.svg)](https://docs.rs/flux-limiter) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](License.txt) [![Rust](https://img.shields.io/badge/Rust-edition%202024-orange.svg)](https://www.rust-lang.org) [![CI](https://img.shields.io/github/actions/workflow/status/crustyrustacean/flux-limiter/ci.yaml)](https://github.com/crustyrustacean/flux-limiter/actions/workflows/ci.yaml)
 
 ## Features
 
