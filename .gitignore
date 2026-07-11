@@ -18,3 +18,5 @@ target/
 
 # Documentation build output
 /docs/book
+# Vendored dependencies (local only, not published)
+vendor/

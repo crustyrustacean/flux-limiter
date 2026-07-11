@@ -7,6 +7,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Fixed
+- Fixed broken documentation link in README.md — `[full documentation](./docs/src/SUMMARY.md)` was a relative repo path that 404s on crates.io; now points to `https://docs.rs/flux-limiter` (#4)
+
+### Changed
+- Added `vendor/` to `.gitignore` — vendored dependencies were local-only (never tracked in git, never published) but not ignored
+
 ## [0.8.2] - 2026-07-11
 
 ### Added

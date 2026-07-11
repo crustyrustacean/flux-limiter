@@ -62,7 +62,7 @@ For comprehensive documentation, including:
 - **Production considerations** (monitoring, graceful degradation)
 - **Architecture details** (GCRA algorithm, concurrency model, performance)
 
-Please see the [full documentation](./docs/src/SUMMARY.md).
+Please see the [full documentation](https://docs.rs/flux-limiter).
 
 ## License
 
