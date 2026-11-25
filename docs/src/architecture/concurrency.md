@@ -1,20 +1,28 @@
 # Concurrency Model
 
-Understanding the lock-free concurrency design in Flux Limiter.
+Understanding the concurrency design in Flux Limiter.
 
-## Lock-Free Design Philosophy
+## Design in One Picture
 
-Flux Limiter is built on a lock-free concurrency model for maximum performance:
+Flux Limiter keeps one atomic value per client inside a sharded map. Updating a
+known client takes no lock at all; the map's shard lock is taken only when a
+client is seen for the first time.
 
 ```
 Multiple Threads
       ↓
-FluxLimiter (Shared via Arc)
+FluxLimiter (Shared via Arc or Clone)
       ↓
-Arc<DashMap<ClientId, TAT>>
+Arc<DashMap<ClientId, AtomicU64>>     one TAT per client
       ↓
-Lock-free hash map operations
+  known client   → load, decide, compare-and-swap   (no lock)
+  new client     → insert under the shard lock      (once per client)
 ```
+
+The word "lock-free" is used here in a precise sense: an update to a client that
+is already tracked cannot block, and never waits on another request. The map
+itself is built from sharded `RwLock`s, so lookups and first-time inserts do take
+a (brief, sharded) lock.
 
 ## Thread Safety Guarantees
 
@@ -29,30 +37,38 @@ limiter.check_request("client_1")?;
 // Thread 2 (concurrent)
 limiter.check_request("client_2")?;
 
-// No lock contention - different shards
+// Both take the fast path: no lock is held while deciding
 ```
 
 ### 2. Write Operations
 
-Atomic read-modify-write using DashMap's `entry()` API:
+A compare-and-swap on the client's atomic TAT. The new TAT is published only if
+the TAT is still the one the decision was computed from:
 
 ```rust
-use dashmap::mapref::entry::Entry;
-
-match client_state.entry(client_id) {
-    Entry::Occupied(mut entry) => {
-        let previous_tat = *entry.get();
-        // ... compute new_tat ...
-        entry.insert(new_tat);
-    }
-    Entry::Vacant(entry) => {
-        entry.insert(new_tat);
-    }
+let previous_tat = tat.load(Ordering::Relaxed);
+let decision = decide(previous_tat, now);          // pure: reads no shared state
+if decision.allowed {
+    tat.compare_exchange(
+        previous_tat,                               // only if unchanged
+        decision.reset_time_nanos,
+        Ordering::Relaxed,
+        Ordering::Relaxed,
+    )?;                                             // otherwise: retry
 }
 ```
 
-Each client's state is updated atomically — the read and write happen within a single
-shard lock, preventing TOCTOU race conditions when the same client makes concurrent requests.
+A request that loses the race (another request advanced the TAT first) retries
+from the new value, so each allowed request advances the TAT by exactly one
+interval. No update can be lost, which is what prevents the TOCTOU race
+conditions that a plain read-then-write would allow when the same client makes
+concurrent requests.
+
+A client's first request is different: it has no TAT to compare against, so it is
+inserted under the shard's write lock through DashMap's `entry()` API. If two
+requests race to insert the same new client, the loser finds the entry occupied
+and rejoins the compare-and-swap path rather than being granted a second "first"
+request.
 
 ### 3. Memory Ordering
 
@@ -72,9 +88,9 @@ limiter.check_request("client_1")?; // TAT = 100ms
 // Thread 2 (concurrent)
 limiter.check_request("client_1")?; // TAT = 200ms
 
-// DashMap's entry() API holds the shard lock across
-// the read and write, serializing same-client updates
-// atomically and preventing TOCTOU races
+// Each request publishes its TAT with a compare-and-swap.
+// The one that loses retries on the winner's value, so
+// the TAT ends at 300ms, never back at 200ms.
 ```
 
 **Different Clients, Different Threads**:
@@ -85,17 +101,21 @@ limiter.check_request("client_1")?;
 // Thread 2 (concurrent)
 limiter.check_request("client_2")?;
 
-// Lock-free - different shards, no contention
+// Two different atomics: the updates are independent.
+// They only queue if both clients hash to the same shard
+// *and* one of them is being inserted for the first time.
 ```
 
 ## DashMap: The Core Concurrency Primitive
 
 ### Why DashMap?
 
-DashMap provides lock-free concurrent access through sharding:
+DashMap provides concurrent access through sharding. Each shard is a plain
+`HashMap` behind an `RwLock`, so a lookup takes a shared read lock on one shard
+and an insert takes that shard's write lock:
 
 ```
-DashMap<ClientId, TAT>
+DashMap<ClientId, AtomicU64>
     ├─ Shard 0: HashMap + RwLock
     ├─ Shard 1: HashMap + RwLock
     ├─ Shard 2: HashMap + RwLock
@@ -103,11 +123,15 @@ DashMap<ClientId, TAT>
     └─ Shard N: HashMap + RwLock
 ```
 
-**Benefits**:
-- **Better than std::HashMap + Mutex**: Avoids global locking
-- **Better than RwLock**: No reader/writer contention
+**Why the per-client atomic sits on top of it**:
+- The shard lock is only needed to find or add a client, which is a small
+  fraction of the work
+- The GCRA decision and the TAT update, which happen on every request, never
+  hold a lock
+- Without the atomic, every request would need the shard's *write* lock, so
+  every client in a shard would serialize behind every other
+- **Better than std::HashMap + Mutex**: One stuck shard does not stall the rest
 - **Better than custom lock-free map**: Mature, battle-tested
-- **Segmented locking**: Reduces contention vs. single lock
 
 ### Sharding Strategy
 
@@ -121,33 +145,35 @@ shard_index = hash(client_id) % num_shards
 
 ### Operations on DashMap
 
-**Entry (Atomic Read-Modify-Write)**:
+**Update a known client (compare-and-swap, no lock)**:
 ```rust
-use dashmap::mapref::entry::Entry;
-
-match client_state.entry(client_id) {
-    Entry::Occupied(mut entry) => {
-        let previous_tat = *entry.get();
-        // ... compute new_tat ...
-        entry.insert(new_tat);
-        // Shard lock held across read + write
-        // Prevents TOCTOU race conditions
-    }
-    Entry::Vacant(entry) => {
-        entry.insert(new_tat);
+if let Some(tat) = client_state.get(&client_id) {
+    // `tat` is a Ref<Entry to AtomicU64>: a shared read lock on the shard.
+    let previous = tat.load(Ordering::Relaxed);
+    let decision = decide(previous, now);
+    if decision.allowed {
+        tat.compare_exchange(previous, decision.reset_time_nanos, ...)?;
     }
 }
 ```
 
-This ensures the conformance check and TAT update are atomic per-client,
+**Insert a new client (shard write lock, once per client)**:
+```rust
+match client_state.entry(client_id) {
+    Entry::Vacant(entry) => entry.insert(AtomicU64::new(now + interval)),
+    Entry::Occupied(_) => { /* lost the race: use the update path above */ }
+}
+```
+
+Together these keep the conformance check and TAT update atomic per client,
 preserving the GCRA invariant even under concurrent access.
 
 **Cleanup (Iteration)**:
 ```rust
-client_state.retain(|_, &mut tat| {
+client_state.retain(|_, tat| {
     // Locks each shard sequentially
     // Short lock duration per shard
-    current_time - tat < threshold
+    tat.load(Ordering::Relaxed) + tolerance > cutoff
 });
 ```
 
@@ -172,19 +198,19 @@ The write in Thread 1 happens-before the read in Thread 2.
 All updates to client state are immediately visible:
 
 ```rust
-// Thread 1: via entry() API
-match client_state.entry("client_1") {
-    Entry::Occupied(mut e) => { e.insert(100); }
-    Entry::Vacant(e) => { e.insert(100); }
-}
+// Thread 1: compare-and-swap publishes the new TAT
+tat.compare_exchange(99, 100, Ordering::Relaxed, Ordering::Relaxed)?;
 
-// Thread 2
+// Thread 2, afterwards
 if let Some(tat) = client_state.get("client_1") {
-    // Sees 100
+    tat.load(Ordering::Relaxed); // 100
 }
 ```
 
-DashMap ensures proper memory synchronization.
+`Relaxed` is enough here because the TAT is a single self-contained value with
+no other memory it needs to publish. "Afterwards" is guaranteed by the
+compare-and-swap itself: a request that reads 99 and tries to write 100 fails
+if anyone else already moved the TAT on.
 
 ## Sharing Across Threads
 
@@ -237,7 +263,7 @@ without the extra indirection.
 ```rust
 pub struct FluxLimiter<T, C> {
     // ...
-    client_state: Arc<DashMap<T, u64>>, // Shared across clones
+    client_state: Arc<DashMap<T, AtomicU64>>, // Shared across clones
     // ...
 }
 ```
@@ -260,7 +286,7 @@ let limiter2 = limiter.clone();
 ```
 Threads: [T1: client_1] [T2: client_2] [T3: client_3]
 Shards:  [Shard 0    ] [Shard 1    ] [Shard 2    ]
-Result:  Lock-free, no contention
+Result:  Independent atomics, shared read locks only
 ```
 
 ### Medium Contention Scenarios
@@ -269,7 +295,7 @@ Result:  Lock-free, no contention
 ```
 Threads: [T1: client_1] [T2: client_100]
 Shards:  [Shard 0    ] [Shard 0      ]
-Result:  Some contention, but short lock duration
+Result:  Shared read lock only; still independent atomics
 ```
 
 ### High Contention Scenarios
@@ -278,21 +304,27 @@ Result:  Some contention, but short lock duration
 ```
 Threads: [T1: client_1] [T2: client_1] [T3: client_1]
 Shards:  [Shard 0    ] [Shard 0    ] [Shard 0    ]
-Result:  Serialized access (expected for consistency)
+TAT:     one atomic, three compare-and-swaps
+Result:  No lock; requests that collide retry on the winner's value
 ```
 
-**This is correct behavior**: Rate limiting the same client from multiple threads should be serialized to maintain correctness.
+**Correctness does not depend on serialization.** The invariant is that each
+allowed request advances the TAT by one interval. A compare-and-swap enforces
+that without a queue: whichever request wins moves the TAT, and the others
+recompute against the new value.
 
 ## Performance Under Concurrency
 
 ### Scalability Characteristics
 
 ```
-Different clients  → different shards  (low contention, scales well)
-Same client        → same shard       (necessary serialization)
+Different clients  → different atomics   (independent, scales well)
+Same client        → one atomic         (compare-and-swap, no lock)
 ```
 
-Different clients scale well since they map to different shards. Same-client access is serialized, which is correct behavior for rate limiting consistency.
+Requests for different clients never wait on each other's TAT. Requests for the
+same client do not queue: each one that loses a compare-and-swap retries, and the
+retry count rises with contention rather than the wait time.
 ### Benchmark: Concurrent Access
 
 ```rust
@@ -393,19 +425,22 @@ let limiter1 = FluxLimiter::with_config(config, clock1)?;
 let limiter2 = FluxLimiter::with_config(config, clock2)?;
 ```
 
-### 2. Use Different Client IDs
+### 2. Know What a Hot Client Costs
 
 ```rust
-// Good: Different clients = low contention
+// Independent clients: one atomic each, no interaction
 for i in 0..1000 {
     limiter.check_request(format!("client_{}", i))?;
 }
 
-// Bad: Same client = serialized access
-for _ in 0..1000 {
-    limiter.check_request("same_client")?;
-}
+// One client from many threads: every request is a compare-and-swap on
+// the same atomic. Correct, and lock-free, but the retries are real work:
+limiter.check_request("same_client")?;
 ```
+
+A single very hot client does not block anyone, but it is the one pattern where
+contention is visible. It is also the pattern rate limiting exists for, so it is
+never something to avoid on the limiter's account.
 
 ### 3. Avoid Blocking in Callbacks
 

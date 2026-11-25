@@ -17,7 +17,7 @@ where
 {
     rate_nanos: u64,                    // Rate interval in nanoseconds
     tolerance_nanos: u64,               // Burst tolerance in nanoseconds
-    client_state: Arc<DashMap<T, u64>>, // Client TAT storage
+    client_state: Arc<DashMap<T, AtomicU64>>, // Client TAT storage
     clock: C,                           // Time abstraction
 }
 ```
@@ -321,10 +321,10 @@ FluxLimiter<String, SystemClock> {
 ### Per-Client State
 
 ```rust
-DashMap<String, u64> entry:
-    String: ~24 bytes (pointer + len + capacity)
-    u64:    8 bytes
-    Overhead: ~16 bytes (hash map metadata)
+DashMap<String, AtomicU64> entry:
+    String:    ~24 bytes (pointer + len + capacity)
+    AtomicU64:  8 bytes (TAT; same size as a plain u64)
+    Overhead:  ~16 bytes (hash map metadata)
 // Total per client: ~48 bytes
 ```
 
