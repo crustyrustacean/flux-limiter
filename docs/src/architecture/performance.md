@@ -113,9 +113,10 @@ Clients         Memory Usage    Example
 
 ## Concurrency Performance
 
-### Lock-Free Benefits
+### Where the Locks Are
 
-DashMap uses segmented locking for concurrent access:
+DashMap is sharded: each shard is a `HashMap` behind an `RwLock`. On top of it,
+each client's TAT is an `AtomicU64`. The two together decide what locks:
 
 ```
 Different clients → different shards (low contention)
@@ -123,10 +124,15 @@ Same client     → one atomic  (compare-and-swap, no lock)
 Short critical sections → minimal lock duration
 ```
 
-**Key factors**:
-- Different clients = different shards (low contention)
-- Same client = one atomic (compare-and-swap, no lock)
-- Short critical sections
+**What takes a lock, and what does not**:
+- Updating a known client: no lock (compare-and-swap on its atomic)
+- Looking up a client: that shard's read lock, shared with other lookups
+- Inserting a client for the first time: that shard's write lock, once per client
+- `cleanup_stale_clients`: each shard's write lock in turn
+
+Measured with 4 threads on one client (i7-13700HX, criterion): 159 ns per request
+before the atomic TAT, 74 ns after. Distinct clients were unchanged at 30 ns, since
+they were never contending for the same lock to begin with.
 
 ### Contention Patterns
 
@@ -145,7 +151,8 @@ limiter.check_request("client_2")?; // Shard 1
 limiter.check_request("client_1")?; // Shard 0
 // Thread 2
 limiter.check_request("client_100")?; // Shard 0
-// Brief contention - short lock
+// Different atomics: the updates are independent. They only share a
+// brief read lock on the shard while being looked up.
 ```
 
 **High Contention** (same client):
@@ -177,17 +184,17 @@ limiter.check_request("client_1")?; // Shard 0
 ### DashMap vs Alternatives
 
 **DashMap (chosen)**:
-- ✅ Lock-free reads/writes
-- ✅ Good scalability
+- ✅ Sharded locks, so one busy shard does not stall the others
+- ✅ With an atomic per client, the per-request update needs no lock at all
 - ✅ Battle-tested
 - ✅ Ergonomic API
 
-**Mutex<HashMap> (rejected)**:
+**`Mutex<HashMap>` (rejected)**:
 - ❌ Global locking
 - ❌ Poor scalability
 - ❌ Read contention
 
-**RwLock<HashMap> (rejected)**:
+**`RwLock<HashMap>` (rejected)**:
 - ❌ Reader/writer contention
 - ❌ Write starvation possible
 

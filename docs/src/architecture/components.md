@@ -2,7 +2,7 @@
 
 Detailed exploration of Flux Limiter's core components and their design rationale.
 
-## FluxLimiter<T, C>
+## `FluxLimiter<T, C>`
 
 The main rate limiter struct uses generics for flexibility.
 
@@ -39,10 +39,10 @@ where
 - Custom: User-defined time sources
 - Constrains: `Clock` trait
 
-**Arc<DashMap>**:
+**`Arc<DashMap>`**:
 - Thread-safe shared ownership
-- Lock-free concurrent access
-- Minimal contention
+- Sharded locks: a lookup takes one shard's read lock, a first-time insert its write lock
+- Updating a known client bypasses the lock entirely (compare-and-swap on its atomic)
 - Efficient cloning
 
 **Nanosecond Storage**:
@@ -269,11 +269,10 @@ impl Clock for SystemClock {
 }
 ```
 
-**Handles Real-World Issues**:
-- System clock going backwards (NTP adjustments)
-- Clock resolution limitations
-- System suspend/resume
-- Virtualization time skips
+**Known limitations**:
+- A clock that steps backwards is **not** a source of `ClockError`: `SystemTime::now()` still succeeds, it simply returns an earlier value. Such a step makes clients look over-limit until the clock catches back up; see [#5](https://github.com/crustyrustacean/flux-limiter/issues/5).
+- Clock resolution is whatever the OS provides; the nanosecond value is only as fine as that
+- Suspend/resume and VM migration can produce a discontinuity, with the same consequence as above
 
 ### TestClock
 
@@ -342,7 +341,7 @@ DashMap<String, AtomicU64> entry:
 All components are thread-safe:
 
 - **FluxLimiter**: Safe to share via `Arc`
-- **DashMap**: Lock-free concurrent access
+- **DashMap**: Sharded concurrent access; per-client updates are lock-free
 - **Clock**: `Send + Sync` requirement
 - **Decisions**: Immutable after creation
 

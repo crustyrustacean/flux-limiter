@@ -66,10 +66,10 @@ The difference is implementation, not behavior.
 
 ### DashMap Benefits
 
-✅ **Lock-Free Concurrency**
-- Segmented locking
-- Different shards = no contention
-- Near-linear scalability
+✅ **Fine-Grained Concurrency**
+- Each client's TAT is an `AtomicU64`, updated by compare-and-swap with no lock
+- Only lookups and first-time inserts take a (sharded) lock
+- Requests for different clients never wait on each other
 
 ✅ **Battle-Tested**
 - Mature library
@@ -86,7 +86,7 @@ The difference is implementation, not behavior.
 - Easy to use correctly
 - Clear semantics
 
-### Alternative: Mutex<HashMap>
+### Alternative: `Mutex<HashMap>`
 
 ❌ **Global Locking**
 - All operations serialize
@@ -95,7 +95,7 @@ The difference is implementation, not behavior.
 
 **Why rejected**: Unacceptable performance bottleneck for concurrent access.
 
-### Alternative: RwLock<HashMap>
+### Alternative: `RwLock<HashMap>`
 
 ❌ **Reader/Writer Contention**
 - Writers block all readers
@@ -314,10 +314,10 @@ The difference is implementation, not behavior.
 - Precise time control
 - Failure simulation
 
-✅ **Handles Real-World Issues**
-- Clock going backwards
-- System suspend/resume
-- Virtualization issues
+⚠️ **Known limitation: wall-clock time**
+- The system clock can step backwards (NTP, manual change, VM migration)
+- `SystemClock` does not detect this and does not return an error
+- Clients then appear over-limit until the clock catches up ([#5](https://github.com/crustyrustacean/flux-limiter/issues/5))
 
 ✅ **Flexible**
 - Custom time sources

@@ -6,7 +6,7 @@ This document provides a comprehensive overview of the Flux Limiter's architectu
 
 Flux Limiter is built on several key architectural principles:
 
-1. **Lock-Free Concurrency**: Uses atomic operations and lock-free data structures
+1. **Fine-Grained Concurrency**: Each client's state is one atomic value, so updating a known client takes no lock
 2. **Clock Abstraction**: Enables testing and handles time-related failures
 3. **Type Safety**: Leverages Rust's type system for correctness guarantees
 4. **Graceful Degradation**: Continues operation despite partial failures
@@ -68,9 +68,9 @@ Return FluxLimiterDecision
 ### Performance First
 
 - **O(1) operations**: Constant time complexity for rate limit checks
-- **Lock-free concurrency**: No global locks or contention
+- **Fine-grained concurrency**: No global lock; requests for one client never wait on a lock
 - **Nanosecond precision**: Integer arithmetic avoids floating-point overhead
-- **Nanosecond precision**: Integer arithmetic avoids floating-point overhead
+- **No lock on the hot path**: updating a known client is a single compare-and-swap
 
 ### Correctness Guaranteed
 
@@ -97,7 +97,7 @@ Return FluxLimiterDecision
 
 ### Dependencies
 
-- **DashMap**: Lock-free concurrent hash map
+- **DashMap**: Sharded concurrent hash map (one `RwLock` per shard)
 - **Rust Standard Library**: Minimal external dependencies
 - **No async runtime**: Works with any async runtime (Tokio, async-std, etc.)
 
@@ -105,7 +105,7 @@ Return FluxLimiterDecision
 
 - **Memory**: O(number of active clients)
 - **Time complexity**: O(1) for check_request()
-- **Concurrency**: Lock-free reads and writes
+- **Concurrency**: Lock-free update of a known client; brief sharded locks for lookup and first insert
 - **Precision**: Nanosecond timing accuracy
 - **Throughput**: Depends on workload and hardware
 
