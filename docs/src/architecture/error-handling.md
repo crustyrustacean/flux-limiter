@@ -99,22 +99,15 @@ impl FluxLimiterConfig {
 
 ### Clock Error Sources
 
-Clock errors occur when:
+On current platforms there is one source of `ClockError`:
 
 1. **System Time Unavailable**
-   - System clock not accessible
-   - Permissions issues
-   - Platform limitations
+   - The system clock could not be read
+   - Reported as `ClockError::SystemTimeError`
 
-2. **Time Goes Backward**
-   - NTP adjustments
-   - Manual clock changes
-   - Virtualization issues
+### What is *not* a clock error
 
-3. **Time Discontinuities**
-   - System suspend/resume
-   - Hibernation
-   - Container migrations
+{LIMIT}
 
 ### Error Propagation
 

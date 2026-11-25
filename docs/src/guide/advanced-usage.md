@@ -358,10 +358,14 @@ clock.advance(1_000_000_000); // Advance 1 second
 
 ### Monotonic Clock
 
-Ensure time never goes backward:
+The built-in `SystemClock` does not detect a backwards clock step
+([#5](https://github.com/crustyrustacean/flux-limiter/issues/5)). If that matters to
+you, wrap it so `now()` can never return a value lower than the last one it returned:
 
 ```rust
+use flux_limiter::{Clock, ClockError};
 use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::Arc;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 #[derive(Clone)]

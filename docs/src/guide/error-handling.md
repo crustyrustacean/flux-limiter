@@ -49,7 +49,7 @@ Returned when the burst is not a finite number, is negative, or is too large for
 // Invalid: burst must be finite and non-negative
 let config = FluxLimiterConfig::new(10.0, -5.0);
 
-match FluxLimiter::with_config(config, SystemClock) {
+match FluxLimiter::<String, _>::with_config(config, SystemClock) {
     Ok(_) => println!("Success"),
     Err(FluxLimiterError::InvalidBurst) => {
         eprintln!("Error: Burst must be finite, >= 0, and small enough to fit");
@@ -93,10 +93,9 @@ Clock errors can occur during normal operation when the system clock is unavaila
 ### Understanding Clock Errors
 
 Clock errors happen when:
-- System time API fails
-- Clock jumps backward (NTP adjustment)
-- System suspend/resume causes time discontinuity
-- Virtualization causes time skips
+- The system time API fails (this is the only cause on current platforms)
+
+Not a clock error: A clock that steps backwards is **not** a source of `ClockError`: `SystemTime::now()` still succeeds, it simply returns an earlier value. Such a step makes clients look over-limit until the clock catches back up; see [#5](https://github.com/crustyrustacean/flux-limiter/issues/5).
 
 ### Basic Clock Error Handling
 
@@ -132,7 +131,7 @@ fn should_allow_request(
     limiter: &FluxLimiter<String, SystemClock>,
     client_id: &str
 ) -> bool {
-    match limiter.check_request(client_id) {
+    match limiter.check_request(client_id.to_string()) {
         Ok(decision) => decision.allowed,
         Err(FluxLimiterError::ClockError(_)) => {
             // Fail-open: allow request on clock error
@@ -161,7 +160,7 @@ fn should_allow_request(
     limiter: &FluxLimiter<String, SystemClock>,
     client_id: &str
 ) -> bool {
-    match limiter.check_request(client_id) {
+    match limiter.check_request(client_id.to_string()) {
         Ok(decision) => decision.allowed,
         Err(FluxLimiterError::ClockError(_)) => {
             // Fail-closed: deny request on clock error
@@ -197,7 +196,7 @@ struct FallbackRateLimiter {
 
 impl FallbackRateLimiter {
     fn check_request(&self, client_id: String) -> bool {
-        match self.primary.check_request(client_id) {
+        match self.primary.check_request(client_id.to_string()) {
             Ok(decision) => decision.allowed,
             Err(FluxLimiterError::ClockError(_)) => {
                 // Use simple counter as fallback
