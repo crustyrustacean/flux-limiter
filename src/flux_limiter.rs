@@ -3,7 +3,7 @@
 // flux-limiter: A rate limiter based on the Generic Cell Rate Algorithm (GCRA).
 
 // dependencies
-use crate::clock::{Clock, SystemClock};
+use crate::clock::{Clock, MonotonicClock};
 use crate::config::FluxLimiterConfig;
 use crate::errors::FluxLimiterError;
 use dashmap::DashMap;
@@ -29,12 +29,13 @@ where
 
 /// The main FluxLimiter model.
 /// T is the type used to identify clients (e.g., String, u64, etc.).
-/// C is the clock type, defaulting to SystemClock.
+/// C is the clock type, defaulting to [`MonotonicClock`], which is immune to OS
+/// clock steps. Pass [`crate::SystemClock`] explicitly for wall-clock time.
 /// Each client's state is a single atomic TAT. Once a client is known, a request
 /// updates it with a compare-and-swap and takes no lock at all; the map's shard
 /// lock is only taken when a client is seen for the first time.
 #[derive(Debug)]
-pub struct FluxLimiter<T, C = SystemClock>
+pub struct FluxLimiter<T, C = MonotonicClock>
 where
     T: Hash + Eq + Clone,
     C: Clock,
@@ -320,6 +321,10 @@ pub struct FluxLimiterDecision {
     pub retry_after_seconds: Option<f64>,
     /// Approximate remaining burst capacity
     pub remaining_capacity: Option<f64>,
-    /// When the rate limit window resets (nanoseconds since epoch)
+    /// When the rate limit window resets, in nanoseconds since the Unix epoch.
+    ///
+    /// With the default [`MonotonicClock`] this is derived from elapsed time: it
+    /// tracks the OS clock to within microseconds for as long as that clock is
+    /// not stepped, and it never goes backwards.
     pub reset_time_nanos: u64,
 }

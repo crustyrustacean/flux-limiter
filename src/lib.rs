@@ -7,10 +7,10 @@
 //! ## Quick Example
 //!
 //! ```rust
-//! use flux_limiter::{FluxLimiter, FluxLimiterConfig, SystemClock};
+//! use flux_limiter::{FluxLimiter, FluxLimiterConfig, MonotonicClock};
 //!
 //! let config = FluxLimiterConfig::new(10.0, 5.0);
-//! let limiter = FluxLimiter::with_config(config, SystemClock).unwrap();
+//! let limiter = FluxLimiter::with_config(config, MonotonicClock::new()).unwrap();
 //!
 //! let decision = limiter.check_request("user_123").unwrap();
 //! if decision.allowed {

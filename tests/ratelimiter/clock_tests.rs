@@ -251,9 +251,8 @@ fn independent_clocks_agree_to_within_one_second() {
 // Type-level guarantees
 // ---------------------------------------------------------------------------
 
-/* TEMP(task 2): enable once the default type parameter is switched
+#[test]
 fn default_clock_parameter_is_monotonic() {
-    // No clock argument anywhere: this is `FluxLimiter<u64, MonotonicClock>`.
     // No clock *type* is named anywhere: this is `FluxLimiter<u64, MonotonicClock>`.
     let limiter: FluxLimiter<u64> =
         FluxLimiter::with_config(FluxLimiterConfig::new(1.0, 1.0), MonotonicClock::new()).unwrap();
@@ -264,7 +263,6 @@ fn default_clock_parameter_is_monotonic() {
     assert_is_monotonic(&limiter);
     assert_monotonic(&limiter);
 }
-*/
 
 #[test]
 fn system_clock_still_exists_and_implements_clock() {
