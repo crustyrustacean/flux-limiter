@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-a2a7a860.js";
+            window.path_to_searchindex_js = "../searchindex-cd5fa576.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-a16be429.js"></script>
@@ -211,7 +211,7 @@
 │  └─ TAT Tracking          │ Theoretical Arrival Time        │
 ├─────────────────────────────────────────────────────────────┤
 │  Storage Layer                                              │
-│  ├─ DashMap&lt;T, u64&gt;       │ Lock-free concurrent hash map   │
+│  ├─ DashMap&lt;T, AtomicU64&gt; │ Sharded map of per-client TATs  │
 │  ├─ Atomic Operations     │ Thread-safe state updates       │
 │  └─ Memory Management     │ Automatic cleanup mechanisms    │
 ├─────────────────────────────────────────────────────────────┤

@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-a2a7a860.js";
+            window.path_to_searchindex_js = "../searchindex-cd5fa576.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-a16be429.js"></script>
@@ -195,7 +195,7 @@ where
 {
     rate_nanos: u64,                    // Rate interval in nanoseconds
     tolerance_nanos: u64,               // Burst tolerance in nanoseconds
-    client_state: Arc&lt;DashMap&lt;T, u64&gt;&gt;, // Client TAT storage
+    client_state: Arc&lt;DashMap&lt;T, AtomicU64&gt;&gt;, // Client TAT storage
     clock: C,                           // Time abstraction
 }
 <span class="boring">}</span></code></pre>
@@ -498,10 +498,10 @@ impl TestClock {
 <h3 id="per-client-state"><a class="header" href="#per-client-state">Per-Client State</a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>DashMap&lt;String, u64&gt; entry:
-    String: ~24 bytes (pointer + len + capacity)
-    u64:    8 bytes
-    Overhead: ~16 bytes (hash map metadata)
+</span>DashMap&lt;String, AtomicU64&gt; entry:
+    String:    ~24 bytes (pointer + len + capacity)
+    AtomicU64:  8 bytes (TAT; same size as a plain u64)
+    Overhead:  ~16 bytes (hash map metadata)
 // Total per client: ~48 bytes
 <span class="boring">}</span></code></pre>
 <h3 id="scalability"><a class="header" href="#scalability">Scalability</a></h3>
