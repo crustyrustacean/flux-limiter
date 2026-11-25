@@ -28,7 +28,8 @@ mod errors;
 mod flux_limiter;
 
 // public API exports
-pub use clock::{Clock, ClockError, SystemClock};
+pub use clock::hidden;
+pub use clock::{Clock, ClockError, MonotonicClock, SystemClock};
 pub use config::FluxLimiterConfig;
 pub use errors::FluxLimiterError;
 pub use flux_limiter::{FluxLimiter, FluxLimiterDecision};
