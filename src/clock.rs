@@ -79,11 +79,13 @@ impl Clock for SystemClock {
 ///
 /// This clock never returns an error, because [`Instant::elapsed`] cannot fail.
 ///
-/// `MonotonicClock` can be written bare wherever a clock is taken, exactly like
-/// [`SystemClock`]: `FluxLimiter::with_config(config, MonotonicClock)`. Clones
-/// share one anchor, so a cloned limiter and its original see the same time.
-/// Two independently constructed clocks have independent anchors that agree to
-/// within microseconds of each other.
+/// Write the clock as `MonotonicClock::new()` wherever a clock is taken:
+/// `FluxLimiter::with_config(config, MonotonicClock::new())`. Unlike
+/// [`SystemClock`], which is a unit struct and can be written bare, this clock
+/// holds state behind an `Arc`, which cannot be constructed in a constant.
+/// Clones share one anchor, so a cloned limiter and its original see the same
+/// time. Two independently constructed clocks have independent anchors that
+/// agree to within microseconds of each other.
 #[derive(Debug, Clone, Default)]
 pub struct MonotonicClock {
     /// Recorded on the first call to `now()`. The `OnceLock` makes concurrent
@@ -105,8 +107,8 @@ struct Anchor {
 impl MonotonicClock {
     /// Constructs a clock whose anchor is recorded on its first use.
     ///
-    /// `MonotonicClock::default()` is equivalent, and the bare value
-    /// `MonotonicClock` works anywhere a clock is taken.
+    /// `MonotonicClock::default()` is equivalent. There is no bare form of
+    /// this clock: `MonotonicClock::new()` must be written out.
     pub fn new() -> Self {
         Self::default()
     }
