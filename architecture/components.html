@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-8bc3774d.js";
+            window.path_to_searchindex_js = "../searchindex-a2a7a860.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-a16be429.js"></script>
@@ -290,10 +290,14 @@ pub struct FluxLimiterConfig {
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>pub fn validate(&amp;self) -&gt; Result&lt;(), FluxLimiterError&gt; {
-    if self.rate_per_second &lt;= 0.0 {
+    // `NaN` fails every comparison, so `is_finite` must reject it explicitly.
+    if !self.rate_per_second.is_finite()
+        || self.rate_per_second &lt;= 0.0
+        || self.rate_per_second &gt; MAX_RATE_PER_SECOND
+    {
         return Err(FluxLimiterError::InvalidRate);
     }
-    if self.burst_capacity &lt; 0.0 {
+    if !self.burst_capacity.is_finite() || self.burst_capacity &lt; 0.0 {
         return Err(FluxLimiterError::InvalidBurst);
     }
     Ok(())
@@ -301,10 +305,12 @@ pub struct FluxLimiterConfig {
 <span class="boring">}</span></code></pre>
 <p><strong>Validation Rules</strong>:</p>
 <ul>
-<li>Rate must be positive (&gt; 0.0)</li>
-<li>Burst must be non-negative (≥ 0.0)</li>
+<li>Rate must be finite, positive (&gt; 0.0), and at most 1,000,000,000 (the interval is whole nanoseconds)</li>
+<li>Burst must be finite and non-negative (≥ 0.0)</li>
+<li>Rate is checked before burst</li>
 <li>Checked at construction time</li>
 </ul>
+<p>A separate bound is enforced during construction rather than in <code>validate()</code>, because it depends on the derived interval: <code>burst × (1e9 / rate)</code> must fit in a <code>u64</code>, or construction fails with <code>InvalidBurst</code>. Both bounds are compared as <code>f64</code> values before any integer cast, because a float-to-integer <code>as</code> cast saturates instead of failing.</p>
 <h2 id="fluxlimiterdecision"><a class="header" href="#fluxlimiterdecision">FluxLimiterDecision</a></h2>
 <p>Rich metadata returned from rate limiting decisions.</p>
 <h3 id="structure-definition-2"><a class="header" href="#structure-definition-2">Structure Definition</a></h3>
@@ -373,8 +379,8 @@ consistent with <code>FluxLimiterError</code>, which is also <code>#[non_exhaust
 </span>#[non_exhaustive]
 #[derive(Debug)]
 pub enum FluxLimiterError {
-    InvalidRate,           // Configuration: rate ≤ 0
-    InvalidBurst,          // Configuration: burst &lt; 0
+    InvalidRate,           // Configuration: rate non-finite, ≤ 0, or &gt; 1e9
+    InvalidBurst,          // Configuration: burst non-finite, &lt; 0, or too large to fit
     ClockError(ClockError), // Runtime: clock failure
 }
 

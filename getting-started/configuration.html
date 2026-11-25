@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-8bc3774d.js";
+            window.path_to_searchindex_js = "../searchindex-a2a7a860.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-a16be429.js"></script>
@@ -193,7 +193,9 @@ let config = FluxLimiterConfig::new(rate_per_second, burst_capacity);
 <h2 id="rate-parameter"><a class="header" href="#rate-parameter">Rate Parameter</a></h2>
 <p>The <strong>rate</strong> parameter defines the sustained requests per second.</p>
 <ul>
+<li><strong>Must be finite</strong>: <code>NaN</code> and <code>±Infinity</code> are rejected</li>
 <li><strong>Must be positive</strong> (&gt; 0)</li>
+<li><strong>Must be at most <code>1_000_000_000</code></strong> (1 billion requests per second): the rate interval is stored as whole nanoseconds, so a higher rate has no representable interval</li>
 <li>Defines the steady-state request rate</li>
 <li>Example: <code>rate = 100.0</code> means 100 requests per second</li>
 </ul>
@@ -212,7 +214,9 @@ let config = FluxLimiterConfig::new(100.0, 0.0);
 <h2 id="burst-parameter"><a class="header" href="#burst-parameter">Burst Parameter</a></h2>
 <p>The <strong>burst</strong> parameter defines additional capacity for handling bursts.</p>
 <ul>
+<li><strong>Must be finite</strong>: <code>NaN</code> and <code>±Infinity</code> are rejected</li>
 <li><strong>Must be non-negative</strong> (≥ 0)</li>
+<li><strong>Must be small enough to fit</strong>: <code>burst × (1_000_000_000 / rate)</code> is stored as a 64-bit nanosecond count, so a burst whose tolerance would exceed <code>2^64</code> nanoseconds (about 584 years) is rejected</li>
 <li>Allows temporary spikes above the sustained rate</li>
 <li>Example: <code>burst = 50.0</code> allows bursts of ~50 additional requests</li>
 </ul>
@@ -316,9 +320,32 @@ match FluxLimiter::with_config(config, SystemClock) {
 <span class="boring">}</span></code></pre>
 <h3 id="validation-rules"><a class="header" href="#validation-rules">Validation Rules</a></h3>
 <ul>
-<li><strong>InvalidRate</strong>: Returned if rate ≤ 0</li>
-<li><strong>InvalidBurst</strong>: Returned if burst &lt; 0</li>
+<li><strong>InvalidRate</strong>: Returned if rate is not finite, is ≤ 0, or is &gt; 1,000,000,000</li>
+<li><strong>InvalidBurst</strong>: Returned if burst is not finite, is &lt; 0, or is too large for the configured rate</li>
 </ul>
+<p>Rate is checked first: a configuration with both an invalid rate and an invalid burst reports <code>InvalidRate</code>.</p>
+<p>Every rejected configuration is rejected at construction time as well, so <code>FluxLimiter::with_config</code> never returns a limiter built from invalid values.</p>
+<h3 id="precision-whole-nanosecond-truncation"><a class="header" href="#precision-whole-nanosecond-truncation">Precision: whole-nanosecond truncation</a></h3>
+<p>The rate interval (<code>1_000_000_000 / rate</code>) and the burst tolerance (<code>burst × interval</code>) are stored as whole nanoseconds. Values that are not a whole number of nanoseconds are <strong>truncated</strong>, not rounded. This is deliberate: integer arithmetic keeps every timing decision exact and reproducible.</p>
+<p>In practice this is invisible at ordinary rates, but it has two visible consequences:</p>
+<ul>
+<li><strong>A fractional burst can truncate to nothing, but only at very high rates.</strong> The tolerance is <code>burst × interval</code> in nanoseconds, so it is lost entirely when that product is under 1 ns. At <code>rate = 10.0</code> the interval is 100 ms and even <code>burst = 0.004</code> keeps a 0.4 ms tolerance. But at <code>rate = 1e8</code> the interval is 10 ns, so <code>burst = 0.05</code> asks for 0.5 ns and gets no burst at all, while <code>burst = 0.1</code> (exactly 1 ns) is preserved.</li>
+<li><strong>Rates above roughly 100 million per second are enforced slightly higher than requested.</strong> For example <code>rate = 6e8</code> has a true interval of 1.667 ns, which truncates to 1 ns, so the limiter actually enforces 1e9 requests per second — 67% more than asked for.</li>
+</ul>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Requested rate</th><th>Enforced rate</th><th>Difference</th></tr>
+</thead>
+<tbody>
+<tr><td>1e8</td><td>1.0e8</td><td>0%</td></tr>
+<tr><td>1.5e8</td><td>1.6667e8</td><td>+11.1%</td></tr>
+<tr><td>4e8</td><td>5.0e8</td><td>+25.0%</td></tr>
+<tr><td>6e8</td><td>1.0e9</td><td>+66.7%</td></tr>
+</tbody>
+</table>
+</div>
+<p>If you need an exact limit, choose a rate that divides 1,000,000,000 evenly (such as <code>1e8</code>, <code>1e6</code>, <code>1000.0</code>, <code>10.0</code>, <code>1.0</code>); those are enforced exactly.</p>
 <h3 id="manual-validation"><a class="header" href="#manual-validation">Manual Validation</a></h3>
 <p>You can validate configuration before creating the limiter:</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]

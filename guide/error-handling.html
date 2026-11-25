@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-8bc3774d.js";
+            window.path_to_searchindex_js = "../searchindex-a2a7a860.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-a16be429.js"></script>
@@ -187,8 +187,8 @@
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>pub enum FluxLimiterError {
-    InvalidRate,           // Configuration: rate ≤ 0
-    InvalidBurst,          // Configuration: burst &lt; 0
+    InvalidRate,           // Configuration: rate non-finite, ≤ 0, or &gt; 1e9
+    InvalidBurst,          // Configuration: burst non-finite, &lt; 0, or too large to fit
     ClockError(ClockError), // Runtime: clock failure
 }
 
@@ -199,31 +199,33 @@ pub enum ClockError {
 <h2 id="configuration-errors"><a class="header" href="#configuration-errors">Configuration Errors</a></h2>
 <p>Configuration errors occur when creating a rate limiter with invalid settings.</p>
 <h3 id="invalidrate-error"><a class="header" href="#invalidrate-error">InvalidRate Error</a></h3>
+<p>Returned when the rate is not a finite number (<code>NaN</code> or <code>±Infinity</code>), is ≤ 0, or is greater than 1,000,000,000 requests per second.</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>use flux_limiter::{FluxLimiterConfig, FluxLimiter, SystemClock, FluxLimiterError};
 
-// Invalid: rate must be positive
+// Invalid: rate must be finite, positive, and at most 1e9
 let config = FluxLimiterConfig::new(-10.0, 5.0);
 
 match FluxLimiter::with_config(config, SystemClock) {
     Ok(_) =&gt; println!("Success"),
     Err(FluxLimiterError::InvalidRate) =&gt; {
-        eprintln!("Error: Rate must be positive (&gt; 0)");
+        eprintln!("Error: Rate must be finite, &gt; 0, and &lt;= 1_000_000_000");
     }
     Err(e) =&gt; eprintln!("Other error: {}", e),
 }
 <span class="boring">}</span></code></pre>
 <h3 id="invalidburst-error"><a class="header" href="#invalidburst-error">InvalidBurst Error</a></h3>
+<p>Returned when the burst is not a finite number, is negative, or is too large for the configured rate. The burst tolerance is <code>burst × (1e9 / rate)</code> nanoseconds and must fit in 64 bits (about 584 years), so a very large burst combined with a slow rate is rejected.</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>// Invalid: burst must be non-negative
+</span>// Invalid: burst must be finite and non-negative
 let config = FluxLimiterConfig::new(10.0, -5.0);
 
 match FluxLimiter::with_config(config, SystemClock) {
     Ok(_) =&gt; println!("Success"),
     Err(FluxLimiterError::InvalidBurst) =&gt; {
-        eprintln!("Error: Burst must be non-negative (≥ 0)");
+        eprintln!("Error: Burst must be finite, &gt;= 0, and small enough to fit");
     }
     Err(e) =&gt; eprintln!("Other error: {}", e),
 }
