@@ -54,44 +54,69 @@ compare-and-swap, and simple integer arithmetic — all O(1).
 ### FluxLimiter Structure
 
 ```rust
-FluxLimiter<String, MonotonicClock> {
-    rate_nanos: u64,         // 8 bytes - cache-friendly
+FluxLimiter<String, MonotonicClock> {   // 64 bytes in total
+    rate_nanos: u64,         // 8 bytes
     tolerance_nanos: u64,    // 8 bytes
-    client_state: Arc<..>,   // 8 bytes - pointer
+    client_state: Arc<..>,   // 8 bytes (pointer)
     clock: MonotonicClock,   // 40 bytes - see below
 }
 ```
 
+**Size** (measured with `size_of` on a 64-bit target):
+
+| Type | Size |
+|------|------|
+| `FluxLimiter<T, MonotonicClock>` | 64 bytes |
+| `FluxLimiter<T, SystemClock>` | 24 bytes |
+| `MonotonicClock` | 40 bytes |
+| `SystemClock` | 0 bytes |
+
+The size does not depend on the client ID type: `String` and `u64` keys both give
+64 bytes, because the key lives in the map, not in the limiter.
+
 **Cache Efficiency**:
-- Small struct size (24-32 bytes)
-- Frequently accessed fields grouped
-- Arc enables sharing without duplication
-- The clock is 40 bytes (`Arc` + `Instant` origin + a lazily-read epoch), so the
-  struct is larger than it was when the zero-sized `SystemClock` was the default;
-  pass `SystemClock` explicitly if that matters and you accept its limitation
+- The limiter with the default clock is exactly one 64-byte cache line
+- Frequently accessed fields are grouped at the start of the struct
+- `Arc` enables sharing without duplication
+- The clock is 40 bytes: an `Arc` to the shared anchor, an `Instant` origin, and a
+  lazily-read epoch. That is why the struct grew from 24 bytes when the zero-sized
+  `SystemClock` was the default. Pass `SystemClock` explicitly if those 40 bytes
+  matter and you accept its limitation
 
 ### Per-Client State
 
-```rust
-DashMap<String, AtomicU64> entry:
-    String:    ~24 bytes (pointer + len + capacity)
-    AtomicU64: 8 bytes (TAT; same size as a plain u64)
-    Overhead:  ~16 bytes (hash map metadata)
-// Total: ~48 bytes per client
-```
+One map entry per client, holding the key and its TAT. Memory is allocated
+in steps: DashMap grows its tables by doubling, so the total is flat for a
+while and then jumps. Measured on a 64-bit target (Windows system allocator):
+
+| Key                   | Average bytes per client, 1M+ clients | Range across client counts |
+|-----------------------|---------------------------------------|-----------------------------|
+| `u64`                 | ~31                                   | 24 to 36                    |
+| `String`, 15 chars    | ~76                                   | 63 to 86                    |
+| `String`, 36 chars    | ~95                                   | 82 to 105                   |
+
+A `String` key costs the map entry plus the key's characters, and the
+allocator rounds those up to a power of two (16, 32, 64 bytes).
+One million clients take about 34 MB with `u64` keys.
 
 ### Memory Scalability
 
-```
-Clients         Memory Usage    Example
-1,000           ~48 KB          Small API
-10,000          ~480 KB         Medium service
-100,000         ~4.8 MB         Large service
-1,000,000       ~48 MB          Very large service
-10,000,000      ~480 MB         Massive scale
-```
+Measured with `u64` keys on a 64-bit target:
 
-**Memory Growth**: Linear with number of active clients
+| Clients | Memory | Example |
+|---|---|---|
+| 1,000 | 46 KB | Small API |
+| 10,000 | 0.3 MB | Medium service |
+| 100,000 | 2.1 MB | Large service |
+| 1,000,000 | 34 MB | Very large service |
+| 10,000,000 | 272 MB | Massive scale |
+
+Short `String` keys take about two and a half to three times as much.
+
+**Memory Growth**: linear in the number of active clients on average, but not
+smoothly. The client map doubles its tables when they fill, so memory holds
+flat for a while and then steps up. At any one client count the true figure is
+between about two thirds and the whole of a step.
 
 ## Algorithmic Complexity
 
@@ -131,9 +156,13 @@ Short critical sections → minimal lock duration
 - Inserting a client for the first time: that shard's write lock, once per client
 - `cleanup_stale_clients`: each shard's write lock in turn
 
-Measured with 4 threads on one client (i7-13700HX, criterion): 159 ns per request
-before the atomic TAT, 74 ns after. Distinct clients were unchanged at 30 ns, since
-they were never contending for the same lock to begin with.
+Measured with 4 threads on one client (i7-13700HX, criterion, 1,000 requests per
+iteration): 159 ns per request before the atomic TAT, and 67 to 96 ns per request
+after it, over nine runs. That makes it roughly 1.6 to 2.4 times faster. The figure
+moves by about 40% between runs, which happens when threads contend for one key on
+a laptop, so treat the range as the result and not any single number in it. Four
+threads on distinct clients take 31 ns per request and stay within 3% between runs,
+since they were never waiting on the same lock to begin with.
 
 ### Contention Patterns
 
@@ -337,7 +366,7 @@ fn report_throughput(duration: Duration) {
 
 | Metric | Value |
 |--------|-------|
-| Memory per client | ~48 bytes |
+| Memory per client | ~31 bytes with a `u64` key, ~76-95 with a short `String` key (average over 1M+ clients; grows in steps) |
 | Time complexity | O(1) |
 | Space complexity | O(n) |
 | Cleanup overhead | O(n) but infrequent |
@@ -345,7 +374,7 @@ fn report_throughput(duration: Duration) {
 ## Best Practices
 
 1. **Use numeric client IDs** when possible for best performance
-2. **Share limiter via Arc** to avoid state duplication
+2. **Clone the limiter or share it via `Arc`** rather than building one per thread; clones share the same clients, configuration and clock
 3. **Cleanup periodically** to prevent memory growth
 4. **Profile in production** to identify bottlenecks
 5. **Monitor latency** and alert on degradation

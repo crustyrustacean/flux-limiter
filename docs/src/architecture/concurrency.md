@@ -19,10 +19,17 @@ Arc<DashMap<ClientId, AtomicU64>>     one TAT per client
   new client     → insert under the shard lock      (once per client)
 ```
 
-The word "lock-free" is used here in a precise sense: an update to a client that
-is already tracked cannot block, and never waits on another request. The map
-itself is built from sharded `RwLock`s, so lookups and first-time inserts do take
-a (brief, sharded) lock.
+The word "lock-free" is used here in a precise sense. An update to a client
+that is already tracked takes no lock: it retries instead of waiting, so it
+makes progress as long as the thread running it gets to run. The map itself is
+built from sharded `RwLock`s, so finding a client and adding one the first time
+do take a brief lock on one shard.
+
+There is one deliberate exception. A request that loses the compare-and-swap 64
+times in a row stops retrying and settles under the shard's write lock, where
+it waits for that lock. This only happens under extreme contention on a single
+client, and it is there so that a hot client cannot make a request retry
+forever.
 
 ## Thread Safety Guarantees
 
@@ -325,35 +332,39 @@ Same client        → one atomic         (compare-and-swap, no lock)
 Requests for different clients never wait on each other's TAT. Requests for the
 same client do not queue: each one that loses a compare-and-swap retries, and the
 retry count rises with contention rather than the wait time.
-### Benchmark: Concurrent Access
 
-```rust
-#[bench]
-fn bench_concurrent_different_clients(b: &mut Bencher) {
-    let limiter = Arc::new(FluxLimiter::with_config(
-        FluxLimiterConfig::new(1000.0, 500.0),
-        MonotonicClock::new()
-    ).unwrap());
+### Benchmarking concurrent access
 
-    b.iter(|| {
-        let handles: Vec<_> = (0..8)
-            .map(|i| {
-                let limiter = Arc::clone(&limiter);
-                thread::spawn(move || {
-                    for j in 0..1000 {
-                        let client_id = format!("client_{}_{}", i, j);
-                        limiter.check_request(client_id).unwrap();
-                    }
-                })
-            })
-            .collect();
+The repository has Criterion benchmarks for exactly these two cases. They
+produced the figures in [Performance Design](./performance.md#concurrency-performance),
+and they are the right way to check a change against them:
 
-        for handle in handles {
-            handle.join().unwrap();
-        }
-    });
-}
+```sh
+cargo bench contention
 ```
+
+| Benchmark | What it measures |
+|---|---|
+| `contention_hot_key_u64` | 4 threads, all hitting one client: the worst case for same-client contention |
+| `contention_spread_keys_u64` | 4 threads, each with its own clients: the common case |
+
+Both are reported per request, with throughput in requests per second.
+
+If you write your own, three things decide whether the number means anything:
+
+- **Start the threads before the timed region.** Starting a thread costs tens of
+  microseconds, which is hundreds of times the cost of a request. The
+  repository's benchmarks start their workers once and release them on a
+  channel for each timed round.
+- **Make sure requests are allowed.** A denied request never touches the
+  client's state, so a run that is mostly denials measures nothing about
+  contention. Use a high rate so that every request writes.
+- **Release the threads together.** Same-client requests only collide when they
+  arrive at the same moment. Threads that start in a stagger take turns
+  instead of contending, and the result looks far better than the worst case.
+
+Rust's built-in `#[bench]` attribute is not stable and needs a nightly
+toolchain, which is why the crate uses Criterion.
 
 ## Clock Thread Safety
 

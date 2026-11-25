@@ -325,77 +325,41 @@ fn test_remaining_capacity() {
 
 ## Performance Testing
 
-### Latency Benchmarks
+Timing does not belong in a test. A test that measures wall-clock time, such
+as asserting that a request takes under a microsecond, passes on a fast idle
+machine and fails on a slow or loaded one, and the failure says nothing about
+the code. The crate's own tests contain no timing assertions: `cargo test`
+checks behaviour only, and every test runs to the same result whatever the
+machine is doing.
 
-```rust
-#[cfg(test)]
-mod benchmarks {
-    use super::*;
-    use std::time::Instant;
+Timing is measured with [Criterion](https://github.com/bheisler/criterion.rs)
+benchmarks, which live in `benches/` and are not part of `cargo test`:
 
-    #[test]
-    fn bench_check_request_latency() {
-        let limiter = FluxLimiter::with_config(
-            FluxLimiterConfig::new(1000.0, 500.0),
-            MonotonicClock::new(),
-        ).unwrap();
-
-        let iterations = 100_000;
-        let start = Instant::now();
-
-        for i in 0..iterations {
-            let client_id = format!("client_{}", i % 1000);
-            limiter.check_request(client_id).unwrap();
-        }
-
-        let elapsed = start.elapsed();
-        let avg_latency = elapsed.as_nanos() / iterations;
-
-        println!("Average latency: {}ns", avg_latency);
-        assert!(avg_latency < 1000); // Should be under 1μs
-    }
-}
+```sh
+cargo bench                        # all benchmarks
+cargo bench contention             # only the multi-threaded ones
+cargo bench -- --save-baseline before
+# ... make a change ...
+cargo bench -- --baseline before   # compare against the saved run
 ```
 
-### Throughput Tests
+| Benchmark | What it measures |
+|---|---|
+| `single_client_u64` | One thread, one client, `u64` key |
+| `single_client_string_clone` | One thread, one client, `String` key cloned per request |
+| `contended_4_threads_u64` | 4 threads on one client, per batch |
+| `contention_hot_key_u64` | 4 threads on one client, per request |
+| `contention_spread_keys_u64` | 4 threads, each with its own clients, per request |
 
-```rust
-#[test]
-fn test_throughput() {
-    let limiter = Arc::new(
-        FluxLimiter::with_config(
-            FluxLimiterConfig::new(10_000.0, 5_000.0),
-            MonotonicClock::new(),
-        ).unwrap()
-    );
+A test that needs to prove something about *time* rather than *speed* does it
+with `TestClock`, which never waits: it sets the clock to an exact value, so a
+test of "what happens after 9.9 seconds" runs instantly and always gives the
+same answer.
 
-    let start = Instant::now();
-    let threads = 8;
-    let requests_per_thread = 100_000;
-
-    let handles: Vec<_> = (0..threads)
-        .map(|t| {
-            let limiter = Arc::clone(&limiter);
-            thread::spawn(move || {
-                for i in 0..requests_per_thread {
-                    let client_id = format!("client_{}_{}", t, i % 1000);
-                    limiter.check_request(client_id).unwrap();
-                }
-            })
-        })
-        .collect();
-
-    for handle in handles {
-        handle.join().unwrap();
-    }
-
-    let elapsed = start.elapsed();
-    let total_requests = threads * requests_per_thread;
-    let throughput = total_requests as f64 / elapsed.as_secs_f64();
-
-    println!("Throughput: {:.2} req/s", throughput);
-}
-```
+Throughput figures from a benchmark are specific to the machine that produced
+them. The numbers quoted in [Performance Design](./performance.md) were taken
+on one laptop and are there to show the relative cost of the two contention
+cases, not to promise a particular rate.
 
 ## Test Utilities
 
@@ -423,27 +387,43 @@ fn assert_error<T>(result: Result<T, FluxLimiterError>) {
 
 ### Test Fixtures
 
+The suite builds limiters through two helpers, which always pair the limiter
+with the `TestClock` it reads so a test can advance time:
+
 ```rust
-fn create_test_limiter(rate: f64, burst: f64) -> (FluxLimiter<String, TestClock>, TestClock) {
-    let clock = TestClock::new(0.0);
-    let config = FluxLimiterConfig::new(rate, burst);
-    let limiter = FluxLimiter::with_config(config, clock.clone()).unwrap();
-    (limiter, clock)
-}
+/// A limiter with the given rate, burst and starting time, on a fresh TestClock.
+fn setup_limiter(
+    rate: f64,
+    burst: f64,
+    initial_time: f64,
+) -> (FluxLimiter<String, TestClock>, TestClock>)
+
+/// A limiter with the suite's standard configuration.
+fn setup_standard_limiter() -> (FluxLimiter<String, TestClock>, TestClock)
 ```
+
+A `TestClock` is created at time zero and can be moved forward by an amount
+(`advance`) or set to an exact instant (`set_time` in seconds, `set_nanos` in
+nanoseconds). It can also fail its next reading on request.
 
 ## Test Coverage
 
-Aim for comprehensive coverage:
+The suite is one integration test binary, `tests/ratelimiter`, split by
+concern. It has 71 tests:
 
-- ✅ Algorithm correctness
-- ✅ Configuration validation
-- ✅ Error handling and recovery
-- ✅ Concurrency safety
-- ✅ Memory management
-- ✅ Decision metadata accuracy
-- ✅ Performance characteristics
-- ✅ Edge cases and boundary conditions
+| File | Tests | Covers |
+|---|---|---|
+| `config_tests.rs` | 22 | Every rejected rate and burst, the bounds, and which error wins |
+| `clock_tests.rs` | 13 | The clocks: monotonicity, clock steps, anchors, epoch accuracy |
+| `error_tests.rs` | 8 | Clock failures and the errors they produce |
+| `gcra_algorithm_tests.rs` | 8 | Allow and deny decisions against hand-computed sequences |
+| `overflow_tests.rs` | 9 | Timestamps near `u64::MAX`, in both build profiles |
+| `concurrency_tests.rs` | 5 | Many threads on one client, and that no update is lost |
+| `cleanup_tests.rs` | 3 | Stale clients are removed and live ones are kept |
+| `performance_tests.rs` | 2 | Behaviour at high request volumes, with no timing assertions |
+| `decision_metadata_tests.rs` | 1 | The fields returned with a decision |
+
+Performance itself is not tested here; see [Performance Testing](#performance-testing).
 
 ## Best Practices
 

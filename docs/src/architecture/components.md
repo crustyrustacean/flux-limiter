@@ -244,9 +244,9 @@ pub trait Clock: Send + Sync {
 
 **Benefits**:
 - Enables deterministic testing
-- Handles real-world clock issues
+- Lets the limiter use a monotonic clock instead of the OS clock
 - Allows custom time sources
-- Graceful error handling
+- Reports a failed clock reading as an error instead of panicking
 
 **Send + Sync Requirements**:
 - Thread-safe: Can be shared across threads
@@ -305,11 +305,14 @@ impl Clock for SystemClock {
 
 ### TestClock
 
-Deterministic time source for testing:
+Deterministic time source for testing. It is part of the test suite
+(`tests/ratelimiter/fixtures/test_clock.rs`), not of the crate, because the
+`Clock` trait lets you write your own:
 
 ```rust
+#[derive(Debug, Clone)]
 pub struct TestClock {
-    time: Arc<AtomicU64>,        // Current time in nanoseconds
+    time: Arc<AtomicU64>,         // Current time in nanoseconds
     should_fail: Arc<AtomicBool>, // Failure simulation flag
 }
 
@@ -317,13 +320,20 @@ impl TestClock {
     pub fn new(initial_time_secs: f64) -> Self
     pub fn advance(&self, duration_secs: f64)
     pub fn set_time(&self, time_secs: f64)
-    pub fn fail_next_call(&self)
+    pub fn set_nanos(&self, nanos: u64)      // exact; set_time takes f64
+    pub fn fail_next_call(&self)             // the next now() returns Err
+    pub fn reset_failure(&self)
+    pub fn time_as_f64(&self) -> f64
 }
 ```
 
 **Features**:
-- Precise time control
-- Failure simulation
+- Precise time control. A test sets the clock to an exact instant instead of
+  waiting, so it runs instantly and always gives the same answer
+- `set_nanos` sets an exact nanosecond value. `set_time` takes an `f64` number
+  of seconds, which cannot represent a current epoch timestamp exactly
+- Failure simulation, for testing the error path
+- Clones share one time, so the limiter and the test move the same clock
 - Thread-safe
 - Deterministic testing
 
@@ -332,7 +342,7 @@ impl TestClock {
 ### FluxLimiter Size
 
 ```rust
-FluxLimiter<String, MonotonicClock> {
+FluxLimiter<String, MonotonicClock> {   // 64 bytes in total
     rate_nanos: u64,         // 8 bytes
     tolerance_nanos: u64,    // 8 bytes
     client_state: Arc<..>,   // 8 bytes (pointer)
@@ -340,29 +350,43 @@ FluxLimiter<String, MonotonicClock> {
 }
 ```
 
+**Size**: 64 bytes with the default clock, which is one 64-byte cache line, and 24
+bytes with `SystemClock`. The size does not depend on the client ID type.
+
 **Cache Efficiency**:
-- Small struct size fits in cache line
+- The limiter with the default clock occupies exactly one cache line
 - Frequently accessed fields grouped
 - Arc enables cheap cloning
 
 ### Per-Client State
 
-```rust
-DashMap<String, AtomicU64> entry:
-    String:    ~24 bytes (pointer + len + capacity)
-    AtomicU64:  8 bytes (TAT; same size as a plain u64)
-    Overhead:  ~16 bytes (hash map metadata)
-// Total per client: ~48 bytes
-```
+One map entry per client, holding the key and its TAT. Memory is allocated
+in steps: DashMap grows its tables by doubling, so the total is flat for a
+while and then jumps. Measured on a 64-bit target (Windows system allocator):
+
+| Key                   | Average bytes per client, 1M+ clients | Range across client counts |
+|-----------------------|---------------------------------------|-----------------------------|
+| `u64`                 | ~31                                   | 24 to 36                    |
+| `String`, 15 chars    | ~76                                   | 63 to 86                    |
+| `String`, 36 chars    | ~95                                   | 82 to 105                   |
+
+A `String` key costs the map entry plus the key's characters, and the
+allocator rounds those up to a power of two (16, 32, 64 bytes).
+One million clients take about 34 MB with `u64` keys.
 
 ### Scalability
 
-```
-1,000 clients     = ~48 KB
-10,000 clients    = ~480 KB
-100,000 clients   = ~4.8 MB
-1,000,000 clients = ~48 MB
-```
+Measured with `u64` keys on a 64-bit target:
+
+| Clients | Memory |
+|---|---|
+| 1,000 | 46 KB |
+| 10,000 | 0.3 MB |
+| 100,000 | 2.1 MB |
+| 1,000,000 | 34 MB |
+| 10,000,000 | 272 MB |
+
+Short `String` keys take about two and a half to three times as much.
 
 ## Thread Safety
 

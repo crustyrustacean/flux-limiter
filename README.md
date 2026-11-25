@@ -6,15 +6,16 @@ A simple rate limiter based on the Generic Cell Rate Algorithm (GCRA) with nanos
 
 ## Features
 
-- **Mathematically precise**: Implements the GCRA algorithm with exact nanosecond timing
+- **Precise**: Implements the GCRA algorithm in integer nanoseconds. The rate is rounded to a whole-nanosecond interval, which is exact for any rate that divides one billion (1, 10, 100, 1e6, ...)
 - **Generic client IDs**: Works with any hashable client identifier (`String`, `IpAddr`, `u64`, etc.)
 - **Rich metadata**: Returns detailed decision information for HTTP headers, including:
     - `retry_after_seconds`
     - `remaining_capacity`
     - `reset_time_nanos`
-- **Memory efficient**: Configurable cleanup of stale client entries
-- **Robust error handling**: Graceful handling of clock failures and configuration errors
-- **Thread-safe**: Safe concurrent use across multiple threads
+- **Memory efficient**: One atomic timestamp per client (about 31 bytes on average for a `u64` key), with cleanup of idle clients when you ask for it
+- **Robust error handling**: Invalid configuration is rejected with an error, and the default clock cannot fail
+- **Thread-safe**: Safe concurrent use across multiple threads. Updating a known client takes no lock
+- **Unaffected by clock changes**: The default clock measures elapsed time, so an operating-system clock correction cannot lock clients out
 
 ## Installation
 

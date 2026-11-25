@@ -9,8 +9,9 @@ Flux Limiter tracks state for each client, which can grow over time. Use cleanup
 ### Understanding Memory Usage
 
 - **Memory**: O(number of active clients)
-- **Per-client overhead**: ~40-48 bytes (client ID + TAT timestamp)
-- **Example**: 1 million clients ≈ 40-48 MB
+- **Per-client overhead**: about 31 bytes with a `u64` key and about 76-95 bytes with a short `String` key, measured as the average over a million or more clients
+- **It grows in steps, not smoothly**: the client map doubles its tables when it fills, so memory holds flat for a while and then jumps. At any one client count the true figure is between about two thirds and the whole of the average above
+- **Example**: 1 million clients take about 34 MB with `u64` keys
 
 ### Manual Cleanup
 

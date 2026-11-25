@@ -267,14 +267,32 @@ impl ManagedRateLimiter {
 Monitor memory usage and alert on growth:
 
 ```rust
-fn estimate_memory_usage(limiter: &FluxLimiter<String, MonotonicClock>) -> usize {
-    // Estimate: ~48 bytes per client (HashMap overhead + String + u64)
-    let estimated_clients = 1_000_000; // Adjust based on your load
-    estimated_clients * 48
+/// Rough estimate of the bytes held for `clients` clients whose keys are
+/// `key_len` characters long.
+///
+/// The client map grows by doubling its tables, so memory holds flat for a
+/// while and then jumps. This interpolates between measured averages over
+/// large populations on a 64-bit target: about 76 bytes per client for a
+/// 15-character `String` key and about 95 for a 36-character one. At any one
+/// client count the true figure ranges from roughly 20% below to 15% above
+/// the average, so size a capacity limit against the high end.
+fn estimate_memory_usage(clients: usize, key_len: usize) -> usize {
+    const MEASURED: [(usize, f64); 2] = [(15, 76.0), (36, 95.0)]; // (key length, bytes per client)
+    let (lo, hi) = (MEASURED[0], MEASURED[1]);
+    let per_client = if key_len <= lo.0 {
+        lo.1
+    } else if key_len >= hi.0 {
+        // beyond the measured range, assume each extra character costs one byte
+        hi.1 + (key_len - hi.0) as f64
+    } else {
+        lo.1 + (hi.1 - lo.1) * (key_len - lo.0) as f64 / (hi.0 - lo.0) as f64
+    };
+    (clients as f64 * per_client * 1.15).ceil() as usize // 1.15 = high end of the range
 }
 
 fn check_memory_threshold(limiter: &FluxLimiter<String, MonotonicClock>) {
-    let estimated_usage = estimate_memory_usage(limiter);
+    let client_count = limiter.client_count();
+    let estimated_usage = estimate_memory_usage(client_count, "user_".len() + 36);
     let threshold = 100 * 1024 * 1024; // 100 MB
 
     if estimated_usage > threshold {
@@ -437,11 +455,11 @@ mod load_tests {
 - [ ] Implement error handling policy (fail-open/fail-closed)
 - [ ] Set up monitoring and alerting
 - [ ] Enable structured logging
-- [ ] Configure automatic cleanup
+- [ ] Schedule `cleanup_stale_clients()`; it does not run on its own
 - [ ] Load test under expected traffic
 - [ ] Document rate limit headers in API docs
 - [ ] Set up memory monitoring
-- [ ] Test clock error handling
+- [ ] Test the clock error path, if you use `SystemClock` or a custom clock (the default clock cannot fail)
 - [ ] Implement circuit breaker if needed
 
 ## Next Steps

@@ -20,9 +20,9 @@ No silent failures - all errors are explicitly typed:
 
 ```rust
 pub enum FluxLimiterError {
-    InvalidRate,           // Rate non-finite, ≤ 0, or > 1e9
-    InvalidBurst,          // Burst non-finite, < 0, or too large to fit
-    ClockError(ClockError), // System time failure
+    InvalidRate,            // Rate non-finite, ≤ 0, or > 1e9
+    InvalidBurst,           // Burst non-finite, < 0, or too large to fit
+    ClockError(ClockError), // A clock reading failed
 }
 ```
 
@@ -34,7 +34,8 @@ pub enum FluxLimiterError {
 - Should never occur in production after startup
 
 **Runtime Errors** (during operation):
-- `ClockError`: Can occur anytime
+- `ClockError`: only if you use `SystemClock` or a custom clock
+- The default `MonotonicClock` never produces it
 - Requires graceful handling
 - Application chooses policy
 
@@ -99,15 +100,25 @@ impl FluxLimiterConfig {
 
 ### Clock Error Sources
 
-On current platforms there is one source of `ClockError`:
+The default `MonotonicClock` never returns a `ClockError`. The error has one
+source, and only if you opt into `SystemClock` or write your own clock:
 
 1. **System Time Unavailable**
-   - The system clock could not be read
+   - `SystemClock` could not read the system clock, which happens only if the
+     clock is before the Unix epoch
    - Reported as `ClockError::SystemTimeError`
+
+With the default clock, the `Err` arm of `check_request` can only be reached
+through a bug in a custom clock. Handling it is still correct, because the
+return type allows it, but it is not a path you should expect to run.
 
 ### What is *not* a clock error
 
-{LIMIT}
+A clock that steps backwards is **not** a source of `ClockError`. Reading the
+clock still succeeds and simply returns an earlier value. With `SystemClock`
+that makes every client look over-limit until the clock catches back up, and
+no error is reported. This is why `SystemClock` is not the default: the
+`MonotonicClock` measures elapsed time and is unaffected by a step.
 
 ### Error Propagation
 

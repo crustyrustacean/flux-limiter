@@ -92,10 +92,11 @@ Clock errors can occur during normal operation when the system clock is unavaila
 
 ### Understanding Clock Errors
 
-Clock errors happen when:
-- The system time API fails (this is the only cause on current platforms)
+With the default `MonotonicClock`, clock errors do not happen: it never returns one.
 
-Not a clock error: A clock that steps backwards is **not** a source of `ClockError`: `SystemTime::now()` still succeeds, it simply returns an earlier value. Such a step makes clients look over-limit until the clock catches back up; see [#5](https://github.com/crustyrustacean/flux-limiter/issues/5).
+They can happen only if you pass `SystemClock` explicitly or write your own clock. With `SystemClock` there is one cause: the system clock is before the Unix epoch, so it cannot be read as a time since the epoch.
+
+Not a clock error: A clock that steps backwards is **not** a source of `ClockError`. Reading the clock still succeeds and simply returns an earlier value. With `SystemClock` that makes clients look over-limit until the clock catches back up, with no error reported. This is why `SystemClock` is not the default.
 
 ### Basic Clock Error Handling
 

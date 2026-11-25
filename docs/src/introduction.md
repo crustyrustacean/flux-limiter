@@ -4,11 +4,12 @@ A simple rate limiter based on the Generic Cell Rate Algorithm (GCRA) with nanos
 
 ## Features
 
-- **Mathematically precise**: Implements the GCRA algorithm with exact nanosecond timing
+- **Precise**: Implements the GCRA algorithm in integer nanoseconds. The rate is rounded to a whole-nanosecond interval, which is exact for any rate that divides one billion
 - **Generic client IDs**: Works with any hashable client identifier (`String`, `IpAddr`, `u64`, etc.)
 - **Rich metadata**: Returns detailed decision information for HTTP response construction
-- **Memory efficient**: Automatic cleanup of stale client entries
-- **Robust error handling**: Graceful handling of clock failures and configuration errors
+- **Unaffected by clock changes**: The default clock measures elapsed time, so an operating-system clock correction cannot lock clients out
+- **Memory efficient**: One atomic timestamp per client. Idle clients are removed when you call `cleanup_stale_clients()`; nothing runs in the background
+- **Robust error handling**: Invalid configuration is rejected with an error, and the default clock cannot fail
 - **Testable**: Clock abstraction enables deterministic testing
 - **Thread-safe**: Safe to use across multiple threads
 
@@ -25,9 +26,9 @@ Rate limiting is a technique used to control the rate at which requests or opera
 
 Flux Limiter stands out with its focus on:
 
-1. **Correctness**: Mathematically precise GCRA implementation
+1. **Correctness**: GCRA in integer arithmetic, with no floating-point state
 2. **Performance**: O(1) operations, and updating a known client takes no lock
-3. **Reliability**: Comprehensive error handling and graceful degradation
+3. **Reliability**: Invalid configuration is reported, and rate limiting does not depend on the operating-system clock being correct
 4. **Observability**: Rich metadata for monitoring and HTTP headers
 5. **Flexibility**: Generic design supporting various client ID types
 
@@ -36,7 +37,7 @@ Flux Limiter stands out with its focus on:
 Flux Limiter implements the Generic Cell Rate Algorithm (GCRA), which is mathematically equivalent to the token bucket algorithm but offers several advantages:
 
 - No background token refill processes
-- Exact timing without floating-point precision loss
+- No floating-point state: once the rate is a whole-nanosecond interval, the arithmetic is exact
 - Efficient state representation (one timestamp per client)
 - Deterministic behavior with integer arithmetic
 
@@ -45,8 +46,8 @@ Flux Limiter implements the Generic Cell Rate Algorithm (GCRA), which is mathema
 - **Memory**: O(number of active clients)
 - **Time complexity**: O(1) for `check_request()` operations
 - **Concurrency**: Each client's state is a single atomic in a sharded `DashMap`; updating a known client is a compare-and-swap with no lock
-- **Precision**: Nanosecond timing accuracy
-- **Reliability**: Graceful degradation on system clock issues
+- **Precision**: Nanosecond resolution. The rate interval is rounded to a whole number of nanoseconds
+- **Reliability**: The default clock is monotonic, so a backwards clock step does not deny requests
 
 ## Next Steps
 

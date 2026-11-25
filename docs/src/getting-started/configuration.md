@@ -164,14 +164,15 @@ The rate interval (`1_000_000_000 / rate`) and the burst tolerance (`burst × in
 In practice this is invisible at ordinary rates, but it has two visible consequences:
 
 - **A fractional burst can truncate to nothing, but only at very high rates.** The tolerance is `burst × interval` in nanoseconds, so it is lost entirely when that product is under 1 ns. At `rate = 10.0` the interval is 100 ms and even `burst = 0.004` keeps a 0.4 ms tolerance. But at `rate = 1e8` the interval is 10 ns, so `burst = 0.05` asks for 0.5 ns and gets no burst at all, while `burst = 0.1` (exactly 1 ns) is preserved.
-- **Rates above roughly 100 million per second are enforced slightly higher than requested.** For example `rate = 6e8` has a true interval of 1.667 ns, which truncates to 1 ns, so the limiter actually enforces 1e9 requests per second — 67% more than asked for.
+- **A rate that does not divide one billion is enforced higher than requested.** The interval is exact only when `1_000_000_000 / rate` is a whole number. Below about 10 million per second the discarded fraction is under 1% and not noticeable. Above that it grows quickly, because the interval is only a few nanoseconds and a fraction of one is a large share of it. For example `rate = 6e8` has a true interval of 1.667 ns, which truncates to 1 ns, so the limiter enforces 1e9 requests per second: 67% more than asked for.
 
-| Requested rate | Enforced rate | Difference |
-|---|---|---|
-| 1e8 | 1.0e8 | 0% |
-| 1.5e8 | 1.6667e8 | +11.1% |
-| 4e8 | 5.0e8 | +25.0% |
-| 6e8 | 1.0e9 | +66.7% |
+| Requested rate | Interval (ns) | Enforced rate | Difference |
+|---|---|---|---|
+| 1e8 | 10 | 1.0e8 | 0% |
+| 1.5e8 | 6 | 1.6667e8 | +11.1% |
+| 2.5e8 | 4 | 2.5e8 | 0% |
+| 4e8 | 2 | 5.0e8 | +25.0% |
+| 6e8 | 1 | 1.0e9 | +66.7% |
 
 If you need an exact limit, choose a rate that divides 1,000,000,000 evenly (such as `1e8`, `1e6`, `1000.0`, `10.0`, `1.0`); those are enforced exactly.
 
