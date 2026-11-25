@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-cd5fa576.js";
+            window.path_to_searchindex_js = "../searchindex-9b29f404.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-a16be429.js"></script>
@@ -596,7 +596,7 @@ impl RateLimitMiddleware for LoggingMiddleware {
 <h2 id="backward-compatibility-strategy"><a class="header" href="#backward-compatibility-strategy">Backward Compatibility Strategy</a></h2>
 <h3 id="semantic-versioning"><a class="header" href="#semantic-versioning">Semantic Versioning</a></h3>
 <ul>
-<li><strong>Patch (0.4.x)</strong>: Bug fixes, performance improvements</li>
+<li><strong>Patch (x.y.z)</strong>: Bug fixes, performance improvements</li>
 <li><strong>Minor (0.x.0)</strong>: New features, backward compatible</li>
 <li><strong>Major (x.0.0)</strong>: Breaking changes</li>
 </ul>
@@ -616,40 +616,45 @@ algorithms = []
 <li><strong>Transition Period</strong>: Support both old and new (2-3 minor versions)</li>
 <li><strong>Remove</strong>: Remove in next major version</li>
 </ol>
-<h3 id="type-aliases"><a class="header" href="#type-aliases">Type Aliases</a></h3>
-<p>Maintain existing API surface:</p>
+<h3 id="default-type-parameter"><a class="header" href="#default-type-parameter">Default Type Parameter</a></h3>
+<p>The existing API surface is kept by a default on the clock parameter rather
+than by type aliases (two aliases cannot share one name):</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>// Existing users can continue using this
-pub type FluxLimiter&lt;T&gt; = FluxLimiter&lt;T, SystemClock&gt;;
+</span>// `FluxLimiter&lt;T&gt;` is already the common spelling, because `C` defaults:
+pub struct FluxLimiter&lt;T, C = SystemClock&gt; { /* ... */ }
 
-// New users can use explicit clock type
-pub type FluxLimiter&lt;T, C&gt; = core::FluxLimiter&lt;T, C&gt;;
+// Users who need another clock name it explicitly:
+let limiter = FluxLimiter::&lt;String, C&gt;::with_config(config, clock)?;
 <span class="boring">}</span></code></pre>
-<h2 id="implementation-roadmap"><a class="header" href="#implementation-roadmap">Implementation Roadmap</a></h2>
-<h3 id="phase-1-core-improvements-v05"><a class="header" href="#phase-1-core-improvements-v05">Phase 1: Core Improvements (v0.5)</a></h3>
+<p>Any future change must keep both spellings working: <code>FluxLimiter&lt;T&gt;</code> and
+<code>FluxLimiter&lt;T, C&gt;</code>.</p>
+<h2 id="possible-directions"><a class="header" href="#possible-directions">Possible Directions</a></h2>
+<p>Ideas that have been discussed. None of these is scheduled or promised;
+the <a href="https://github.com/crustyrustacean/flux-limiter/issues">issue tracker</a>
+is the authoritative list of planned work.</p>
+<p><strong>Core</strong></p>
 <ul>
-<li><input disabled="" type="checkbox"> Async support</li>
-<li><input disabled="" type="checkbox"> Enhanced metrics</li>
-<li><input disabled="" type="checkbox"> Performance optimizations</li>
+<li>Async support</li>
+<li>Enhanced metrics</li>
 </ul>
-<h3 id="phase-2-persistence-v06"><a class="header" href="#phase-2-persistence-v06">Phase 2: Persistence (v0.6)</a></h3>
+<p><strong>Persistence</strong></p>
 <ul>
-<li><input disabled="" type="checkbox"> State store trait</li>
-<li><input disabled="" type="checkbox"> Redis backend</li>
-<li><input disabled="" type="checkbox"> PostgreSQL backend</li>
+<li>State store trait</li>
+<li>Redis backend</li>
+<li>PostgreSQL backend</li>
 </ul>
-<h3 id="phase-3-advanced-features-v07"><a class="header" href="#phase-3-advanced-features-v07">Phase 3: Advanced Features (v0.7)</a></h3>
+<p><strong>Algorithms</strong></p>
 <ul>
-<li><input disabled="" type="checkbox"> Alternative algorithms</li>
-<li><input disabled="" type="checkbox"> Distributed coordination</li>
-<li><input disabled="" type="checkbox"> Adaptive rate limiting</li>
+<li>Alternative algorithms</li>
+<li>Distributed coordination</li>
+<li>Adaptive rate limiting</li>
 </ul>
-<h3 id="phase-4-enterprise-features-v10"><a class="header" href="#phase-4-enterprise-features-v10">Phase 4: Enterprise Features (v1.0)</a></h3>
+<p><strong>Operations</strong></p>
 <ul>
-<li><input disabled="" type="checkbox"> Quota management</li>
-<li><input disabled="" type="checkbox"> Multi-tier support</li>
-<li><input disabled="" type="checkbox"> Advanced monitoring</li>
+<li>Quota management</li>
+<li>Multi-tier support</li>
+<li>Advanced monitoring</li>
 </ul>
 <h2 id="contributing"><a class="header" href="#contributing">Contributing</a></h2>
 <p>We welcome contributions! Areas of interest:</p>

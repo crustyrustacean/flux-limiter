@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-cd5fa576.js";
+            window.path_to_searchindex_js = "searchindex-9b29f404.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-a16be429.js"></script>
@@ -179,7 +179,7 @@
                 <div id="mdbook-content" class="content">
                     <main>
                         <h1 id="flux-limiter"><a class="header" href="#flux-limiter">Flux Limiter</a></h1>
-<p>A simple rate limiter based on the Generic Cell Rate Algorithm (GCRA) with nanosecond precision and lock-free concurrent access.</p>
+<p>A simple rate limiter based on the Generic Cell Rate Algorithm (GCRA) with nanosecond precision and lock-free per-client updates.</p>
 <h2 id="features"><a class="header" href="#features">Features</a></h2>
 <ul>
 <li><strong>Mathematically precise</strong>: Implements the GCRA algorithm with exact nanosecond timing</li>
@@ -202,7 +202,7 @@
 <p>Flux Limiter stands out with its focus on:</p>
 <ol>
 <li><strong>Correctness</strong>: Mathematically precise GCRA implementation</li>
-<li><strong>Performance</strong>: Lock-free concurrency with O(1) operations</li>
+<li><strong>Performance</strong>: O(1) operations, and updating a known client takes no lock</li>
 <li><strong>Reliability</strong>: Comprehensive error handling and graceful degradation</li>
 <li><strong>Observability</strong>: Rich metadata for monitoring and HTTP headers</li>
 <li><strong>Flexibility</strong>: Generic design supporting various client ID types</li>
@@ -219,7 +219,7 @@
 <ul>
 <li><strong>Memory</strong>: O(number of active clients)</li>
 <li><strong>Time complexity</strong>: O(1) for <code>check_request()</code> operations</li>
-<li><strong>Concurrency</strong>: Lock-free reads and writes via DashMap</li>
+<li><strong>Concurrency</strong>: Each client’s state is a single atomic in a sharded <code>DashMap</code>; updating a known client is a compare-and-swap with no lock</li>
 <li><strong>Precision</strong>: Nanosecond timing accuracy</li>
 <li><strong>Reliability</strong>: Graceful degradation on system clock issues</li>
 </ul>
@@ -921,7 +921,7 @@ match FluxLimiter::with_config(config, SystemClock) {
 </span>// Invalid: burst must be finite and non-negative
 let config = FluxLimiterConfig::new(10.0, -5.0);
 
-match FluxLimiter::with_config(config, SystemClock) {
+match FluxLimiter::&lt;String, _&gt;::with_config(config, SystemClock) {
     Ok(_) =&gt; println!("Success"),
     Err(FluxLimiterError::InvalidBurst) =&gt; {
         eprintln!("Error: Burst must be finite, &gt;= 0, and small enough to fit");
@@ -957,11 +957,9 @@ fn main() {
 <h3 id="understanding-clock-errors"><a class="header" href="#understanding-clock-errors">Understanding Clock Errors</a></h3>
 <p>Clock errors happen when:</p>
 <ul>
-<li>System time API fails</li>
-<li>Clock jumps backward (NTP adjustment)</li>
-<li>System suspend/resume causes time discontinuity</li>
-<li>Virtualization causes time skips</li>
+<li>The system time API fails (this is the only cause on current platforms)</li>
 </ul>
+<p>Not a clock error: A clock that steps backwards is <strong>not</strong> a source of <code>ClockError</code>: <code>SystemTime::now()</code> still succeeds, it simply returns an earlier value. Such a step makes clients look over-limit until the clock catches back up; see <a href="https://github.com/crustyrustacean/flux-limiter/issues/5">#5</a>.</p>
 <h3 id="basic-clock-error-handling"><a class="header" href="#basic-clock-error-handling">Basic Clock Error Handling</a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
@@ -992,7 +990,7 @@ fn main() {
     limiter: &amp;FluxLimiter&lt;String, SystemClock&gt;,
     client_id: &amp;str
 ) -&gt; bool {
-    match limiter.check_request(client_id) {
+    match limiter.check_request(client_id.to_string()) {
         Ok(decision) =&gt; decision.allowed,
         Err(FluxLimiterError::ClockError(_)) =&gt; {
             // Fail-open: allow request on clock error
@@ -1020,7 +1018,7 @@ fn main() {
     limiter: &amp;FluxLimiter&lt;String, SystemClock&gt;,
     client_id: &amp;str
 ) -&gt; bool {
-    match limiter.check_request(client_id) {
+    match limiter.check_request(client_id.to_string()) {
         Ok(decision) =&gt; decision.allowed,
         Err(FluxLimiterError::ClockError(_)) =&gt; {
             // Fail-closed: deny request on clock error
@@ -1055,7 +1053,7 @@ struct FallbackRateLimiter {
 
 impl FallbackRateLimiter {
     fn check_request(&amp;self, client_id: String) -&gt; bool {
-        match self.primary.check_request(client_id) {
+        match self.primary.check_request(client_id.to_string()) {
             Ok(decision) =&gt; decision.allowed,
             Err(FluxLimiterError::ClockError(_)) =&gt; {
                 // Use simple counter as fallback
@@ -1521,10 +1519,14 @@ let limiter = FluxLimiter::with_config(config, clock.clone()).unwrap();
 clock.advance(1_000_000_000); // Advance 1 second
 <span class="boring">}</span></code></pre>
 <h3 id="monotonic-clock"><a class="header" href="#monotonic-clock">Monotonic Clock</a></h3>
-<p>Ensure time never goes backward:</p>
+<p>The built-in <code>SystemClock</code> does not detect a backwards clock step
+(<a href="https://github.com/crustyrustacean/flux-limiter/issues/5">#5</a>). If that matters to
+you, wrap it so <code>now()</code> can never return a value lower than the last one it returned:</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>use std::sync::atomic::{AtomicU64, Ordering};
+</span>use flux_limiter::{Clock, ClockError};
+use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::Arc;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 #[derive(Clone)]
@@ -1578,20 +1580,23 @@ impl Clock for MonotonicClock {
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>use axum::{
+    body::Body,
     extract::State,
-    http::{Request, StatusCode, HeaderMap},
+    http::{HeaderMap, Request, StatusCode},
     middleware::Next,
-    response::{Response, IntoResponse},
+    response::{IntoResponse, Response},
 };
 use flux_limiter::{FluxLimiter, FluxLimiterError, SystemClock};
 use std::sync::Arc;
 
 type SharedLimiter = Arc&lt;FluxLimiter&lt;String, SystemClock&gt;&gt;;
 
-async fn rate_limit_middleware&lt;B&gt;(
+// `from_fn` middleware always sees the concrete body type `Body`, so the
+// request is `Request&lt;Body&gt;` and `Next` takes no generic parameter.
+async fn rate_limit_middleware(
     State(limiter): State&lt;SharedLimiter&gt;,
-    request: Request&lt;B&gt;,
-    next: Next&lt;B&gt;,
+    request: Request&lt;Body&gt;,
+    next: Next,
 ) -&gt; Result&lt;Response, (StatusCode, HeaderMap, &amp;'static str)&gt; {
     // Extract client ID (e.g., from IP or auth header)
     let client_ip = extract_client_ip(&amp;request);
@@ -1683,13 +1688,14 @@ async fn handler() -&gt; &amp;'static str {
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>use actix_web::{
+    body::BoxBody,
     dev::{Service, ServiceRequest, ServiceResponse, Transform},
     Error, HttpResponse, http::header,
 };
 use flux_limiter::{FluxLimiter, FluxLimiterError, SystemClock};
-use std::sync::Arc;
-use std::future::Future;
+use std::future::{ready, Future, Ready};
 use std::pin::Pin;
+use std::sync::Arc;
 
 pub struct RateLimitMiddleware {
     limiter: Arc&lt;FluxLimiter&lt;String, SystemClock&gt;&gt;,
@@ -1701,23 +1707,24 @@ impl RateLimitMiddleware {
     }
 }
 
-impl&lt;S, B&gt; Transform&lt;S, ServiceRequest&gt; for RateLimitMiddleware
+impl&lt;S&gt; Transform&lt;S, ServiceRequest&gt; for RateLimitMiddleware
 where
-    S: Service&lt;ServiceRequest, Response = ServiceResponse&lt;B&gt;, Error = Error&gt;,
+    // The middleware builds its own responses (429, 500), and those have a
+    // `BoxBody`, so it can only wrap a service that also produces `BoxBody`.
+    S: Service&lt;ServiceRequest, Response = ServiceResponse&lt;BoxBody&gt;, Error = Error&gt;,
     S::Future: 'static,
-    B: 'static,
 {
-    type Response = ServiceResponse&lt;B&gt;;
+    type Response = ServiceResponse&lt;BoxBody&gt;;
     type Error = Error;
     type Transform = RateLimitMiddlewareService&lt;S&gt;;
     type InitError = ();
-    type Future = Pin&lt;Box&lt;dyn Future&lt;Output = Result&lt;Self::Transform, Self::InitError&gt;&gt;&gt;&gt;;
+    type Future = Ready&lt;Result&lt;Self::Transform, Self::InitError&gt;&gt;;
 
     fn new_transform(&amp;self, service: S) -&gt; Self::Future {
-        let limiter = self.limiter.clone();
-        Box::pin(async move {
-            Ok(RateLimitMiddlewareService { service, limiter })
-        })
+        ready(Ok(RateLimitMiddlewareService {
+            service,
+            limiter: Arc::clone(&amp;self.limiter),
+        }))
     }
 }
 
@@ -1726,15 +1733,21 @@ pub struct RateLimitMiddlewareService&lt;S&gt; {
     limiter: Arc&lt;FluxLimiter&lt;String, SystemClock&gt;&gt;,
 }
 
-impl&lt;S, B&gt; Service&lt;ServiceRequest&gt; for RateLimitMiddlewareService&lt;S&gt;
+impl&lt;S&gt; Service&lt;ServiceRequest&gt; for RateLimitMiddlewareService&lt;S&gt;
 where
-    S: Service&lt;ServiceRequest, Response = ServiceResponse&lt;B&gt;, Error = Error&gt;,
+    S: Service&lt;ServiceRequest, Response = ServiceResponse&lt;BoxBody&gt;, Error = Error&gt;,
     S::Future: 'static,
-    B: 'static,
 {
-    type Response = ServiceResponse&lt;B&gt;;
+    type Response = ServiceResponse&lt;BoxBody&gt;;
     type Error = Error;
     type Future = Pin&lt;Box&lt;dyn Future&lt;Output = Result&lt;Self::Response, Self::Error&gt;&gt;&gt;&gt;;
+
+    fn poll_ready(
+        &amp;self,
+        cx: &amp;mut std::task::Context&lt;'_&gt;,
+    ) -&gt; std::task::Poll&lt;Result&lt;(), Self::Error&gt;&gt; {
+        self.service.poll_ready(cx)
+    }
 
     fn call(&amp;self, req: ServiceRequest) -&gt; Self::Future {
         let client_ip = req
@@ -1760,16 +1773,14 @@ where
                 })
             }
             Ok(decision) =&gt; {
-                Box::pin(async move {
-                    let mut response = HttpResponse::TooManyRequests();
-                    if let Some(retry_after) = decision.retry_after_seconds {
-                        response.insert_header((
-                            "Retry-After",
-                            (retry_after.ceil() as u64).to_string(),
-                        ));
-                    }
-                    Ok(req.into_response(response.finish()))
-                })
+                let mut response = HttpResponse::TooManyRequests();
+                if let Some(retry_after) = decision.retry_after_seconds {
+                    response.insert_header((
+                        "Retry-After",
+                        (retry_after.ceil() as u64).to_string(),
+                    ));
+                }
+                Box::pin(async move { Ok(req.into_response(response.finish())) })
             }
             Err(FluxLimiterError::ClockError(_)) =&gt; {
                 // Fail-open policy
@@ -1800,7 +1811,9 @@ use flux_limiter::{FluxLimiter, FluxLimiterDecision, SystemClock};
 use std::sync::Arc;
 
 pub struct RateLimited {
-    pub decision: FluxLimiterDecision,
+    /// `None` when the request was allowed by the fail-open policy
+    /// because the rate limiter itself errored, so there is no decision.
+    pub decision: Option&lt;FluxLimiterDecision&gt;,
 }
 
 #[rocket::async_trait]
@@ -1820,20 +1833,13 @@ impl&lt;'r&gt; FromRequest&lt;'r&gt; for RateLimited {
 
         match limiter.check_request(client_ip) {
             Ok(decision) if decision.allowed =&gt; {
-                Outcome::Success(RateLimited { decision })
+                Outcome::Success(RateLimited { decision: Some(decision) })
             }
+            // Denied
             Ok(_) =&gt; Outcome::Error((Status::TooManyRequests, ())),
-            Err(_) =&gt; {
-                // Fail-open
-                Outcome::Success(RateLimited {
-                    decision: FluxLimiterDecision {
-                        allowed: true,
-                        retry_after_seconds: None,
-                        remaining_capacity: None,
-                        reset_time_nanos: 0,
-                    },
-                })
-            }
+            // Fail-open. `FluxLimiterDecision` is `#[non_exhaustive]`, so it cannot
+            // be built here; carry `None` instead to mean "no decision was made".
+            Err(_) =&gt; Outcome::Success(RateLimited { decision: None }),
         }
     }
 }
@@ -1933,11 +1939,11 @@ impl TieredLimiters {
     }
 }
 
-async fn tiered_rate_limit&lt;B&gt;(
+async fn tiered_rate_limit(
     State(limiters): State&lt;Arc&lt;TieredLimiters&gt;&gt;,
     Extension(user_tier): Extension&lt;String&gt;,
-    request: Request&lt;B&gt;,
-    next: Next&lt;B&gt;,
+    request: Request&lt;Body&gt;,
+    next: Next,
 ) -&gt; Response {
     let client_ip = extract_client_ip(&amp;request);
     let limiter = limiters.get_limiter(&amp;user_tier);
@@ -2429,7 +2435,7 @@ mod load_tests {
 <h2 id="design-philosophy"><a class="header" href="#design-philosophy">Design Philosophy</a></h2>
 <p>Flux Limiter is built on several key architectural principles:</p>
 <ol>
-<li><strong>Lock-Free Concurrency</strong>: Uses atomic operations and lock-free data structures</li>
+<li><strong>Fine-Grained Concurrency</strong>: Each client’s state is one atomic value, so updating a known client takes no lock</li>
 <li><strong>Clock Abstraction</strong>: Enables testing and handles time-related failures</li>
 <li><strong>Type Safety</strong>: Leverages Rust’s type system for correctness guarantees</li>
 <li><strong>Graceful Degradation</strong>: Continues operation despite partial failures</li>
@@ -2484,9 +2490,9 @@ Return FluxLimiterDecision
 <h3 id="performance-first"><a class="header" href="#performance-first">Performance First</a></h3>
 <ul>
 <li><strong>O(1) operations</strong>: Constant time complexity for rate limit checks</li>
-<li><strong>Lock-free concurrency</strong>: No global locks or contention</li>
+<li><strong>Fine-grained concurrency</strong>: No global lock; requests for one client never wait on a lock</li>
 <li><strong>Nanosecond precision</strong>: Integer arithmetic avoids floating-point overhead</li>
-<li><strong>Nanosecond precision</strong>: Integer arithmetic avoids floating-point overhead</li>
+<li><strong>No lock on the hot path</strong>: updating a known client is a single compare-and-swap</li>
 </ul>
 <h3 id="correctness-guaranteed"><a class="header" href="#correctness-guaranteed">Correctness Guaranteed</a></h3>
 <ul>
@@ -2512,7 +2518,7 @@ Return FluxLimiterDecision
 <h2 id="system-requirements"><a class="header" href="#system-requirements">System Requirements</a></h2>
 <h3 id="dependencies"><a class="header" href="#dependencies">Dependencies</a></h3>
 <ul>
-<li><strong>DashMap</strong>: Lock-free concurrent hash map</li>
+<li><strong>DashMap</strong>: Sharded concurrent hash map (one <code>RwLock</code> per shard)</li>
 <li><strong>Rust Standard Library</strong>: Minimal external dependencies</li>
 <li><strong>No async runtime</strong>: Works with any async runtime (Tokio, async-std, etc.)</li>
 </ul>
@@ -2520,7 +2526,7 @@ Return FluxLimiterDecision
 <ul>
 <li><strong>Memory</strong>: O(number of active clients)</li>
 <li><strong>Time complexity</strong>: O(1) for check_request()</li>
-<li><strong>Concurrency</strong>: Lock-free reads and writes</li>
+<li><strong>Concurrency</strong>: Lock-free update of a known client; brief sharded locks for lookup and first insert</li>
 <li><strong>Precision</strong>: Nanosecond timing accuracy</li>
 <li><strong>Throughput</strong>: Depends on workload and hardware</li>
 </ul>
@@ -2815,7 +2821,7 @@ t=1.0s:   6 requests → All allowed, TAT=1.6s
 <div style="break-before: page; page-break-before: always;"></div>
 <h1 id="component-design"><a class="header" href="#component-design">Component Design</a></h1>
 <p>Detailed exploration of Flux Limiter’s core components and their design rationale.</p>
-<h2 id="fluxlimitert-c"><a class="header" href="#fluxlimitert-c">FluxLimiter&lt;T, C&gt;</a></h2>
+<h2 id="fluxlimitert-c"><a class="header" href="#fluxlimitert-c"><code>FluxLimiter&lt;T, C&gt;</code></a></h2>
 <p>The main rate limiter struct uses generics for flexibility.</p>
 <h3 id="structure-definition"><a class="header" href="#structure-definition">Structure Definition</a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
@@ -2851,11 +2857,11 @@ where
 <li>Custom: User-defined time sources</li>
 <li>Constrains: <code>Clock</code> trait</li>
 </ul>
-<p><strong>Arc<dashmap></dashmap></strong>:</p>
+<p><strong><code>Arc&lt;DashMap&gt;</code></strong>:</p>
 <ul>
 <li>Thread-safe shared ownership</li>
-<li>Lock-free concurrent access</li>
-<li>Minimal contention</li>
+<li>Sharded locks: a lookup takes one shard’s read lock, a first-time insert its write lock</li>
+<li>Updating a known client bypasses the lock entirely (compare-and-swap on its atomic)</li>
 <li>Efficient cloning</li>
 </ul>
 <p><strong>Nanosecond Storage</strong>:</p>
@@ -3080,12 +3086,11 @@ impl Clock for SystemClock {
     }
 }
 <span class="boring">}</span></code></pre>
-<p><strong>Handles Real-World Issues</strong>:</p>
+<p><strong>Known limitations</strong>:</p>
 <ul>
-<li>System clock going backwards (NTP adjustments)</li>
-<li>Clock resolution limitations</li>
-<li>System suspend/resume</li>
-<li>Virtualization time skips</li>
+<li>A clock that steps backwards is <strong>not</strong> a source of <code>ClockError</code>: <code>SystemTime::now()</code> still succeeds, it simply returns an earlier value. Such a step makes clients look over-limit until the clock catches back up; see <a href="https://github.com/crustyrustacean/flux-limiter/issues/5">#5</a>.</li>
+<li>Clock resolution is whatever the OS provides; the nanosecond value is only as fine as that</li>
+<li>Suspend/resume and VM migration can produce a discontinuity, with the same consequence as above</li>
 </ul>
 <h3 id="testclock"><a class="header" href="#testclock">TestClock</a></h3>
 <p>Deterministic time source for testing:</p>
@@ -3147,7 +3152,7 @@ impl TestClock {
 <p>All components are thread-safe:</p>
 <ul>
 <li><strong>FluxLimiter</strong>: Safe to share via <code>Arc</code></li>
-<li><strong>DashMap</strong>: Lock-free concurrent access</li>
+<li><strong>DashMap</strong>: Sharded concurrent access; per-client updates are lock-free</li>
 <li><strong>Clock</strong>: <code>Send + Sync</code> requirement</li>
 <li><strong>Decisions</strong>: Immutable after creation</li>
 </ul>
@@ -3666,33 +3671,17 @@ tokio::spawn(async move {
 </ul>
 <h2 id="runtime-clock-errors-1"><a class="header" href="#runtime-clock-errors-1">Runtime Clock Errors</a></h2>
 <h3 id="clock-error-sources"><a class="header" href="#clock-error-sources">Clock Error Sources</a></h3>
-<p>Clock errors occur when:</p>
+<p>On current platforms there is one source of <code>ClockError</code>:</p>
 <ol>
-<li>
-<p><strong>System Time Unavailable</strong></p>
+<li><strong>System Time Unavailable</strong>
 <ul>
-<li>System clock not accessible</li>
-<li>Permissions issues</li>
-<li>Platform limitations</li>
-</ul>
-</li>
-<li>
-<p><strong>Time Goes Backward</strong></p>
-<ul>
-<li>NTP adjustments</li>
-<li>Manual clock changes</li>
-<li>Virtualization issues</li>
-</ul>
-</li>
-<li>
-<p><strong>Time Discontinuities</strong></p>
-<ul>
-<li>System suspend/resume</li>
-<li>Hibernation</li>
-<li>Container migrations</li>
+<li>The system clock could not be read</li>
+<li>Reported as <code>ClockError::SystemTimeError</code></li>
 </ul>
 </li>
 </ol>
+<h3 id="what-is-not-a-clock-error"><a class="header" href="#what-is-not-a-clock-error">What is <em>not</em> a clock error</a></h3>
+<p>{LIMIT}</p>
 <h3 id="error-propagation"><a class="header" href="#error-propagation">Error Propagation</a></h3>
 <pre><code>Clock::now() → Result&lt;u64, ClockError&gt;
      ↓
@@ -4153,18 +4142,23 @@ compare-and-swap, and simple integer arithmetic — all O(1).</p>
 </table>
 </div>
 <h2 id="concurrency-performance"><a class="header" href="#concurrency-performance">Concurrency Performance</a></h2>
-<h3 id="lock-free-benefits"><a class="header" href="#lock-free-benefits">Lock-Free Benefits</a></h3>
-<p>DashMap uses segmented locking for concurrent access:</p>
+<h3 id="where-the-locks-are"><a class="header" href="#where-the-locks-are">Where the Locks Are</a></h3>
+<p>DashMap is sharded: each shard is a <code>HashMap</code> behind an <code>RwLock</code>. On top of it,
+each client’s TAT is an <code>AtomicU64</code>. The two together decide what locks:</p>
 <pre><code>Different clients → different shards (low contention)
 Same client     → one atomic  (compare-and-swap, no lock)
 Short critical sections → minimal lock duration
 </code></pre>
-<p><strong>Key factors</strong>:</p>
+<p><strong>What takes a lock, and what does not</strong>:</p>
 <ul>
-<li>Different clients = different shards (low contention)</li>
-<li>Same client = one atomic (compare-and-swap, no lock)</li>
-<li>Short critical sections</li>
+<li>Updating a known client: no lock (compare-and-swap on its atomic)</li>
+<li>Looking up a client: that shard’s read lock, shared with other lookups</li>
+<li>Inserting a client for the first time: that shard’s write lock, once per client</li>
+<li><code>cleanup_stale_clients</code>: each shard’s write lock in turn</li>
 </ul>
+<p>Measured with 4 threads on one client (i7-13700HX, criterion): 159 ns per request
+before the atomic TAT, 74 ns after. Distinct clients were unchanged at 30 ns, since
+they were never contending for the same lock to begin with.</p>
 <h3 id="contention-patterns"><a class="header" href="#contention-patterns">Contention Patterns</a></h3>
 <p><strong>Low Contention</strong> (different clients):</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
@@ -4182,7 +4176,8 @@ limiter.check_request("client_2")?; // Shard 1
 limiter.check_request("client_1")?; // Shard 0
 // Thread 2
 limiter.check_request("client_100")?; // Shard 0
-// Brief contention - short lock
+// Different atomics: the updates are independent. They only share a
+// brief read lock on the shard while being looked up.
 <span class="boring">}</span></code></pre>
 <p><strong>High Contention</strong> (same client):</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
@@ -4212,18 +4207,18 @@ limiter.check_request("client_1")?; // Shard 0
 <h3 id="dashmap-vs-alternatives"><a class="header" href="#dashmap-vs-alternatives">DashMap vs Alternatives</a></h3>
 <p><strong>DashMap (chosen)</strong>:</p>
 <ul>
-<li>✅ Lock-free reads/writes</li>
-<li>✅ Good scalability</li>
+<li>✅ Sharded locks, so one busy shard does not stall the others</li>
+<li>✅ With an atomic per client, the per-request update needs no lock at all</li>
 <li>✅ Battle-tested</li>
 <li>✅ Ergonomic API</li>
 </ul>
-<p><strong>Mutex<hashmap> (rejected)</hashmap></strong>:</p>
+<p><strong><code>Mutex&lt;HashMap&gt;</code> (rejected)</strong>:</p>
 <ul>
 <li>❌ Global locking</li>
 <li>❌ Poor scalability</li>
 <li>❌ Read contention</li>
 </ul>
-<p><strong>RwLock<hashmap> (rejected)</hashmap></strong>:</p>
+<p><strong><code>RwLock&lt;HashMap&gt;</code> (rejected)</strong>:</p>
 <ul>
 <li>❌ Reader/writer contention</li>
 <li>❌ Write starvation possible</li>
@@ -4875,11 +4870,11 @@ Token Bucket: Request allowed if tokens &gt;= 1
 <h3 id="decision-use-dashmap-for-client-state"><a class="header" href="#decision-use-dashmap-for-client-state">Decision: Use DashMap for Client State</a></h3>
 <p><strong>Rationale</strong>: DashMap provides the best balance of performance, correctness, and ergonomics.</p>
 <h3 id="dashmap-benefits"><a class="header" href="#dashmap-benefits">DashMap Benefits</a></h3>
-<p>✅ <strong>Lock-Free Concurrency</strong></p>
+<p>✅ <strong>Fine-Grained Concurrency</strong></p>
 <ul>
-<li>Segmented locking</li>
-<li>Different shards = no contention</li>
-<li>Near-linear scalability</li>
+<li>Each client’s TAT is an <code>AtomicU64</code>, updated by compare-and-swap with no lock</li>
+<li>Only lookups and first-time inserts take a (sharded) lock</li>
+<li>Requests for different clients never wait on each other</li>
 </ul>
 <p>✅ <strong>Battle-Tested</strong></p>
 <ul>
@@ -4899,7 +4894,7 @@ Token Bucket: Request allowed if tokens &gt;= 1
 <li>Easy to use correctly</li>
 <li>Clear semantics</li>
 </ul>
-<h3 id="alternative-mutex"><a class="header" href="#alternative-mutex">Alternative: Mutex<hashmap></hashmap></a></h3>
+<h3 id="alternative-mutexhashmap"><a class="header" href="#alternative-mutexhashmap">Alternative: <code>Mutex&lt;HashMap&gt;</code></a></h3>
 <p>❌ <strong>Global Locking</strong></p>
 <ul>
 <li>All operations serialize</li>
@@ -4907,7 +4902,7 @@ Token Bucket: Request allowed if tokens &gt;= 1
 <li>Read contention</li>
 </ul>
 <p><strong>Why rejected</strong>: Unacceptable performance bottleneck for concurrent access.</p>
-<h3 id="alternative-rwlock"><a class="header" href="#alternative-rwlock">Alternative: RwLock<hashmap></hashmap></a></h3>
+<h3 id="alternative-rwlockhashmap"><a class="header" href="#alternative-rwlockhashmap">Alternative: <code>RwLock&lt;HashMap&gt;</code></a></h3>
 <p>❌ <strong>Reader/Writer Contention</strong></p>
 <ul>
 <li>Writers block all readers</li>
@@ -5122,11 +5117,11 @@ Token Bucket: Request allowed if tokens &gt;= 1
 <li>Precise time control</li>
 <li>Failure simulation</li>
 </ul>
-<p>✅ <strong>Handles Real-World Issues</strong></p>
+<p>⚠️ <strong>Known limitation: wall-clock time</strong></p>
 <ul>
-<li>Clock going backwards</li>
-<li>System suspend/resume</li>
-<li>Virtualization issues</li>
+<li>The system clock can step backwards (NTP, manual change, VM migration)</li>
+<li><code>SystemClock</code> does not detect this and does not return an error</li>
+<li>Clients then appear over-limit until the clock catches up (<a href="https://github.com/crustyrustacean/flux-limiter/issues/5">#5</a>)</li>
 </ul>
 <p>✅ <strong>Flexible</strong></p>
 <ul>
@@ -5679,7 +5674,7 @@ impl RateLimitMiddleware for LoggingMiddleware {
 <h2 id="backward-compatibility-strategy"><a class="header" href="#backward-compatibility-strategy">Backward Compatibility Strategy</a></h2>
 <h3 id="semantic-versioning"><a class="header" href="#semantic-versioning">Semantic Versioning</a></h3>
 <ul>
-<li><strong>Patch (0.4.x)</strong>: Bug fixes, performance improvements</li>
+<li><strong>Patch (x.y.z)</strong>: Bug fixes, performance improvements</li>
 <li><strong>Minor (0.x.0)</strong>: New features, backward compatible</li>
 <li><strong>Major (x.0.0)</strong>: Breaking changes</li>
 </ul>
@@ -5699,40 +5694,45 @@ algorithms = []
 <li><strong>Transition Period</strong>: Support both old and new (2-3 minor versions)</li>
 <li><strong>Remove</strong>: Remove in next major version</li>
 </ol>
-<h3 id="type-aliases"><a class="header" href="#type-aliases">Type Aliases</a></h3>
-<p>Maintain existing API surface:</p>
+<h3 id="default-type-parameter"><a class="header" href="#default-type-parameter">Default Type Parameter</a></h3>
+<p>The existing API surface is kept by a default on the clock parameter rather
+than by type aliases (two aliases cannot share one name):</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>// Existing users can continue using this
-pub type FluxLimiter&lt;T&gt; = FluxLimiter&lt;T, SystemClock&gt;;
+</span>// `FluxLimiter&lt;T&gt;` is already the common spelling, because `C` defaults:
+pub struct FluxLimiter&lt;T, C = SystemClock&gt; { /* ... */ }
 
-// New users can use explicit clock type
-pub type FluxLimiter&lt;T, C&gt; = core::FluxLimiter&lt;T, C&gt;;
+// Users who need another clock name it explicitly:
+let limiter = FluxLimiter::&lt;String, C&gt;::with_config(config, clock)?;
 <span class="boring">}</span></code></pre>
-<h2 id="implementation-roadmap"><a class="header" href="#implementation-roadmap">Implementation Roadmap</a></h2>
-<h3 id="phase-1-core-improvements-v05"><a class="header" href="#phase-1-core-improvements-v05">Phase 1: Core Improvements (v0.5)</a></h3>
+<p>Any future change must keep both spellings working: <code>FluxLimiter&lt;T&gt;</code> and
+<code>FluxLimiter&lt;T, C&gt;</code>.</p>
+<h2 id="possible-directions"><a class="header" href="#possible-directions">Possible Directions</a></h2>
+<p>Ideas that have been discussed. None of these is scheduled or promised;
+the <a href="https://github.com/crustyrustacean/flux-limiter/issues">issue tracker</a>
+is the authoritative list of planned work.</p>
+<p><strong>Core</strong></p>
 <ul>
-<li><input disabled="" type="checkbox"> Async support</li>
-<li><input disabled="" type="checkbox"> Enhanced metrics</li>
-<li><input disabled="" type="checkbox"> Performance optimizations</li>
+<li>Async support</li>
+<li>Enhanced metrics</li>
 </ul>
-<h3 id="phase-2-persistence-v06"><a class="header" href="#phase-2-persistence-v06">Phase 2: Persistence (v0.6)</a></h3>
+<p><strong>Persistence</strong></p>
 <ul>
-<li><input disabled="" type="checkbox"> State store trait</li>
-<li><input disabled="" type="checkbox"> Redis backend</li>
-<li><input disabled="" type="checkbox"> PostgreSQL backend</li>
+<li>State store trait</li>
+<li>Redis backend</li>
+<li>PostgreSQL backend</li>
 </ul>
-<h3 id="phase-3-advanced-features-v07"><a class="header" href="#phase-3-advanced-features-v07">Phase 3: Advanced Features (v0.7)</a></h3>
+<p><strong>Algorithms</strong></p>
 <ul>
-<li><input disabled="" type="checkbox"> Alternative algorithms</li>
-<li><input disabled="" type="checkbox"> Distributed coordination</li>
-<li><input disabled="" type="checkbox"> Adaptive rate limiting</li>
+<li>Alternative algorithms</li>
+<li>Distributed coordination</li>
+<li>Adaptive rate limiting</li>
 </ul>
-<h3 id="phase-4-enterprise-features-v10"><a class="header" href="#phase-4-enterprise-features-v10">Phase 4: Enterprise Features (v1.0)</a></h3>
+<p><strong>Operations</strong></p>
 <ul>
-<li><input disabled="" type="checkbox"> Quota management</li>
-<li><input disabled="" type="checkbox"> Multi-tier support</li>
-<li><input disabled="" type="checkbox"> Advanced monitoring</li>
+<li>Quota management</li>
+<li>Multi-tier support</li>
+<li>Advanced monitoring</li>
 </ul>
 <h2 id="contributing"><a class="header" href="#contributing">Contributing</a></h2>
 <p>We welcome contributions! Areas of interest:</p>

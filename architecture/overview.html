@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-cd5fa576.js";
+            window.path_to_searchindex_js = "../searchindex-9b29f404.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-a16be429.js"></script>
@@ -185,7 +185,7 @@
 <h2 id="design-philosophy"><a class="header" href="#design-philosophy">Design Philosophy</a></h2>
 <p>Flux Limiter is built on several key architectural principles:</p>
 <ol>
-<li><strong>Lock-Free Concurrency</strong>: Uses atomic operations and lock-free data structures</li>
+<li><strong>Fine-Grained Concurrency</strong>: Each client’s state is one atomic value, so updating a known client takes no lock</li>
 <li><strong>Clock Abstraction</strong>: Enables testing and handles time-related failures</li>
 <li><strong>Type Safety</strong>: Leverages Rust’s type system for correctness guarantees</li>
 <li><strong>Graceful Degradation</strong>: Continues operation despite partial failures</li>
@@ -240,9 +240,9 @@ Return FluxLimiterDecision
 <h3 id="performance-first"><a class="header" href="#performance-first">Performance First</a></h3>
 <ul>
 <li><strong>O(1) operations</strong>: Constant time complexity for rate limit checks</li>
-<li><strong>Lock-free concurrency</strong>: No global locks or contention</li>
+<li><strong>Fine-grained concurrency</strong>: No global lock; requests for one client never wait on a lock</li>
 <li><strong>Nanosecond precision</strong>: Integer arithmetic avoids floating-point overhead</li>
-<li><strong>Nanosecond precision</strong>: Integer arithmetic avoids floating-point overhead</li>
+<li><strong>No lock on the hot path</strong>: updating a known client is a single compare-and-swap</li>
 </ul>
 <h3 id="correctness-guaranteed"><a class="header" href="#correctness-guaranteed">Correctness Guaranteed</a></h3>
 <ul>
@@ -268,7 +268,7 @@ Return FluxLimiterDecision
 <h2 id="system-requirements"><a class="header" href="#system-requirements">System Requirements</a></h2>
 <h3 id="dependencies"><a class="header" href="#dependencies">Dependencies</a></h3>
 <ul>
-<li><strong>DashMap</strong>: Lock-free concurrent hash map</li>
+<li><strong>DashMap</strong>: Sharded concurrent hash map (one <code>RwLock</code> per shard)</li>
 <li><strong>Rust Standard Library</strong>: Minimal external dependencies</li>
 <li><strong>No async runtime</strong>: Works with any async runtime (Tokio, async-std, etc.)</li>
 </ul>
@@ -276,7 +276,7 @@ Return FluxLimiterDecision
 <ul>
 <li><strong>Memory</strong>: O(number of active clients)</li>
 <li><strong>Time complexity</strong>: O(1) for check_request()</li>
-<li><strong>Concurrency</strong>: Lock-free reads and writes</li>
+<li><strong>Concurrency</strong>: Lock-free update of a known client; brief sharded locks for lookup and first insert</li>
 <li><strong>Precision</strong>: Nanosecond timing accuracy</li>
 <li><strong>Throughput</strong>: Depends on workload and hardware</li>
 </ul>

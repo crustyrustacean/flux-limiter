@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-cd5fa576.js";
+            window.path_to_searchindex_js = "../searchindex-9b29f404.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-a16be429.js"></script>
@@ -187,20 +187,23 @@
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>use axum::{
+    body::Body,
     extract::State,
-    http::{Request, StatusCode, HeaderMap},
+    http::{HeaderMap, Request, StatusCode},
     middleware::Next,
-    response::{Response, IntoResponse},
+    response::{IntoResponse, Response},
 };
 use flux_limiter::{FluxLimiter, FluxLimiterError, SystemClock};
 use std::sync::Arc;
 
 type SharedLimiter = Arc&lt;FluxLimiter&lt;String, SystemClock&gt;&gt;;
 
-async fn rate_limit_middleware&lt;B&gt;(
+// `from_fn` middleware always sees the concrete body type `Body`, so the
+// request is `Request&lt;Body&gt;` and `Next` takes no generic parameter.
+async fn rate_limit_middleware(
     State(limiter): State&lt;SharedLimiter&gt;,
-    request: Request&lt;B&gt;,
-    next: Next&lt;B&gt;,
+    request: Request&lt;Body&gt;,
+    next: Next,
 ) -&gt; Result&lt;Response, (StatusCode, HeaderMap, &amp;'static str)&gt; {
     // Extract client ID (e.g., from IP or auth header)
     let client_ip = extract_client_ip(&amp;request);
@@ -292,13 +295,14 @@ async fn handler() -&gt; &amp;'static str {
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>use actix_web::{
+    body::BoxBody,
     dev::{Service, ServiceRequest, ServiceResponse, Transform},
     Error, HttpResponse, http::header,
 };
 use flux_limiter::{FluxLimiter, FluxLimiterError, SystemClock};
-use std::sync::Arc;
-use std::future::Future;
+use std::future::{ready, Future, Ready};
 use std::pin::Pin;
+use std::sync::Arc;
 
 pub struct RateLimitMiddleware {
     limiter: Arc&lt;FluxLimiter&lt;String, SystemClock&gt;&gt;,
@@ -310,23 +314,24 @@ impl RateLimitMiddleware {
     }
 }
 
-impl&lt;S, B&gt; Transform&lt;S, ServiceRequest&gt; for RateLimitMiddleware
+impl&lt;S&gt; Transform&lt;S, ServiceRequest&gt; for RateLimitMiddleware
 where
-    S: Service&lt;ServiceRequest, Response = ServiceResponse&lt;B&gt;, Error = Error&gt;,
+    // The middleware builds its own responses (429, 500), and those have a
+    // `BoxBody`, so it can only wrap a service that also produces `BoxBody`.
+    S: Service&lt;ServiceRequest, Response = ServiceResponse&lt;BoxBody&gt;, Error = Error&gt;,
     S::Future: 'static,
-    B: 'static,
 {
-    type Response = ServiceResponse&lt;B&gt;;
+    type Response = ServiceResponse&lt;BoxBody&gt;;
     type Error = Error;
     type Transform = RateLimitMiddlewareService&lt;S&gt;;
     type InitError = ();
-    type Future = Pin&lt;Box&lt;dyn Future&lt;Output = Result&lt;Self::Transform, Self::InitError&gt;&gt;&gt;&gt;;
+    type Future = Ready&lt;Result&lt;Self::Transform, Self::InitError&gt;&gt;;
 
     fn new_transform(&amp;self, service: S) -&gt; Self::Future {
-        let limiter = self.limiter.clone();
-        Box::pin(async move {
-            Ok(RateLimitMiddlewareService { service, limiter })
-        })
+        ready(Ok(RateLimitMiddlewareService {
+            service,
+            limiter: Arc::clone(&amp;self.limiter),
+        }))
     }
 }
 
@@ -335,15 +340,21 @@ pub struct RateLimitMiddlewareService&lt;S&gt; {
     limiter: Arc&lt;FluxLimiter&lt;String, SystemClock&gt;&gt;,
 }
 
-impl&lt;S, B&gt; Service&lt;ServiceRequest&gt; for RateLimitMiddlewareService&lt;S&gt;
+impl&lt;S&gt; Service&lt;ServiceRequest&gt; for RateLimitMiddlewareService&lt;S&gt;
 where
-    S: Service&lt;ServiceRequest, Response = ServiceResponse&lt;B&gt;, Error = Error&gt;,
+    S: Service&lt;ServiceRequest, Response = ServiceResponse&lt;BoxBody&gt;, Error = Error&gt;,
     S::Future: 'static,
-    B: 'static,
 {
-    type Response = ServiceResponse&lt;B&gt;;
+    type Response = ServiceResponse&lt;BoxBody&gt;;
     type Error = Error;
     type Future = Pin&lt;Box&lt;dyn Future&lt;Output = Result&lt;Self::Response, Self::Error&gt;&gt;&gt;&gt;;
+
+    fn poll_ready(
+        &amp;self,
+        cx: &amp;mut std::task::Context&lt;'_&gt;,
+    ) -&gt; std::task::Poll&lt;Result&lt;(), Self::Error&gt;&gt; {
+        self.service.poll_ready(cx)
+    }
 
     fn call(&amp;self, req: ServiceRequest) -&gt; Self::Future {
         let client_ip = req
@@ -369,16 +380,14 @@ where
                 })
             }
             Ok(decision) =&gt; {
-                Box::pin(async move {
-                    let mut response = HttpResponse::TooManyRequests();
-                    if let Some(retry_after) = decision.retry_after_seconds {
-                        response.insert_header((
-                            "Retry-After",
-                            (retry_after.ceil() as u64).to_string(),
-                        ));
-                    }
-                    Ok(req.into_response(response.finish()))
-                })
+                let mut response = HttpResponse::TooManyRequests();
+                if let Some(retry_after) = decision.retry_after_seconds {
+                    response.insert_header((
+                        "Retry-After",
+                        (retry_after.ceil() as u64).to_string(),
+                    ));
+                }
+                Box::pin(async move { Ok(req.into_response(response.finish())) })
             }
             Err(FluxLimiterError::ClockError(_)) =&gt; {
                 // Fail-open policy
@@ -409,7 +418,9 @@ use flux_limiter::{FluxLimiter, FluxLimiterDecision, SystemClock};
 use std::sync::Arc;
 
 pub struct RateLimited {
-    pub decision: FluxLimiterDecision,
+    /// `None` when the request was allowed by the fail-open policy
+    /// because the rate limiter itself errored, so there is no decision.
+    pub decision: Option&lt;FluxLimiterDecision&gt;,
 }
 
 #[rocket::async_trait]
@@ -429,20 +440,13 @@ impl&lt;'r&gt; FromRequest&lt;'r&gt; for RateLimited {
 
         match limiter.check_request(client_ip) {
             Ok(decision) if decision.allowed =&gt; {
-                Outcome::Success(RateLimited { decision })
+                Outcome::Success(RateLimited { decision: Some(decision) })
             }
+            // Denied
             Ok(_) =&gt; Outcome::Error((Status::TooManyRequests, ())),
-            Err(_) =&gt; {
-                // Fail-open
-                Outcome::Success(RateLimited {
-                    decision: FluxLimiterDecision {
-                        allowed: true,
-                        retry_after_seconds: None,
-                        remaining_capacity: None,
-                        reset_time_nanos: 0,
-                    },
-                })
-            }
+            // Fail-open. `FluxLimiterDecision` is `#[non_exhaustive]`, so it cannot
+            // be built here; carry `None` instead to mean "no decision was made".
+            Err(_) =&gt; Outcome::Success(RateLimited { decision: None }),
         }
     }
 }
@@ -542,11 +546,11 @@ impl TieredLimiters {
     }
 }
 
-async fn tiered_rate_limit&lt;B&gt;(
+async fn tiered_rate_limit(
     State(limiters): State&lt;Arc&lt;TieredLimiters&gt;&gt;,
     Extension(user_tier): Extension&lt;String&gt;,
-    request: Request&lt;B&gt;,
-    next: Next&lt;B&gt;,
+    request: Request&lt;Body&gt;,
+    next: Next,
 ) -&gt; Response {
     let client_ip = extract_client_ip(&amp;request);
     let limiter = limiters.get_limiter(&amp;user_tier);

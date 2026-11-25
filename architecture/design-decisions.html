@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-cd5fa576.js";
+            window.path_to_searchindex_js = "../searchindex-9b29f404.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-a16be429.js"></script>
@@ -239,11 +239,11 @@ Token Bucket: Request allowed if tokens &gt;= 1
 <h3 id="decision-use-dashmap-for-client-state"><a class="header" href="#decision-use-dashmap-for-client-state">Decision: Use DashMap for Client State</a></h3>
 <p><strong>Rationale</strong>: DashMap provides the best balance of performance, correctness, and ergonomics.</p>
 <h3 id="dashmap-benefits"><a class="header" href="#dashmap-benefits">DashMap Benefits</a></h3>
-<p>✅ <strong>Lock-Free Concurrency</strong></p>
+<p>✅ <strong>Fine-Grained Concurrency</strong></p>
 <ul>
-<li>Segmented locking</li>
-<li>Different shards = no contention</li>
-<li>Near-linear scalability</li>
+<li>Each client’s TAT is an <code>AtomicU64</code>, updated by compare-and-swap with no lock</li>
+<li>Only lookups and first-time inserts take a (sharded) lock</li>
+<li>Requests for different clients never wait on each other</li>
 </ul>
 <p>✅ <strong>Battle-Tested</strong></p>
 <ul>
@@ -263,7 +263,7 @@ Token Bucket: Request allowed if tokens &gt;= 1
 <li>Easy to use correctly</li>
 <li>Clear semantics</li>
 </ul>
-<h3 id="alternative-mutex"><a class="header" href="#alternative-mutex">Alternative: Mutex<hashmap></hashmap></a></h3>
+<h3 id="alternative-mutexhashmap"><a class="header" href="#alternative-mutexhashmap">Alternative: <code>Mutex&lt;HashMap&gt;</code></a></h3>
 <p>❌ <strong>Global Locking</strong></p>
 <ul>
 <li>All operations serialize</li>
@@ -271,7 +271,7 @@ Token Bucket: Request allowed if tokens &gt;= 1
 <li>Read contention</li>
 </ul>
 <p><strong>Why rejected</strong>: Unacceptable performance bottleneck for concurrent access.</p>
-<h3 id="alternative-rwlock"><a class="header" href="#alternative-rwlock">Alternative: RwLock<hashmap></hashmap></a></h3>
+<h3 id="alternative-rwlockhashmap"><a class="header" href="#alternative-rwlockhashmap">Alternative: <code>RwLock&lt;HashMap&gt;</code></a></h3>
 <p>❌ <strong>Reader/Writer Contention</strong></p>
 <ul>
 <li>Writers block all readers</li>
@@ -486,11 +486,11 @@ Token Bucket: Request allowed if tokens &gt;= 1
 <li>Precise time control</li>
 <li>Failure simulation</li>
 </ul>
-<p>✅ <strong>Handles Real-World Issues</strong></p>
+<p>⚠️ <strong>Known limitation: wall-clock time</strong></p>
 <ul>
-<li>Clock going backwards</li>
-<li>System suspend/resume</li>
-<li>Virtualization issues</li>
+<li>The system clock can step backwards (NTP, manual change, VM migration)</li>
+<li><code>SystemClock</code> does not detect this and does not return an error</li>
+<li>Clients then appear over-limit until the clock catches up (<a href="https://github.com/crustyrustacean/flux-limiter/issues/5">#5</a>)</li>
 </ul>
 <p>✅ <strong>Flexible</strong></p>
 <ul>

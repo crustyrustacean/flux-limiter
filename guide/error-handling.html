@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-cd5fa576.js";
+            window.path_to_searchindex_js = "../searchindex-9b29f404.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-a16be429.js"></script>
@@ -222,7 +222,7 @@ match FluxLimiter::with_config(config, SystemClock) {
 </span>// Invalid: burst must be finite and non-negative
 let config = FluxLimiterConfig::new(10.0, -5.0);
 
-match FluxLimiter::with_config(config, SystemClock) {
+match FluxLimiter::&lt;String, _&gt;::with_config(config, SystemClock) {
     Ok(_) =&gt; println!("Success"),
     Err(FluxLimiterError::InvalidBurst) =&gt; {
         eprintln!("Error: Burst must be finite, &gt;= 0, and small enough to fit");
@@ -258,11 +258,9 @@ fn main() {
 <h3 id="understanding-clock-errors"><a class="header" href="#understanding-clock-errors">Understanding Clock Errors</a></h3>
 <p>Clock errors happen when:</p>
 <ul>
-<li>System time API fails</li>
-<li>Clock jumps backward (NTP adjustment)</li>
-<li>System suspend/resume causes time discontinuity</li>
-<li>Virtualization causes time skips</li>
+<li>The system time API fails (this is the only cause on current platforms)</li>
 </ul>
+<p>Not a clock error: A clock that steps backwards is <strong>not</strong> a source of <code>ClockError</code>: <code>SystemTime::now()</code> still succeeds, it simply returns an earlier value. Such a step makes clients look over-limit until the clock catches back up; see <a href="https://github.com/crustyrustacean/flux-limiter/issues/5">#5</a>.</p>
 <h3 id="basic-clock-error-handling"><a class="header" href="#basic-clock-error-handling">Basic Clock Error Handling</a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
@@ -293,7 +291,7 @@ fn main() {
     limiter: &amp;FluxLimiter&lt;String, SystemClock&gt;,
     client_id: &amp;str
 ) -&gt; bool {
-    match limiter.check_request(client_id) {
+    match limiter.check_request(client_id.to_string()) {
         Ok(decision) =&gt; decision.allowed,
         Err(FluxLimiterError::ClockError(_)) =&gt; {
             // Fail-open: allow request on clock error
@@ -321,7 +319,7 @@ fn main() {
     limiter: &amp;FluxLimiter&lt;String, SystemClock&gt;,
     client_id: &amp;str
 ) -&gt; bool {
-    match limiter.check_request(client_id) {
+    match limiter.check_request(client_id.to_string()) {
         Ok(decision) =&gt; decision.allowed,
         Err(FluxLimiterError::ClockError(_)) =&gt; {
             // Fail-closed: deny request on clock error
@@ -356,7 +354,7 @@ struct FallbackRateLimiter {
 
 impl FallbackRateLimiter {
     fn check_request(&amp;self, client_id: String) -&gt; bool {
-        match self.primary.check_request(client_id) {
+        match self.primary.check_request(client_id.to_string()) {
             Ok(decision) =&gt; decision.allowed,
             Err(FluxLimiterError::ClockError(_)) =&gt; {
                 // Use simple counter as fallback

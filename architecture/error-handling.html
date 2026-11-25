@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-cd5fa576.js";
+            window.path_to_searchindex_js = "../searchindex-9b29f404.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-a16be429.js"></script>
@@ -266,33 +266,17 @@
 </ul>
 <h2 id="runtime-clock-errors"><a class="header" href="#runtime-clock-errors">Runtime Clock Errors</a></h2>
 <h3 id="clock-error-sources"><a class="header" href="#clock-error-sources">Clock Error Sources</a></h3>
-<p>Clock errors occur when:</p>
+<p>On current platforms there is one source of <code>ClockError</code>:</p>
 <ol>
-<li>
-<p><strong>System Time Unavailable</strong></p>
+<li><strong>System Time Unavailable</strong>
 <ul>
-<li>System clock not accessible</li>
-<li>Permissions issues</li>
-<li>Platform limitations</li>
-</ul>
-</li>
-<li>
-<p><strong>Time Goes Backward</strong></p>
-<ul>
-<li>NTP adjustments</li>
-<li>Manual clock changes</li>
-<li>Virtualization issues</li>
-</ul>
-</li>
-<li>
-<p><strong>Time Discontinuities</strong></p>
-<ul>
-<li>System suspend/resume</li>
-<li>Hibernation</li>
-<li>Container migrations</li>
+<li>The system clock could not be read</li>
+<li>Reported as <code>ClockError::SystemTimeError</code></li>
 </ul>
 </li>
 </ol>
+<h3 id="what-is-not-a-clock-error"><a class="header" href="#what-is-not-a-clock-error">What is <em>not</em> a clock error</a></h3>
+<p>{LIMIT}</p>
 <h3 id="error-propagation"><a class="header" href="#error-propagation">Error Propagation</a></h3>
 <pre><code>Clock::now() → Result&lt;u64, ClockError&gt;
      ↓

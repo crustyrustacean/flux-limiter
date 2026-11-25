@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-cd5fa576.js";
+            window.path_to_searchindex_js = "../searchindex-9b29f404.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-a16be429.js"></script>
@@ -508,10 +508,14 @@ let limiter = FluxLimiter::with_config(config, clock.clone()).unwrap();
 clock.advance(1_000_000_000); // Advance 1 second
 <span class="boring">}</span></code></pre>
 <h3 id="monotonic-clock"><a class="header" href="#monotonic-clock">Monotonic Clock</a></h3>
-<p>Ensure time never goes backward:</p>
+<p>The built-in <code>SystemClock</code> does not detect a backwards clock step
+(<a href="https://github.com/crustyrustacean/flux-limiter/issues/5">#5</a>). If that matters to
+you, wrap it so <code>now()</code> can never return a value lower than the last one it returned:</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>use std::sync::atomic::{AtomicU64, Ordering};
+</span>use flux_limiter::{Clock, ClockError};
+use std::sync::atomic::{AtomicU64, Ordering};
+use std::sync::Arc;
 use std::time::{SystemTime, UNIX_EPOCH};
 
 #[derive(Clone)]

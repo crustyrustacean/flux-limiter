@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-cd5fa576.js";
+            window.path_to_searchindex_js = "../searchindex-9b29f404.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-a16be429.js"></script>
@@ -182,7 +182,7 @@
                     <main>
                         <h1 id="component-design"><a class="header" href="#component-design">Component Design</a></h1>
 <p>Detailed exploration of Flux Limiter’s core components and their design rationale.</p>
-<h2 id="fluxlimitert-c"><a class="header" href="#fluxlimitert-c">FluxLimiter&lt;T, C&gt;</a></h2>
+<h2 id="fluxlimitert-c"><a class="header" href="#fluxlimitert-c"><code>FluxLimiter&lt;T, C&gt;</code></a></h2>
 <p>The main rate limiter struct uses generics for flexibility.</p>
 <h3 id="structure-definition"><a class="header" href="#structure-definition">Structure Definition</a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
@@ -218,11 +218,11 @@ where
 <li>Custom: User-defined time sources</li>
 <li>Constrains: <code>Clock</code> trait</li>
 </ul>
-<p><strong>Arc<dashmap></dashmap></strong>:</p>
+<p><strong><code>Arc&lt;DashMap&gt;</code></strong>:</p>
 <ul>
 <li>Thread-safe shared ownership</li>
-<li>Lock-free concurrent access</li>
-<li>Minimal contention</li>
+<li>Sharded locks: a lookup takes one shard’s read lock, a first-time insert its write lock</li>
+<li>Updating a known client bypasses the lock entirely (compare-and-swap on its atomic)</li>
 <li>Efficient cloning</li>
 </ul>
 <p><strong>Nanosecond Storage</strong>:</p>
@@ -447,12 +447,11 @@ impl Clock for SystemClock {
     }
 }
 <span class="boring">}</span></code></pre>
-<p><strong>Handles Real-World Issues</strong>:</p>
+<p><strong>Known limitations</strong>:</p>
 <ul>
-<li>System clock going backwards (NTP adjustments)</li>
-<li>Clock resolution limitations</li>
-<li>System suspend/resume</li>
-<li>Virtualization time skips</li>
+<li>A clock that steps backwards is <strong>not</strong> a source of <code>ClockError</code>: <code>SystemTime::now()</code> still succeeds, it simply returns an earlier value. Such a step makes clients look over-limit until the clock catches back up; see <a href="https://github.com/crustyrustacean/flux-limiter/issues/5">#5</a>.</li>
+<li>Clock resolution is whatever the OS provides; the nanosecond value is only as fine as that</li>
+<li>Suspend/resume and VM migration can produce a discontinuity, with the same consequence as above</li>
 </ul>
 <h3 id="testclock"><a class="header" href="#testclock">TestClock</a></h3>
 <p>Deterministic time source for testing:</p>
@@ -514,7 +513,7 @@ impl TestClock {
 <p>All components are thread-safe:</p>
 <ul>
 <li><strong>FluxLimiter</strong>: Safe to share via <code>Arc</code></li>
-<li><strong>DashMap</strong>: Lock-free concurrent access</li>
+<li><strong>DashMap</strong>: Sharded concurrent access; per-client updates are lock-free</li>
 <li><strong>Clock</strong>: <code>Send + Sync</code> requirement</li>
 <li><strong>Decisions</strong>: Immutable after creation</li>
 </ul>

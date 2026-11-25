@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-cd5fa576.js";
+            window.path_to_searchindex_js = "searchindex-9b29f404.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-a16be429.js"></script>
@@ -181,7 +181,7 @@
                 <div id="mdbook-content" class="content">
                     <main>
                         <h1 id="flux-limiter"><a class="header" href="#flux-limiter">Flux Limiter</a></h1>
-<p>A simple rate limiter based on the Generic Cell Rate Algorithm (GCRA) with nanosecond precision and lock-free concurrent access.</p>
+<p>A simple rate limiter based on the Generic Cell Rate Algorithm (GCRA) with nanosecond precision and lock-free per-client updates.</p>
 <h2 id="features"><a class="header" href="#features">Features</a></h2>
 <ul>
 <li><strong>Mathematically precise</strong>: Implements the GCRA algorithm with exact nanosecond timing</li>
@@ -204,7 +204,7 @@
 <p>Flux Limiter stands out with its focus on:</p>
 <ol>
 <li><strong>Correctness</strong>: Mathematically precise GCRA implementation</li>
-<li><strong>Performance</strong>: Lock-free concurrency with O(1) operations</li>
+<li><strong>Performance</strong>: O(1) operations, and updating a known client takes no lock</li>
 <li><strong>Reliability</strong>: Comprehensive error handling and graceful degradation</li>
 <li><strong>Observability</strong>: Rich metadata for monitoring and HTTP headers</li>
 <li><strong>Flexibility</strong>: Generic design supporting various client ID types</li>
@@ -221,7 +221,7 @@
 <ul>
 <li><strong>Memory</strong>: O(number of active clients)</li>
 <li><strong>Time complexity</strong>: O(1) for <code>check_request()</code> operations</li>
-<li><strong>Concurrency</strong>: Lock-free reads and writes via DashMap</li>
+<li><strong>Concurrency</strong>: Each client’s state is a single atomic in a sharded <code>DashMap</code>; updating a known client is a compare-and-swap with no lock</li>
 <li><strong>Precision</strong>: Nanosecond timing accuracy</li>
 <li><strong>Reliability</strong>: Graceful degradation on system clock issues</li>
 </ul>

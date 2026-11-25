@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-cd5fa576.js";
+            window.path_to_searchindex_js = "../searchindex-9b29f404.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-a16be429.js"></script>
@@ -291,18 +291,23 @@ compare-and-swap, and simple integer arithmetic — all O(1).</p>
 </table>
 </div>
 <h2 id="concurrency-performance"><a class="header" href="#concurrency-performance">Concurrency Performance</a></h2>
-<h3 id="lock-free-benefits"><a class="header" href="#lock-free-benefits">Lock-Free Benefits</a></h3>
-<p>DashMap uses segmented locking for concurrent access:</p>
+<h3 id="where-the-locks-are"><a class="header" href="#where-the-locks-are">Where the Locks Are</a></h3>
+<p>DashMap is sharded: each shard is a <code>HashMap</code> behind an <code>RwLock</code>. On top of it,
+each client’s TAT is an <code>AtomicU64</code>. The two together decide what locks:</p>
 <pre><code>Different clients → different shards (low contention)
 Same client     → one atomic  (compare-and-swap, no lock)
 Short critical sections → minimal lock duration
 </code></pre>
-<p><strong>Key factors</strong>:</p>
+<p><strong>What takes a lock, and what does not</strong>:</p>
 <ul>
-<li>Different clients = different shards (low contention)</li>
-<li>Same client = one atomic (compare-and-swap, no lock)</li>
-<li>Short critical sections</li>
+<li>Updating a known client: no lock (compare-and-swap on its atomic)</li>
+<li>Looking up a client: that shard’s read lock, shared with other lookups</li>
+<li>Inserting a client for the first time: that shard’s write lock, once per client</li>
+<li><code>cleanup_stale_clients</code>: each shard’s write lock in turn</li>
 </ul>
+<p>Measured with 4 threads on one client (i7-13700HX, criterion): 159 ns per request
+before the atomic TAT, 74 ns after. Distinct clients were unchanged at 30 ns, since
+they were never contending for the same lock to begin with.</p>
 <h3 id="contention-patterns"><a class="header" href="#contention-patterns">Contention Patterns</a></h3>
 <p><strong>Low Contention</strong> (different clients):</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
@@ -320,7 +325,8 @@ limiter.check_request("client_2")?; // Shard 1
 limiter.check_request("client_1")?; // Shard 0
 // Thread 2
 limiter.check_request("client_100")?; // Shard 0
-// Brief contention - short lock
+// Different atomics: the updates are independent. They only share a
+// brief read lock on the shard while being looked up.
 <span class="boring">}</span></code></pre>
 <p><strong>High Contention</strong> (same client):</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
@@ -350,18 +356,18 @@ limiter.check_request("client_1")?; // Shard 0
 <h3 id="dashmap-vs-alternatives"><a class="header" href="#dashmap-vs-alternatives">DashMap vs Alternatives</a></h3>
 <p><strong>DashMap (chosen)</strong>:</p>
 <ul>
-<li>✅ Lock-free reads/writes</li>
-<li>✅ Good scalability</li>
+<li>✅ Sharded locks, so one busy shard does not stall the others</li>
+<li>✅ With an atomic per client, the per-request update needs no lock at all</li>
 <li>✅ Battle-tested</li>
 <li>✅ Ergonomic API</li>
 </ul>
-<p><strong>Mutex<hashmap> (rejected)</hashmap></strong>:</p>
+<p><strong><code>Mutex&lt;HashMap&gt;</code> (rejected)</strong>:</p>
 <ul>
 <li>❌ Global locking</li>
 <li>❌ Poor scalability</li>
 <li>❌ Read contention</li>
 </ul>
-<p><strong>RwLock<hashmap> (rejected)</hashmap></strong>:</p>
+<p><strong><code>RwLock&lt;HashMap&gt;</code> (rejected)</strong>:</p>
 <ul>
 <li>❌ Reader/writer contention</li>
 <li>❌ Write starvation possible</li>
