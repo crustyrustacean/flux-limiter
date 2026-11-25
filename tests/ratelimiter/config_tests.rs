@@ -215,4 +215,71 @@ mod tests {
                 )
         )
     }
+
+    // Construction: a finite burst whose tolerance would not fit in u64 (issue #4)
+    #[test]
+    fn constructor_rejects_finite_burst_too_large_to_fit() {
+        // rate = 1 -> T = 1e9 ns. burst * T must stay below 2^64, so anything
+        // above ~1.8e10 would saturate the cast to u64::MAX (an unlimited burst).
+        for burst in [1.8446745e10, 1e11, f64::MAX] {
+            let config = FluxLimiterConfig::new(1.0, burst);
+            // It is finite and non-negative, so validate() alone accepts it...
+            assert!(config.validate().is_ok(), "burst {burst}");
+            // ...and construction is what rejects it.
+            let result = FluxLimiter::<String, _>::with_config(config, TestClock::new(0.0));
+            assert!(
+                matches!(result.unwrap_err(), FluxLimiterError::InvalidBurst),
+                "burst {burst} should be rejected at construction"
+            );
+        }
+    }
+
+    #[test]
+    fn constructor_accepts_burst_just_below_the_fit_limit() {
+        // The largest f64 strictly below 2^64 is representable as a u64 tolerance.
+        let largest_fitting = f64::from_bits((u64::MAX as f64).to_bits() - 1);
+        let burst = largest_fitting / 1e9; // at rate = 1, T = 1e9 ns
+        let config = FluxLimiterConfig::new(1.0, burst);
+        assert!(FluxLimiter::<String, _>::with_config(config, TestClock::new(0.0)).is_ok());
+    }
+
+    #[test]
+    fn constructor_rejects_tiny_rate() {
+        // rate = 1e-12 -> interval 1e21 ns, which saturates to u64::MAX and
+        // previously overflowed on a client's first request.
+        for rate in [1e-12, 1e-100] {
+            let result = FluxLimiter::<String, _>::with_config(
+                FluxLimiterConfig::new(rate, 1.0),
+                TestClock::new(0.0),
+            );
+            assert!(
+                matches!(result.unwrap_err(), FluxLimiterError::InvalidRate),
+                "rate {rate} should be rejected"
+            );
+        }
+    }
+
+    #[test]
+    fn rate_accessor_is_exact_for_whole_nanosecond_intervals() {
+        for rate in [1e9, 1e8, 1e6, 1000.0, 10.0, 1.0] {
+            let limiter = FluxLimiter::<u64, _>::with_config(
+                FluxLimiterConfig::new(rate, 1.0),
+                TestClock::new(0.0),
+            )
+            .unwrap();
+            assert_eq!(limiter.rate(), rate, "rate {rate}");
+        }
+    }
+
+    #[test]
+    fn burst_accessor_is_exact_for_whole_nanosecond_tolerances() {
+        for (rate, burst) in [(10.0, 5.0), (1.0, 3.0), (1000.0, 0.5), (1e8, 7.0)] {
+            let limiter = FluxLimiter::<u64, _>::with_config(
+                FluxLimiterConfig::new(rate, burst),
+                TestClock::new(0.0),
+            )
+            .unwrap();
+            assert_eq!(limiter.burst(), burst, "rate {rate} burst {burst}");
+        }
+    }
 }
