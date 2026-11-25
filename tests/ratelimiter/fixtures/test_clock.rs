@@ -30,6 +30,15 @@ impl TestClock {
         self.time.store(nanos, Ordering::Relaxed);
     }
 
+    /// Sets the clock to an exact nanosecond value.
+    ///
+    /// `set_time` takes `f64` seconds, which cannot represent values near
+    /// `u64::MAX` nanoseconds (or any current epoch value) exactly; overflow
+    /// tests need the precise value.
+    pub fn set_nanos(&self, nanos: u64) {
+        self.time.store(nanos, Ordering::Relaxed);
+    }
+
     // Make the next call to `now()` return an error
     pub fn fail_next_call(&self) {
         self.should_fail.store(true, Ordering::Relaxed);

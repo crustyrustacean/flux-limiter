@@ -8,8 +8,8 @@ Flux Limiter provides a well-defined error hierarchy:
 
 ```rust
 pub enum FluxLimiterError {
-    InvalidRate,           // Configuration: rate ≤ 0
-    InvalidBurst,          // Configuration: burst < 0
+    InvalidRate,           // Configuration: rate non-finite, ≤ 0, or > 1e9
+    InvalidBurst,          // Configuration: burst non-finite, < 0, or too large to fit
     ClockError(ClockError), // Runtime: clock failure
 }
 
@@ -24,16 +24,18 @@ Configuration errors occur when creating a rate limiter with invalid settings.
 
 ### InvalidRate Error
 
+Returned when the rate is not a finite number (`NaN` or `±Infinity`), is ≤ 0, or is greater than 1,000,000,000 requests per second.
+
 ```rust
 use flux_limiter::{FluxLimiterConfig, FluxLimiter, SystemClock, FluxLimiterError};
 
-// Invalid: rate must be positive
+// Invalid: rate must be finite, positive, and at most 1e9
 let config = FluxLimiterConfig::new(-10.0, 5.0);
 
 match FluxLimiter::with_config(config, SystemClock) {
     Ok(_) => println!("Success"),
     Err(FluxLimiterError::InvalidRate) => {
-        eprintln!("Error: Rate must be positive (> 0)");
+        eprintln!("Error: Rate must be finite, > 0, and <= 1_000_000_000");
     }
     Err(e) => eprintln!("Other error: {}", e),
 }
@@ -41,14 +43,16 @@ match FluxLimiter::with_config(config, SystemClock) {
 
 ### InvalidBurst Error
 
+Returned when the burst is not a finite number, is negative, or is too large for the configured rate. The burst tolerance is `burst × (1e9 / rate)` nanoseconds and must fit in 64 bits (about 584 years), so a very large burst combined with a slow rate is rejected.
+
 ```rust
-// Invalid: burst must be non-negative
+// Invalid: burst must be finite and non-negative
 let config = FluxLimiterConfig::new(10.0, -5.0);
 
 match FluxLimiter::with_config(config, SystemClock) {
     Ok(_) => println!("Success"),
     Err(FluxLimiterError::InvalidBurst) => {
-        eprintln!("Error: Burst must be non-negative (≥ 0)");
+        eprintln!("Error: Burst must be finite, >= 0, and small enough to fit");
     }
     Err(e) => eprintln!("Other error: {}", e),
 }

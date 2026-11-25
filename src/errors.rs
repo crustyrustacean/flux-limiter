@@ -12,8 +12,8 @@ use crate::clock::ClockError;
 #[non_exhaustive]
 #[derive(Debug)]
 pub enum FluxLimiterError {
-    InvalidRate,            // for rate <= 0
-    InvalidBurst,           // for burst < 0
+    InvalidRate,            // rate non-finite, <= 0, or > 1e9
+    InvalidBurst,           // burst non-finite, < 0, or too large to fit
     ClockError(ClockError), // error variant for issues with the system clock
 }
 

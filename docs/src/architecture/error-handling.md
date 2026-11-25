@@ -20,8 +20,8 @@ No silent failures - all errors are explicitly typed:
 
 ```rust
 pub enum FluxLimiterError {
-    InvalidRate,           // Rate ≤ 0
-    InvalidBurst,          // Burst < 0
+    InvalidRate,           // Rate non-finite, ≤ 0, or > 1e9
+    InvalidBurst,          // Burst non-finite, < 0, or too large to fit
     ClockError(ClockError), // System time failure
 }
 ```
@@ -76,10 +76,13 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
 ```rust
 impl FluxLimiterConfig {
     pub fn validate(&self) -> Result<(), FluxLimiterError> {
-        if self.rate_per_second <= 0.0 {
+        if !self.rate_per_second.is_finite()
+            || self.rate_per_second <= 0.0
+            || self.rate_per_second > MAX_RATE_PER_SECOND
+        {
             return Err(FluxLimiterError::InvalidRate);
         }
-        if self.burst_capacity < 0.0 {
+        if !self.burst_capacity.is_finite() || self.burst_capacity < 0.0 {
             return Err(FluxLimiterError::InvalidBurst);
         }
         Ok(())

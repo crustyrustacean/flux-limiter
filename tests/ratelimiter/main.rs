@@ -8,6 +8,7 @@ mod error_tests;
 mod fixtures;
 mod gcra_algorithm_tests;
 mod helpers;
+mod overflow_tests;
 mod performance_tests;
 
 // Re-export common test utilities

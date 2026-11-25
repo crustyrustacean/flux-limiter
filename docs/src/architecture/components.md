@@ -113,10 +113,14 @@ impl FluxLimiterConfig {
 
 ```rust
 pub fn validate(&self) -> Result<(), FluxLimiterError> {
-    if self.rate_per_second <= 0.0 {
+    // `NaN` fails every comparison, so `is_finite` must reject it explicitly.
+    if !self.rate_per_second.is_finite()
+        || self.rate_per_second <= 0.0
+        || self.rate_per_second > MAX_RATE_PER_SECOND
+    {
         return Err(FluxLimiterError::InvalidRate);
     }
-    if self.burst_capacity < 0.0 {
+    if !self.burst_capacity.is_finite() || self.burst_capacity < 0.0 {
         return Err(FluxLimiterError::InvalidBurst);
     }
     Ok(())
@@ -124,9 +128,12 @@ pub fn validate(&self) -> Result<(), FluxLimiterError> {
 ```
 
 **Validation Rules**:
-- Rate must be positive (> 0.0)
-- Burst must be non-negative (≥ 0.0)
+- Rate must be finite, positive (> 0.0), and at most 1,000,000,000 (the interval is whole nanoseconds)
+- Burst must be finite and non-negative (≥ 0.0)
+- Rate is checked before burst
 - Checked at construction time
+
+A separate bound is enforced during construction rather than in `validate()`, because it depends on the derived interval: `burst × (1e9 / rate)` must fit in a `u64`, or construction fails with `InvalidBurst`. Both bounds are compared as `f64` values before any integer cast, because a float-to-integer `as` cast saturates instead of failing.
 
 ## FluxLimiterDecision
 
@@ -189,8 +196,8 @@ Comprehensive error handling for robust production usage.
 #[non_exhaustive]
 #[derive(Debug)]
 pub enum FluxLimiterError {
-    InvalidRate,           // Configuration: rate ≤ 0
-    InvalidBurst,          // Configuration: burst < 0
+    InvalidRate,           // Configuration: rate non-finite, ≤ 0, or > 1e9
+    InvalidBurst,          // Configuration: burst non-finite, < 0, or too large to fit
     ClockError(ClockError), // Runtime: clock failure
 }
 

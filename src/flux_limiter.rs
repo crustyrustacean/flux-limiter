@@ -50,9 +50,26 @@ where
 {
     // method to create a new flux limiter given a desired rate and burst value
     fn new(rate_per_second: f64, burst_capacity: f64, clock: C) -> Result<Self, FluxLimiterError> {
-        // Convert to nanoseconds
-        let rate_nanos = (1_000_000_000.0 / rate_per_second) as u64;
-        let tolerance_nanos = (burst_capacity * rate_nanos as f64) as u64;
+        // `as u64` on a float is a *saturating* cast: it clamps out-of-range values
+        // instead of failing. Every bound below is therefore checked in f64, before
+        // any cast, so a cast can never be the thing that silently "succeeds".
+        let rate_nanos_f64 = 1_000_000_000.0 / rate_per_second;
+        // Below 1.0 the interval would truncate to zero (no limit at all); at or
+        // above 2^64 it would saturate to u64::MAX and overflow on the first request.
+        if !(1.0..u64::MAX as f64).contains(&rate_nanos_f64) {
+            // Unreachable while validate() enforces its bounds; kept so that neither
+            // a zero nor a saturated interval can be constructed, whatever the path.
+            return Err(FluxLimiterError::InvalidRate);
+        }
+        let rate_nanos = rate_nanos_f64 as u64;
+
+        // `u64::MAX as f64` rounds up to exactly 2^64, the first value that does
+        // not fit, so this is an exclusive upper bound on a representable tolerance.
+        let tolerance_nanos_f64 = burst_capacity * rate_nanos as f64;
+        if tolerance_nanos_f64 >= u64::MAX as f64 {
+            return Err(FluxLimiterError::InvalidBurst);
+        }
+        let tolerance_nanos = tolerance_nanos_f64 as u64;
 
         Ok(Self {
             rate_nanos,
@@ -100,8 +117,9 @@ where
                     current_time_nanos >= previous_tat_nanos.saturating_sub(self.tolerance_nanos);
 
                 if is_conforming {
-                    let new_tat_nanos =
-                        current_time_nanos.max(previous_tat_nanos) + self.rate_nanos;
+                    let new_tat_nanos = current_time_nanos
+                        .max(previous_tat_nanos)
+                        .saturating_add(self.rate_nanos);
                     occupied.insert(new_tat_nanos);
 
                     Ok(FluxLimiterDecision {
@@ -127,7 +145,7 @@ where
             }
             Entry::Vacant(vacant) => {
                 // First request from this client is always allowed
-                let new_tat_nanos = current_time_nanos + self.rate_nanos;
+                let new_tat_nanos = current_time_nanos.saturating_add(self.rate_nanos);
                 vacant.insert(new_tat_nanos);
 
                 Ok(FluxLimiterDecision {
@@ -156,7 +174,11 @@ where
     pub fn cleanup_stale_clients(&self, max_stale_nanos: u64) -> Result<(), FluxLimiterError> {
         let current_time_nanos = self.clock.now()?;
         self.client_state.retain(|_, &mut tat| {
-            tat + self.tolerance_nanos > current_time_nanos.saturating_sub(max_stale_nanos)
+            // Saturating keeps a client whose TAT + tolerance would overflow: a wrapped
+            // value could compare as "old" and evict a live client, whereas u64::MAX is
+            // always newer than the cutoff.
+            tat.saturating_add(self.tolerance_nanos)
+                > current_time_nanos.saturating_sub(max_stale_nanos)
         });
 
         Ok(())
