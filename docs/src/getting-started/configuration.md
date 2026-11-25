@@ -16,7 +16,9 @@ let config = FluxLimiterConfig::new(rate_per_second, burst_capacity);
 
 The **rate** parameter defines the sustained requests per second.
 
+- **Must be finite**: `NaN` and `±Infinity` are rejected
 - **Must be positive** (> 0)
+- **Must be at most `1_000_000_000`** (1 billion requests per second): the rate interval is stored as whole nanoseconds, so a higher rate has no representable interval
 - Defines the steady-state request rate
 - Example: `rate = 100.0` means 100 requests per second
 
@@ -37,7 +39,9 @@ The rate translates to a time interval between requests:
 
 The **burst** parameter defines additional capacity for handling bursts.
 
+- **Must be finite**: `NaN` and `±Infinity` are rejected
 - **Must be non-negative** (≥ 0)
+- **Must be small enough to fit**: `burst × (1_000_000_000 / rate)` is stored as a 64-bit nanosecond count, so a burst whose tolerance would exceed `2^64` nanoseconds (about 584 years) is rejected
 - Allows temporary spikes above the sustained rate
 - Example: `burst = 50.0` allows bursts of ~50 additional requests
 
@@ -146,8 +150,30 @@ match FluxLimiter::with_config(config, SystemClock) {
 
 ### Validation Rules
 
-- **InvalidRate**: Returned if rate ≤ 0
-- **InvalidBurst**: Returned if burst < 0
+- **InvalidRate**: Returned if rate is not finite, is ≤ 0, or is > 1,000,000,000
+- **InvalidBurst**: Returned if burst is not finite, is < 0, or is too large for the configured rate
+
+Rate is checked first: a configuration with both an invalid rate and an invalid burst reports `InvalidRate`.
+
+Every rejected configuration is rejected at construction time as well, so `FluxLimiter::with_config` never returns a limiter built from invalid values.
+
+### Precision: whole-nanosecond truncation
+
+The rate interval (`1_000_000_000 / rate`) and the burst tolerance (`burst × interval`) are stored as whole nanoseconds. Values that are not a whole number of nanoseconds are **truncated**, not rounded. This is deliberate: integer arithmetic keeps every timing decision exact and reproducible.
+
+In practice this is invisible at ordinary rates, but it has two visible consequences:
+
+- **A fractional burst can truncate to nothing, but only at very high rates.** The tolerance is `burst × interval` in nanoseconds, so it is lost entirely when that product is under 1 ns. At `rate = 10.0` the interval is 100 ms and even `burst = 0.004` keeps a 0.4 ms tolerance. But at `rate = 1e8` the interval is 10 ns, so `burst = 0.05` asks for 0.5 ns and gets no burst at all, while `burst = 0.1` (exactly 1 ns) is preserved.
+- **Rates above roughly 100 million per second are enforced slightly higher than requested.** For example `rate = 6e8` has a true interval of 1.667 ns, which truncates to 1 ns, so the limiter actually enforces 1e9 requests per second — 67% more than asked for.
+
+| Requested rate | Enforced rate | Difference |
+|---|---|---|
+| 1e8 | 1.0e8 | 0% |
+| 1.5e8 | 1.6667e8 | +11.1% |
+| 4e8 | 5.0e8 | +25.0% |
+| 6e8 | 1.0e9 | +66.7% |
+
+If you need an exact limit, choose a rate that divides 1,000,000,000 evenly (such as `1e8`, `1e6`, `1000.0`, `10.0`, `1.0`); those are enforced exactly.
 
 ### Manual Validation
 

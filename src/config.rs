@@ -34,8 +34,14 @@ impl FluxLimiterConfig {
     ///
     /// # Arguments
     ///
-    /// * `rate_per_second` - Maximum sustained rate (must be > 0)
-    /// * `burst_capacity` - Additional burst allowance (must be ≥ 0)
+    /// * `rate_per_second` - Maximum sustained rate. Must be finite, `> 0`, and
+    ///   `<= 1_000_000_000` (the rate interval is stored as whole nanoseconds).
+    /// * `burst_capacity` - Additional burst allowance. Must be finite, `>= 0`,
+    ///   and small enough that `burst_capacity * (1_000_000_000 / rate_per_second)`
+    ///   fits in a `u64`.
+    ///
+    /// Values are not checked here; call [`validate`](Self::validate) or construct
+    /// a limiter to have them rejected.
     pub fn new(rate_per_second: f64, burst_capacity: f64) -> Self {
         Self {
             rate_per_second,
@@ -55,7 +61,18 @@ impl FluxLimiterConfig {
         self
     }
 
-    /// Validate the configuration
+    /// Validate the configuration.
+    ///
+    /// # Errors
+    ///
+    /// Returns [`FluxLimiterError::InvalidRate`] if the rate is not finite, is
+    /// `<= 0`, or is greater than `1_000_000_000`. Returns
+    /// [`FluxLimiterError::InvalidBurst`] if the burst is not finite or is `< 0`.
+    /// The rate is checked first.
+    ///
+    /// A burst that passes here can still be rejected by `FluxLimiter::with_config`
+    /// if `burst * (1e9 / rate)` does not fit in a `u64`, because that depends on
+    /// the derived interval rather than on the two fields alone.
     pub fn validate(&self) -> Result<(), FluxLimiterError> {
         // `NaN` fails every comparison, so neither `<= 0.0` nor `> MAX_RATE` alone
         // would catch it; `is_finite` rejects NaN and both infinities explicitly.
