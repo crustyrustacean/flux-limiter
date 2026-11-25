@@ -77,4 +77,142 @@ mod tests {
         let result = FluxLimiter::<String, _>::with_config(config, clock);
         assert!(result.is_ok());
     }
+
+    // Non-finite and out-of-range values (issue #4)
+    #[test]
+    fn config_rejects_nan_rate() {
+        let config = FluxLimiterConfig::new(f64::NAN, 1.0);
+        assert!(matches!(
+            config.validate().unwrap_err(),
+            FluxLimiterError::InvalidRate
+        ));
+    }
+
+    #[test]
+    fn config_rejects_infinite_rate() {
+        for rate in [f64::INFINITY, f64::NEG_INFINITY] {
+            let config = FluxLimiterConfig::new(rate, 1.0);
+            assert!(
+                matches!(
+                    config.validate().unwrap_err(),
+                    FluxLimiterError::InvalidRate
+                ),
+                "rate {rate} should be rejected"
+            );
+        }
+    }
+
+    #[test]
+    fn config_rejects_nan_burst() {
+        let config = FluxLimiterConfig::new(1.0, f64::NAN);
+        assert!(matches!(
+            config.validate().unwrap_err(),
+            FluxLimiterError::InvalidBurst
+        ));
+    }
+
+    #[test]
+    fn config_rejects_infinite_burst() {
+        for burst in [f64::INFINITY, f64::NEG_INFINITY] {
+            let config = FluxLimiterConfig::new(1.0, burst);
+            assert!(
+                matches!(
+                    config.validate().unwrap_err(),
+                    FluxLimiterError::InvalidBurst
+                ),
+                "burst {burst} should be rejected"
+            );
+        }
+    }
+
+    #[test]
+    fn config_rejects_rate_above_one_billion() {
+        // A finite rate above 1e9 truncates to a zero interval.
+        for rate in [2e9, 1e12] {
+            let config = FluxLimiterConfig::new(rate, 1.0);
+            assert!(
+                matches!(
+                    config.validate().unwrap_err(),
+                    FluxLimiterError::InvalidRate
+                ),
+                "rate {rate} should be rejected"
+            );
+        }
+    }
+
+    #[test]
+    fn config_rejects_smallest_rate_above_the_bound() {
+        // The very next f64 above 1e9 already truncates the interval to zero,
+        // so the bound is inclusive of 1e9 and exclusive of anything larger.
+        let just_above = f64::from_bits(1e9f64.to_bits() + 1);
+        assert!(just_above > 1e9);
+        let config = FluxLimiterConfig::new(just_above, 1.0);
+        assert!(matches!(
+            config.validate().unwrap_err(),
+            FluxLimiterError::InvalidRate
+        ));
+    }
+
+    #[test]
+    fn config_accepts_rate_of_exactly_one_billion() {
+        let config = FluxLimiterConfig::new(1e9, 1.0);
+        assert!(config.validate().is_ok());
+    }
+
+    #[test]
+    fn config_reports_rate_error_before_burst_error() {
+        let config = FluxLimiterConfig::new(f64::NAN, f64::NAN);
+        assert!(matches!(
+            config.validate().unwrap_err(),
+            FluxLimiterError::InvalidRate
+        ));
+    }
+
+    #[test]
+    fn validate_and_constructor_agree_on_rejected_configs() {
+        let cases: [(f64, f64, FluxLimiterError); 8] = [
+            (f64::NAN, 1.0, FluxLimiterError::InvalidRate),
+            (f64::INFINITY, 1.0, FluxLimiterError::InvalidRate),
+            (f64::NEG_INFINITY, 1.0, FluxLimiterError::InvalidRate),
+            (2e9, 1.0, FluxLimiterError::InvalidRate),
+            (1.0, f64::NAN, FluxLimiterError::InvalidBurst),
+            (1.0, f64::INFINITY, FluxLimiterError::InvalidBurst),
+            (1.0, f64::NEG_INFINITY, FluxLimiterError::InvalidBurst),
+            (1.0, -1.0, FluxLimiterError::InvalidBurst),
+        ];
+
+        for (rate, burst, expected) in cases {
+            let config = FluxLimiterConfig::new(rate, burst);
+            let validated = config.validate().unwrap_err();
+            assert!(
+                same_variant(&validated, &expected),
+                "validate() gave {validated:?}, expected {expected:?}"
+            );
+
+            let clock = TestClock::new(0.0);
+            let constructed =
+                FluxLimiter::<String, _>::with_config(FluxLimiterConfig::new(rate, burst), clock);
+            let constructed = constructed.unwrap_err();
+            assert!(
+                same_variant(&constructed, &expected),
+                "with_config() gave {constructed:?}, expected {expected:?}"
+            );
+        }
+    }
+
+    /// `FluxLimiterError` does not implement `PartialEq`, so compare by variant.
+    fn same_variant(actual: &FluxLimiterError, expected: &FluxLimiterError) -> bool {
+        matches!(
+            (actual, expected),
+            (FluxLimiterError::InvalidRate, FluxLimiterError::InvalidRate)
+                | (
+                    FluxLimiterError::InvalidBurst,
+                    FluxLimiterError::InvalidBurst
+                )
+                | (
+                    FluxLimiterError::ClockError(_),
+                    FluxLimiterError::ClockError(_)
+                )
+        )
+    }
 }
