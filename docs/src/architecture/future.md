@@ -433,7 +433,7 @@ impl RateLimitMiddleware for LoggingMiddleware {
 
 ### Semantic Versioning
 
-- **Patch (0.4.x)**: Bug fixes, performance improvements
+- **Patch (x.y.z)**: Bug fixes, performance improvements
 - **Minor (0.x.0)**: New features, backward compatible
 - **Major (x.0.0)**: Breaking changes
 
@@ -457,39 +457,46 @@ algorithms = []
 2. **Transition Period**: Support both old and new (2-3 minor versions)
 3. **Remove**: Remove in next major version
 
-### Type Aliases
+### Default Type Parameter
 
-Maintain existing API surface:
+The existing API surface is kept by a default on the clock parameter rather
+than by type aliases (two aliases cannot share one name):
 
 ```rust
-// Existing users can continue using this
-pub type FluxLimiter<T> = FluxLimiter<T, SystemClock>;
+// `FluxLimiter<T>` is already the common spelling, because `C` defaults:
+pub struct FluxLimiter<T, C = SystemClock> { /* ... */ }
 
-// New users can use explicit clock type
-pub type FluxLimiter<T, C> = core::FluxLimiter<T, C>;
+// Users who need another clock name it explicitly:
+let limiter = FluxLimiter::<String, C>::with_config(config, clock)?;
 ```
 
-## Implementation Roadmap
+Any future change must keep both spellings working: `FluxLimiter<T>` and
+`FluxLimiter<T, C>`.
 
-### Phase 1: Core Improvements (v0.5)
-- [ ] Async support
-- [ ] Enhanced metrics
-- [ ] Performance optimizations
+## Possible Directions
 
-### Phase 2: Persistence (v0.6)
-- [ ] State store trait
-- [ ] Redis backend
-- [ ] PostgreSQL backend
+Ideas that have been discussed. None of these is scheduled or promised;
+the [issue tracker](https://github.com/crustyrustacean/flux-limiter/issues)
+is the authoritative list of planned work.
 
-### Phase 3: Advanced Features (v0.7)
-- [ ] Alternative algorithms
-- [ ] Distributed coordination
-- [ ] Adaptive rate limiting
+**Core**
+- Async support
+- Enhanced metrics
 
-### Phase 4: Enterprise Features (v1.0)
-- [ ] Quota management
-- [ ] Multi-tier support
-- [ ] Advanced monitoring
+**Persistence**
+- State store trait
+- Redis backend
+- PostgreSQL backend
+
+**Algorithms**
+- Alternative algorithms
+- Distributed coordination
+- Adaptive rate limiting
+
+**Operations**
+- Quota management
+- Multi-tier support
+- Advanced monitoring
 
 ## Contributing
 
