@@ -68,6 +68,8 @@ flux-limiter/
 │   └── ratelimiter/        # Integration tests
 │       ├── fixtures/       # Test utilities
 │       └── *.rs           # Test modules
+├── benches/                # Criterion benchmarks (cargo bench)
+│   └── flux_limiter_bench.rs
 ├── docs/                   # mdbook documentation
 │   ├── book.toml          # mdbook configuration
 │   └── src/               # Documentation source
@@ -332,26 +334,55 @@ mdbook serve docs --open
 
 - `check_request()` should complete in O(1) time
 - Memory usage should be O(number of active clients)
-- Lock-free operations preferred for hot paths
+- Minimize lock hold time on hot paths; updating a known client must not take a lock
 - Nanosecond precision must be maintained
 
 ### Benchmarking
 
+Benchmarks use [Criterion](https://github.com/bheisler/criterion.rs) and live in
+`benches/flux_limiter_bench.rs`. They are not part of `cargo test`; run them
+with `cargo bench`.
+
+```bash
+# Run every benchmark. Results go to target/criterion/ and are compared
+# against the previous run automatically.
+cargo bench
+
+# Run only the benchmarks whose name contains the filter.
+cargo bench contention
+cargo bench single_client_u64
+```
+
+The available benchmarks:
+
+| Benchmark | What it measures |
+|---|---|
+| `single_client_u64` | One thread, `u64` key, same client |
+| `single_client_string_clone` | One thread, `String` key cloned per call |
+| `contended_4_threads_u64` | 4 threads on one client, timed per batch of 1000 |
+| `contention_hot_key_u64` | 4 threads on one client, timed per request |
+| `contention_spread_keys_u64` | 4 threads, each with its own clients |
+
 When making performance-related changes:
 
 1. **Before/After Benchmarks**:
-   ```bash
-   # Create simple benchmark
-   cargo test performance_tests --release -- --nocapture
-   ```
+   - Record a baseline on the unchanged code with
+     `cargo bench -- --save-baseline before`
+   - Apply your change, then compare with `cargo bench -- --baseline before`
+   - Criterion reports the change with a confidence interval. On a laptop,
+     treat anything within about 5% as noise.
+   - Include the numbers in your pull request.
 
 2. **Memory Usage**:
    - Monitor memory growth in long-running tests
    - Test cleanup effectiveness
 
 3. **Concurrency**:
-   - Test with multiple threads
-   - Verify lock-free behavior
+   - The multi-threaded tests live in `tests/ratelimiter/concurrency_tests.rs`
+     and run as part of `cargo test`. They assert that concurrent requests
+     for one client never allow more than a sequential run would.
+   - If you change `check_request()`, make sure they still pass in both debug
+     and release: a lost update can wrap silently in release builds.
 
 ### Performance Guidelines
 
