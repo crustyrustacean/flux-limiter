@@ -6,6 +6,20 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [0.8.5] - 2026-11-25
+
+### Fixed
+- `FluxLimiterConfig::validate()` now rejects non-finite values. Previously `NaN` passed every check and `INFINITY` was accepted as a rate, producing a limiter with a zero rate interval that never limited anything (#4)
+- Rates above 1,000,000,000 per second are rejected with `InvalidRate`. The rate interval is stored as whole nanoseconds, so any higher rate truncated to a zero interval and imposed no limit (#4)
+- A finite burst whose tolerance (`burst × interval`) would not fit in 64 bits is rejected at construction with `InvalidBurst`. Previously the value saturated to `u64::MAX`, giving an effectively unlimited burst and an overflow in `cleanup_stale_clients()` (#4)
+- A tiny rate (e.g. `1e-12`) is rejected. Previously its interval saturated to `u64::MAX` and the first request from any client overflowed — a panic in debug builds, and a timestamp in the past in release builds (#4)
+- All three TAT computations now use saturating addition instead of unchecked `+`. Previously an overflow panicked in debug builds and wrapped silently in release builds, where a wrapped value in cleanup could evict a live client. The documentation already described saturating arithmetic; the code now matches it (#4)
+
+### Changed
+- Out-of-range values reuse the existing `InvalidRate` / `InvalidBurst` variants; no new error variants were added, so existing `match` arms are unaffected
+- `TestClock::set_nanos(u64)` added to the test fixtures, for setting an exact nanosecond value that `set_time(f64)` cannot represent
+- Documented that the rate interval and burst tolerance are truncated to whole nanoseconds, with a table of requested vs. enforced rate (a rate of 6e8 is enforced at 1e9, +67%). Rates that divide 1e9 evenly are enforced exactly. The arithmetic is unchanged
+
 ## [0.8.4] - 2026-11-25
 
 ### Added
@@ -157,7 +171,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - O(number of active clients) memory usage
 - Support for configurable rate and burst capacity
 
-[Unreleased]: https://github.com/crustyrustacean/flux-limiter/compare/v0.8.4...HEAD
+[Unreleased]: https://github.com/crustyrustacean/flux-limiter/compare/v0.8.5...HEAD
+[0.8.5]: https://github.com/crustyrustacean/flux-limiter/compare/v0.8.4...v0.8.5
 [0.8.4]: https://github.com/crustyrustacean/flux-limiter/compare/v0.8.3...v0.8.4
 [0.8.3]: https://github.com/crustyrustacean/flux-limiter/compare/v0.8.2...v0.8.3
 [0.8.2]: https://github.com/crustyrustacean/flux-limiter/compare/v0.8.1...v0.8.2
