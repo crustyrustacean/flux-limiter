@@ -6,6 +6,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [0.8.6] - 2026-11-25
+
+### Changed
+- `check_request()` no longer takes a lock when updating a client it has already seen. Each client's TAT is stored as an `AtomicU64` and published with a compare-and-swap, so requests for the same client no longer queue behind the map shard's write lock, and requests for different clients in the same shard no longer contend for it. A client is still inserted under the shard lock the first time it is seen. The public API is unchanged, as is the set of decisions returned for any sequence of requests
+- Same-client contention throughput roughly doubled: with 4 threads hitting one client, 159 ns per request down to 74 ns (−52%). Requests for distinct clients are unaffected
+- A request that repeatedly loses the compare-and-swap race retries a bounded number of times and then settles under the write lock, so a hot client cannot make a request spin indefinitely
+
+### Added
+- `contention_hot_key_u64` and `contention_spread_keys_u64` benchmarks, measured per request with worker threads started outside the timed region
+- Multi-threaded tests for same-client contention, including one that verifies every concurrent write lands in the TAT. The suite previously had no concurrent test
+
 ## [0.8.5] - 2026-11-25
 
 ### Fixed
@@ -171,7 +182,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - O(number of active clients) memory usage
 - Support for configurable rate and burst capacity
 
-[Unreleased]: https://github.com/crustyrustacean/flux-limiter/compare/v0.8.5...HEAD
+[Unreleased]: https://github.com/crustyrustacean/flux-limiter/compare/v0.8.6...HEAD
+[0.8.6]: https://github.com/crustyrustacean/flux-limiter/compare/v0.8.5...v0.8.6
 [0.8.5]: https://github.com/crustyrustacean/flux-limiter/compare/v0.8.4...v0.8.5
 [0.8.4]: https://github.com/crustyrustacean/flux-limiter/compare/v0.8.3...v0.8.4
 [0.8.3]: https://github.com/crustyrustacean/flux-limiter/compare/v0.8.2...v0.8.3

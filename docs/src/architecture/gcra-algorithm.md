@@ -76,31 +76,32 @@ Examples with `rate = 10.0`:
 ```rust
 let current_time_nanos = clock.now()?;
 
-use dashmap::mapref::entry::Entry;
+if let Some(tat) = client_state.get(&client_id) {
+    // Known client: no lock is held while deciding.
+    let previous_tat_nanos = tat.load(Ordering::Relaxed);
 
-match client_state.entry(client_id) {
-    Entry::Occupied(mut occupied) => {
-        let previous_tat_nanos = *occupied.get();
+    // Check if request conforms (is within tolerance)
+    let is_conforming = current_time_nanos >=
+        previous_tat_nanos.saturating_sub(tolerance_nanos);
 
-        // Check if request conforms (is within tolerance)
-        let is_conforming = current_time_nanos >=
-            previous_tat_nanos.saturating_sub(tolerance_nanos);
-
-        if is_conforming {
-            let new_tat_nanos = current_time_nanos
-                .max(previous_tat_nanos) + rate_nanos;
-            occupied.insert(new_tat_nanos);
-            // Return allowed decision
-        } else {
-            // Return denied decision with retry_after
-        }
-    }
-    Entry::Vacant(vacant) => {
-        // First request from this client — always allowed
-        let new_tat_nanos = current_time_nanos + rate_nanos;
-        vacant.insert(new_tat_nanos);
+    if is_conforming {
+        let new_tat_nanos = current_time_nanos
+            .max(previous_tat_nanos)
+            .saturating_add(rate_nanos);
+        // Publish only if the TAT is still the one we decided on;
+        // otherwise another request got there first and we retry.
+        tat.compare_exchange(previous_tat_nanos, new_tat_nanos, ...)?;
         // Return allowed decision
+    } else {
+        // Return denied decision with retry_after
     }
+} else {
+    // First request from this client — always allowed.
+    // Inserted under the shard lock; a lost insert race rejoins the path above.
+    client_state.entry(client_id).or_insert_with(|| {
+        AtomicU64::new(current_time_nanos.saturating_add(rate_nanos))
+    });
+    // Return allowed decision
 }
 ```
 
@@ -108,9 +109,11 @@ match client_state.entry(client_id) {
 
 This allows requests to arrive up to `τ` nanoseconds early (burst capacity).
 
-The `entry()` API holds the shard lock across the read and write, ensuring
-the conformance check and TAT update are atomic — no TOCTOU race when the
-same client makes concurrent requests.
+The conformance check and TAT update are made atomic by the compare-and-swap:
+the new TAT is published only if it is still the value the check was computed
+from. A request that finds the TAT already advanced retries against the new
+value, so no update is lost and there is no TOCTOU race when the same client
+makes concurrent requests.
 
 ### TAT Update (Allowed Request)
 

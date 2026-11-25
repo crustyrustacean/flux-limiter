@@ -13,30 +13,25 @@ pub fn check_request(&self, client_id: T) -> Result<FluxLimiterDecision, FluxLim
     // 1. Single clock call
     let current_time_nanos = self.clock.now()?;
 
-    // 2. Atomic read-modify-write via entry()
-    //    Shard lock held across read + write, preventing TOCTOU races
-    match self.client_state.entry(client_id) {
-        Entry::Occupied(mut occupied) => {
-            let previous_tat_nanos = *occupied.get();
+    // 2. Look up the client (shared read lock on one shard)
+    if let Some(tat) = self.client_state.get(&client_id) {
+        let previous_tat_nanos = tat.load(Ordering::Relaxed);
 
-            // 3. Integer arithmetic
-            let is_conforming = current_time_nanos >=
-                previous_tat_nanos.saturating_sub(self.tolerance_nanos);
+        // 3. Integer arithmetic
+        let is_conforming = current_time_nanos >=
+            previous_tat_nanos.saturating_sub(self.tolerance_nanos);
 
-            // 4. Conditional update (within same shard lock)
-            if is_conforming {
-                let new_tat_nanos = current_time_nanos
-                    .max(previous_tat_nanos) + self.rate_nanos;
-                occupied.insert(new_tat_nanos);
-            }
-            // ... return decision
+        // 4. Publish the new TAT, only if unchanged (no lock)
+        if is_conforming {
+            let new_tat_nanos = current_time_nanos
+                .max(previous_tat_nanos)
+                .saturating_add(self.rate_nanos);
+            tat.compare_exchange(previous_tat_nanos, new_tat_nanos, ...)?;
         }
-        Entry::Vacant(vacant) => {
-            // First request from this client — always allowed
-            let new_tat_nanos = current_time_nanos + self.rate_nanos;
-            vacant.insert(new_tat_nanos);
-            // ... return allowed decision
-        }
+        // ... return decision
+    } else {
+        // First request from this client — always allowed (shard write lock)
+        // ... insert initial TAT, return allowed decision
     }
 
     // 5. Metadata calculation
@@ -44,12 +39,13 @@ pub fn check_request(&self, client_id: T) -> Result<FluxLimiterDecision, FluxLim
 }
 ```
 
-The hot path involves a single clock call, a single DashMap entry operation, and simple integer arithmetic — all O(1).
+The hot path involves a single clock call, a single map lookup, one atomic
+compare-and-swap, and simple integer arithmetic — all O(1).
 
 ### Optimization Techniques
 
 1. **Single Clock Call**: One time source access per request
-2. **Single Atomic Entry Operation**: `entry()` handles lookup + update within one shard lock
+2. **No Lock on the Update**: a compare-and-swap publishes the new TAT, so requests for the same client do not queue behind a shard's write lock
 3. **Integer Arithmetic**: No floating-point operations in hot path
 4. **Minimal Branching**: Straight-line execution
 
@@ -76,10 +72,10 @@ FluxLimiter<String, SystemClock> {
 ### Per-Client State
 
 ```rust
-DashMap<String, u64> entry:
-    String:   ~24 bytes (pointer + len + capacity)
-    u64:      8 bytes (TAT)
-    Overhead: ~16 bytes (hash map metadata)
+DashMap<String, AtomicU64> entry:
+    String:    ~24 bytes (pointer + len + capacity)
+    AtomicU64: 8 bytes (TAT; same size as a plain u64)
+    Overhead:  ~16 bytes (hash map metadata)
 // Total: ~48 bytes per client
 ```
 
@@ -123,13 +119,13 @@ DashMap uses segmented locking for concurrent access:
 
 ```
 Different clients → different shards (low contention)
-Same client     → same shard (necessary serialization)
+Same client     → one atomic  (compare-and-swap, no lock)
 Short critical sections → minimal lock duration
 ```
 
 **Key factors**:
 - Different clients = different shards (low contention)
-- Same client = same shard (necessary serialization)
+- Same client = one atomic (compare-and-swap, no lock)
 - Short critical sections
 
 ### Contention Patterns
@@ -140,7 +136,7 @@ Short critical sections → minimal lock duration
 limiter.check_request("client_1")?; // Shard 0
 // Thread 2
 limiter.check_request("client_2")?; // Shard 1
-// No contention - lock-free
+// Independent: each has its own atomic
 ```
 
 **Medium Contention** (same shard):

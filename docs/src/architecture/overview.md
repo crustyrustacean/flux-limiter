@@ -34,7 +34,7 @@ Flux Limiter is built on several key architectural principles:
 │  └─ TAT Tracking          │ Theoretical Arrival Time        │
 ├─────────────────────────────────────────────────────────────┤
 │  Storage Layer                                              │
-│  ├─ DashMap<T, u64>       │ Lock-free concurrent hash map   │
+│  ├─ DashMap<T, AtomicU64> │ Sharded map of per-client TATs  │
 │  ├─ Atomic Operations     │ Thread-safe state updates       │
 │  └─ Memory Management     │ Automatic cleanup mechanisms    │
 ├─────────────────────────────────────────────────────────────┤
