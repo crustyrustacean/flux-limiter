@@ -7,10 +7,10 @@ Common patterns and best practices for using Flux Limiter.
 The most basic use case - check if a request should be allowed:
 
 ```rust
-use flux_limiter::{FluxLimiter, FluxLimiterConfig, SystemClock};
+use flux_limiter::{FluxLimiter, FluxLimiterConfig, MonotonicClock};
 
 let config = FluxLimiterConfig::new(10.0, 5.0);
-let limiter = FluxLimiter::with_config(config, SystemClock).unwrap();
+let limiter = FluxLimiter::with_config(config, MonotonicClock::new()).unwrap();
 
 match limiter.check_request("user_123") {
     Ok(decision) if decision.allowed => {
@@ -35,7 +35,7 @@ match limiter.check_request("user_123") {
 
 ```rust
 // User IDs, session IDs, API keys
-let limiter = FluxLimiter::<String, _>::with_config(config, SystemClock).unwrap();
+let limiter = FluxLimiter::<String, _>::with_config(config, MonotonicClock::new()).unwrap();
 
 limiter.check_request("user_123".to_string())?;
 limiter.check_request("session_abc".to_string())?;
@@ -46,7 +46,7 @@ limiter.check_request("session_abc".to_string())?;
 ```rust
 use std::net::IpAddr;
 
-let limiter = FluxLimiter::<IpAddr, _>::with_config(config, SystemClock).unwrap();
+let limiter = FluxLimiter::<IpAddr, _>::with_config(config, MonotonicClock::new()).unwrap();
 
 let client_ip: IpAddr = "192.168.1.1".parse().unwrap();
 limiter.check_request(client_ip)?;
@@ -56,7 +56,7 @@ limiter.check_request(client_ip)?;
 
 ```rust
 // Numeric IDs avoid string allocation overhead
-let limiter = FluxLimiter::<u64, _>::with_config(config, SystemClock).unwrap();
+let limiter = FluxLimiter::<u64, _>::with_config(config, MonotonicClock::new()).unwrap();
 
 limiter.check_request(12345)?;
 limiter.check_request(67890)?;
@@ -73,7 +73,7 @@ struct ClientId {
     endpoint: String,
 }
 
-let limiter = FluxLimiter::<ClientId, _>::with_config(config, SystemClock).unwrap();
+let limiter = FluxLimiter::<ClientId, _>::with_config(config, MonotonicClock::new()).unwrap();
 
 let client = ClientId {
     user_id: 123,
@@ -88,7 +88,7 @@ limiter.check_request(client)?;
 You can query the current rate limiter configuration:
 
 ```rust
-let limiter = FluxLimiter::with_config(config, SystemClock).unwrap();
+let limiter = FluxLimiter::with_config(config, MonotonicClock::new()).unwrap();
 
 println!("Rate: {} req/sec", limiter.rate());
 println!("Burst: {}", limiter.burst());
@@ -148,7 +148,7 @@ use std::sync::Arc;
 use std::thread;
 
 let config = FluxLimiterConfig::new(100.0, 50.0);
-let limiter = Arc::new(FluxLimiter::with_config(config, SystemClock).unwrap());
+let limiter = Arc::new(FluxLimiter::with_config(config, MonotonicClock::new()).unwrap());
 
 // Share across multiple threads
 let handles: Vec<_> = (0..10)
@@ -176,7 +176,7 @@ state, providing the same shared-state semantics without an outer `Arc`:
 
 ```rust
 let config = FluxLimiterConfig::new(100.0, 50.0);
-let limiter = FluxLimiter::with_config(config, SystemClock).unwrap();
+let limiter = FluxLimiter::with_config(config, MonotonicClock::new()).unwrap();
 
 // Clone directly — both share the same client state
 let limiter1 = limiter.clone();
@@ -205,7 +205,7 @@ use tokio;
 #[tokio::main]
 async fn main() {
     let config = FluxLimiterConfig::new(100.0, 50.0);
-    let limiter = Arc::new(FluxLimiter::with_config(config, SystemClock).unwrap());
+    let limiter = Arc::new(FluxLimiter::with_config(config, MonotonicClock::new()).unwrap());
 
     // Use in async tasks
     let limiter_clone = Arc::clone(&limiter);
@@ -232,13 +232,13 @@ You can create different rate limiters for different purposes:
 // Global rate limiter
 let global_limiter = FluxLimiter::with_config(
     FluxLimiterConfig::new(1000.0, 500.0),
-    SystemClock
+    MonotonicClock::new()
 ).unwrap();
 
 // Per-user rate limiter
 let user_limiter = FluxLimiter::with_config(
     FluxLimiterConfig::new(10.0, 5.0),
-    SystemClock
+    MonotonicClock::new()
 ).unwrap();
 
 // Apply both limits
@@ -261,7 +261,7 @@ fn check_both_limits(user_id: &str) -> bool {
 ```rust
 use flux_limiter::{FluxLimiter, FluxLimiterError};
 
-fn process_request(limiter: &FluxLimiter<String, SystemClock>, client_id: String) -> Result<(), String> {
+fn process_request(limiter: &FluxLimiter<String, MonotonicClock>, client_id: String) -> Result<(), String> {
     let decision = limiter
         .check_request(client_id)
         .map_err(|e| format!("Rate limiter error: {}", e))?;

@@ -355,7 +355,7 @@ pub struct QuotaManager<T>
 where
     T: Hash + Eq + Clone,
 {
-    limiter: FluxLimiter<T, SystemClock>,
+    limiter: FluxLimiter<T, MonotonicClock>,
     quotas: DashMap<T, QuotaState>,
 }
 
@@ -464,7 +464,7 @@ than by type aliases (two aliases cannot share one name):
 
 ```rust
 // `FluxLimiter<T>` is already the common spelling, because `C` defaults:
-pub struct FluxLimiter<T, C = SystemClock> { /* ... */ }
+pub struct FluxLimiter<T, C = MonotonicClock> { /* ... */ }
 
 // Users who need another clock name it explicitly:
 let limiter = FluxLimiter::<String, C>::with_config(config, clock)?;

@@ -28,11 +28,11 @@ flux-limiter = "0.8.6"
 ## Quick Start
 
 ```rust
-use flux_limiter::{FluxLimiter, FluxLimiterConfig, SystemClock};
+use flux_limiter::{FluxLimiter, FluxLimiterConfig, MonotonicClock};
 
 // Create a rate limiter: 10 requests per second with allowable burst of 5
 let config = FluxLimiterConfig::new(10.0, 5.0);
-let limiter = FluxLimiter::with_config(config, SystemClock).unwrap();
+let limiter = FluxLimiter::with_config(config, MonotonicClock::new()).unwrap();
 
 // Check if a request should be allowed
 match limiter.check_request("user_123") {

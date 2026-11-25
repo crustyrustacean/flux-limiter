@@ -23,7 +23,7 @@ let config = FluxLimiterConfig::new(rate_per_client, rate_per_client * 0.5);
 ```rust
 use std::env;
 
-fn create_rate_limiter() -> Result<FluxLimiter<String, SystemClock>, FluxLimiterError> {
+fn create_rate_limiter() -> Result<FluxLimiter<String, MonotonicClock>, FluxLimiterError> {
     let rate = env::var("RATE_LIMIT_RATE")
         .unwrap_or_else(|_| "100.0".to_string())
         .parse::<f64>()
@@ -35,7 +35,7 @@ fn create_rate_limiter() -> Result<FluxLimiter<String, SystemClock>, FluxLimiter
         .expect("Invalid RATE_LIMIT_BURST");
 
     let config = FluxLimiterConfig::new(rate, burst);
-    FluxLimiter::with_config(config, SystemClock)
+    FluxLimiter::with_config(config, MonotonicClock::new())
 }
 ```
 
@@ -100,7 +100,7 @@ use prometheus::{Counter, IntCounter, Registry};
 use std::sync::Arc;
 
 struct PrometheusRateLimiter {
-    limiter: Arc<FluxLimiter<String, SystemClock>>,
+    limiter: Arc<FluxLimiter<String, MonotonicClock>>,
     requests_total: IntCounter,
     requests_allowed: IntCounter,
     requests_denied: IntCounter,
@@ -109,7 +109,7 @@ struct PrometheusRateLimiter {
 
 impl PrometheusRateLimiter {
     fn new(
-        limiter: FluxLimiter<String, SystemClock>,
+        limiter: FluxLimiter<String, MonotonicClock>,
         registry: &Registry,
     ) -> Result<Self, Box<dyn std::error::Error>> {
         let requests_total = IntCounter::new(
@@ -170,7 +170,7 @@ Implement structured logging:
 use tracing::{info, warn, error};
 
 fn check_request_with_logging(
-    limiter: &FluxLimiter<String, SystemClock>,
+    limiter: &FluxLimiter<String, MonotonicClock>,
     client_id: String,
 ) -> bool {
     match limiter.check_request(client_id.clone()) {
@@ -221,12 +221,12 @@ use tokio::time::{interval, Duration};
 use std::sync::Arc;
 
 struct ManagedRateLimiter {
-    limiter: Arc<FluxLimiter<String, SystemClock>>,
+    limiter: Arc<FluxLimiter<String, MonotonicClock>>,
 }
 
 impl ManagedRateLimiter {
     fn new(config: FluxLimiterConfig) -> Result<Self, FluxLimiterError> {
-        let limiter = Arc::new(FluxLimiter::with_config(config, SystemClock)?);
+        let limiter = Arc::new(FluxLimiter::with_config(config, MonotonicClock::new())?);
 
         // Start background cleanup task
         let limiter_clone = Arc::clone(&limiter);
@@ -237,7 +237,7 @@ impl ManagedRateLimiter {
         Ok(Self { limiter })
     }
 
-    async fn cleanup_loop(limiter: Arc<FluxLimiter<String, SystemClock>>) {
+    async fn cleanup_loop(limiter: Arc<FluxLimiter<String, MonotonicClock>>) {
         let mut interval = interval(Duration::from_secs(3600)); // 1 hour
 
         loop {
@@ -267,13 +267,13 @@ impl ManagedRateLimiter {
 Monitor memory usage and alert on growth:
 
 ```rust
-fn estimate_memory_usage(limiter: &FluxLimiter<String, SystemClock>) -> usize {
+fn estimate_memory_usage(limiter: &FluxLimiter<String, MonotonicClock>) -> usize {
     // Estimate: ~48 bytes per client (HashMap overhead + String + u64)
     let estimated_clients = 1_000_000; // Adjust based on your load
     estimated_clients * 48
 }
 
-fn check_memory_threshold(limiter: &FluxLimiter<String, SystemClock>) {
+fn check_memory_threshold(limiter: &FluxLimiter<String, MonotonicClock>) {
     let estimated_usage = estimate_memory_usage(limiter);
     let threshold = 100 * 1024 * 1024; // 100 MB
 
@@ -297,7 +297,7 @@ use std::sync::atomic::{AtomicU64, AtomicBool, Ordering};
 use std::time::{SystemTime, Duration};
 
 struct CircuitBreakerRateLimiter {
-    limiter: FluxLimiter<String, SystemClock>,
+    limiter: FluxLimiter<String, MonotonicClock>,
     consecutive_failures: AtomicU64,
     circuit_open: AtomicBool,
     circuit_open_time: AtomicU64,
@@ -312,7 +312,7 @@ impl CircuitBreakerRateLimiter {
         reset_timeout_secs: u64,
     ) -> Result<Self, FluxLimiterError> {
         Ok(Self {
-            limiter: FluxLimiter::with_config(config, SystemClock)?,
+            limiter: FluxLimiter::with_config(config, MonotonicClock::new())?,
             consecutive_failures: AtomicU64::new(0),
             circuit_open: AtomicBool::new(false),
             circuit_open_time: AtomicU64::new(0),
@@ -388,7 +388,7 @@ mod load_tests {
     #[test]
     fn test_concurrent_load() {
         let config = FluxLimiterConfig::new(1000.0, 500.0);
-        let limiter = Arc::new(FluxLimiter::with_config(config, SystemClock).unwrap());
+        let limiter = Arc::new(FluxLimiter::with_config(config, MonotonicClock::new()).unwrap());
 
         let start = Instant::now();
         let threads: Vec<_> = (0..10)

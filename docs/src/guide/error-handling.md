@@ -27,12 +27,12 @@ Configuration errors occur when creating a rate limiter with invalid settings.
 Returned when the rate is not a finite number (`NaN` or `±Infinity`), is ≤ 0, or is greater than 1,000,000,000 requests per second.
 
 ```rust
-use flux_limiter::{FluxLimiterConfig, FluxLimiter, SystemClock, FluxLimiterError};
+use flux_limiter::{FluxLimiterConfig, FluxLimiter, MonotonicClock, FluxLimiterError};
 
 // Invalid: rate must be finite, positive, and at most 1e9
 let config = FluxLimiterConfig::new(-10.0, 5.0);
 
-match FluxLimiter::with_config(config, SystemClock) {
+match FluxLimiter::with_config(config, MonotonicClock::new()) {
     Ok(_) => println!("Success"),
     Err(FluxLimiterError::InvalidRate) => {
         eprintln!("Error: Rate must be finite, > 0, and <= 1_000_000_000");
@@ -49,7 +49,7 @@ Returned when the burst is not a finite number, is negative, or is too large for
 // Invalid: burst must be finite and non-negative
 let config = FluxLimiterConfig::new(10.0, -5.0);
 
-match FluxLimiter::<String, _>::with_config(config, SystemClock) {
+match FluxLimiter::<String, _>::with_config(config, MonotonicClock::new()) {
     Ok(_) => println!("Success"),
     Err(FluxLimiterError::InvalidBurst) => {
         eprintln!("Error: Burst must be finite, >= 0, and small enough to fit");
@@ -63,10 +63,10 @@ match FluxLimiter::<String, _>::with_config(config, SystemClock) {
 Configuration errors should be caught early, typically at application startup:
 
 ```rust
-fn create_rate_limiter() -> Result<FluxLimiter<String, SystemClock>, String> {
+fn create_rate_limiter() -> Result<FluxLimiter<String, MonotonicClock>, String> {
     let config = FluxLimiterConfig::new(100.0, 50.0);
 
-    FluxLimiter::with_config(config, SystemClock)
+    FluxLimiter::with_config(config, MonotonicClock::new())
         .map_err(|e| match e {
             FluxLimiterError::InvalidRate => {
                 "Invalid configuration: rate must be positive".to_string()
@@ -128,7 +128,7 @@ Allow requests when the rate limiter encounters errors:
 
 ```rust
 fn should_allow_request(
-    limiter: &FluxLimiter<String, SystemClock>,
+    limiter: &FluxLimiter<String, MonotonicClock>,
     client_id: &str
 ) -> bool {
     match limiter.check_request(client_id.to_string()) {
@@ -157,7 +157,7 @@ Deny requests when the rate limiter encounters errors:
 
 ```rust
 fn should_allow_request(
-    limiter: &FluxLimiter<String, SystemClock>,
+    limiter: &FluxLimiter<String, MonotonicClock>,
     client_id: &str
 ) -> bool {
     match limiter.check_request(client_id.to_string()) {
@@ -189,7 +189,7 @@ use std::sync::atomic::{AtomicU64, Ordering};
 use std::sync::Arc;
 
 struct FallbackRateLimiter {
-    primary: FluxLimiter<String, SystemClock>,
+    primary: FluxLimiter<String, MonotonicClock>,
     fallback_counter: Arc<AtomicU64>,
     fallback_limit: u64,
 }
@@ -230,7 +230,7 @@ static CLOCK_ERROR_COUNT: AtomicU64 = AtomicU64::new(0);
 static TOTAL_REQUESTS: AtomicU64 = AtomicU64::new(0);
 
 fn check_with_monitoring(
-    limiter: &FluxLimiter<String, SystemClock>,
+    limiter: &FluxLimiter<String, MonotonicClock>,
     client_id: String
 ) -> bool {
     TOTAL_REQUESTS.fetch_add(1, Ordering::Relaxed);
@@ -265,7 +265,7 @@ Temporarily bypass rate limiting after consecutive failures:
 use std::sync::atomic::{AtomicU64, Ordering};
 
 struct CircuitBreakerLimiter {
-    limiter: FluxLimiter<String, SystemClock>,
+    limiter: FluxLimiter<String, MonotonicClock>,
     consecutive_failures: AtomicU64,
     failure_threshold: u64,
     bypassed: AtomicU64,

@@ -54,20 +54,21 @@ compare-and-swap, and simple integer arithmetic — all O(1).
 ### FluxLimiter Structure
 
 ```rust
-FluxLimiter<String, SystemClock> {
+FluxLimiter<String, MonotonicClock> {
     rate_nanos: u64,         // 8 bytes - cache-friendly
     tolerance_nanos: u64,    // 8 bytes
     client_state: Arc<..>,   // 8 bytes - pointer
-    clock: SystemClock,      // 0 bytes - zero-sized type
+    clock: MonotonicClock,   // 40 bytes - see below
 }
-// Total: 24 bytes - fits in single cache line
 ```
 
 **Cache Efficiency**:
 - Small struct size (24-32 bytes)
 - Frequently accessed fields grouped
 - Arc enables sharing without duplication
-- Zero-sized clock type (SystemClock)
+- The clock is 40 bytes (`Arc` + `Instant` origin + a lazily-read epoch), so the
+  struct is larger than it was when the zero-sized `SystemClock` was the default;
+  pass `SystemClock` explicitly if that matters and you accept its limitation
 
 ### Per-Client State
 
@@ -315,7 +316,7 @@ use std::sync::atomic::{AtomicU64, Ordering};
 
 static REQUEST_COUNT: AtomicU64 = AtomicU64::new(0);
 
-fn track_throughput(limiter: &FluxLimiter<String, SystemClock>, client_id: String) -> bool {
+fn track_throughput(limiter: &FluxLimiter<String, MonotonicClock>, client_id: String) -> bool {
     REQUEST_COUNT.fetch_add(1, Ordering::Relaxed);
 
     match limiter.check_request(client_id) {

@@ -220,7 +220,7 @@ if anyone else already moved the TAT on.
 use std::sync::Arc;
 
 let config = FluxLimiterConfig::new(100.0, 50.0);
-let limiter = Arc::new(FluxLimiter::with_config(config, SystemClock)?);
+let limiter = Arc::new(FluxLimiter::with_config(config, MonotonicClock::new())?);
 
 // Clone Arc for each thread (cheap)
 let limiter1 = Arc::clone(&limiter);
@@ -244,7 +244,7 @@ client state via `Arc::clone` on the internal `DashMap`:
 
 ```rust
 let config = FluxLimiterConfig::new(100.0, 50.0);
-let limiter = FluxLimiter::with_config(config, SystemClock)?;
+let limiter = FluxLimiter::with_config(config, MonotonicClock::new())?;
 
 // Clone the limiter directly — shares the same DashMap
 let limiter1 = limiter.clone();
@@ -332,7 +332,7 @@ retry count rises with contention rather than the wait time.
 fn bench_concurrent_different_clients(b: &mut Bencher) {
     let limiter = Arc::new(FluxLimiter::with_config(
         FluxLimiterConfig::new(1000.0, 500.0),
-        SystemClock
+        MonotonicClock::new()
     ).unwrap());
 
     b.iter(|| {

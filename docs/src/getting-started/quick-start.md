@@ -5,11 +5,11 @@ Get started with Flux Limiter in just a few minutes.
 ## Basic Example
 
 ```rust
-use flux_limiter::{FluxLimiter, FluxLimiterConfig, SystemClock};
+use flux_limiter::{FluxLimiter, FluxLimiterConfig, MonotonicClock};
 
 // Create a rate limiter: 10 requests per second with burst of 5
 let config = FluxLimiterConfig::new(10.0, 5.0);
-let limiter = FluxLimiter::with_config(config, SystemClock).unwrap();
+let limiter = FluxLimiter::with_config(config, MonotonicClock::new()).unwrap();
 
 // Check if a request should be allowed
 match limiter.check_request("user_123") {
@@ -37,9 +37,9 @@ Let's break down what's happening:
    - Burst: 5 additional requests allowed in bursts
    - Total capacity: ~6 requests can be made immediately
 
-2. **Create Rate Limiter**: `FluxLimiter::with_config(config, SystemClock)`
+2. **Create Rate Limiter**: `FluxLimiter::with_config(config, MonotonicClock::new())`
    - Uses the configuration
-   - Uses `SystemClock` for production time source
+   - Uses `MonotonicClock`, the default monotonic time source, which is unaffected by OS clock steps
    - Returns `Result` to handle configuration errors
 
 3. **Check Request**: `limiter.check_request("user_123")`
@@ -92,7 +92,7 @@ Flux Limiter automatically tracks state for each unique client:
 
 ```rust
 let config = FluxLimiterConfig::new(10.0, 5.0);
-let limiter = FluxLimiter::with_config(config, SystemClock).unwrap();
+let limiter = FluxLimiter::with_config(config, MonotonicClock::new()).unwrap();
 
 // Different clients have independent rate limits
 limiter.check_request("user_1").unwrap();
@@ -111,7 +111,7 @@ use std::sync::Arc;
 use std::thread;
 
 let config = FluxLimiterConfig::new(10.0, 5.0);
-let limiter = Arc::new(FluxLimiter::with_config(config, SystemClock).unwrap());
+let limiter = Arc::new(FluxLimiter::with_config(config, MonotonicClock::new()).unwrap());
 
 let mut handles = vec![];
 

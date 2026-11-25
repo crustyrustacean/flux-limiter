@@ -10,7 +10,7 @@ The main rate limiter struct uses generics for flexibility.
 
 ```rust
 #[derive(Debug)]
-pub struct FluxLimiter<T, C = SystemClock>
+pub struct FluxLimiter<T, C = MonotonicClock>
 where
     T: Hash + Eq + Clone,  // Client identifier type
     C: Clock,              // Time source
@@ -34,7 +34,8 @@ where
 - Zero-cost abstraction - no runtime overhead
 
 **Generic Clock (C)**:
-- Default: `SystemClock` for production
+- Default: `MonotonicClock`, which is immune to OS clock steps
+- Opt-in: `SystemClock` for wall-clock time
 - Alternative: `TestClock` for testing
 - Custom: User-defined time sources
 - Constrains: `Clock` trait
@@ -251,9 +252,37 @@ pub trait Clock: Send + Sync {
 - Thread-safe: Can be shared across threads
 - Required for concurrent rate limiting
 
+### MonotonicClock
+
+The default clock. It records an anchor (an `Instant` paired with the OS clock's
+reading at that moment) the first time it is used, then reports
+`anchor + elapsed`:
+
+```rust
+#[derive(Debug, Clone, Default)]
+pub struct MonotonicClock {
+    anchor: Arc<OnceLock<Anchor>>,
+    // ...
+}
+
+impl Clock for MonotonicClock {
+    fn now(&self) -> Result<u64, ClockError> {
+        // anchor is set on the first call; later calls only read elapsed time
+        // ...
+    }
+}
+```
+
+**Properties**:
+- Monotonic: readings never go backwards, whatever the OS clock does
+- Advances by real elapsed time, so capacity refills correctly while the OS clock is wrong
+- Still a Unix-epoch timestamp in nanoseconds, within microseconds of the OS clock for as long as that clock is not stepped
+- Never returns `ClockError`; `Instant::elapsed` cannot fail
+- 40 bytes; clones share one anchor, so a cloned limiter and its original see the same time
+
 ### SystemClock
 
-Production time source using system time:
+The opt-in wall-clock time source, for callers who need readings that match the OS clock exactly. Pass it explicitly: `FluxLimiter::with_config(config, SystemClock)`.
 
 ```rust
 #[derive(Debug, Clone)]
@@ -270,7 +299,7 @@ impl Clock for SystemClock {
 ```
 
 **Known limitations**:
-- A clock that steps backwards is **not** a source of `ClockError`: `SystemTime::now()` still succeeds, it simply returns an earlier value. Such a step makes clients look over-limit until the clock catches back up; see [#5](https://github.com/crustyrustacean/flux-limiter/issues/5).
+- A clock that steps backwards is **not** a source of `ClockError`: `SystemTime::now()` still succeeds, it simply returns an earlier value. Such a step makes clients look over-limit until the clock catches back up; this is why it is not the default; use `MonotonicClock` unless you need wall-clock time.
 - Clock resolution is whatever the OS provides; the nanosecond value is only as fine as that
 - Suspend/resume and VM migration can produce a discontinuity, with the same consequence as above
 
@@ -303,13 +332,12 @@ impl TestClock {
 ### FluxLimiter Size
 
 ```rust
-FluxLimiter<String, SystemClock> {
+FluxLimiter<String, MonotonicClock> {
     rate_nanos: u64,         // 8 bytes
     tolerance_nanos: u64,    // 8 bytes
     client_state: Arc<..>,   // 8 bytes (pointer)
-    clock: SystemClock,      // 0 bytes (zero-sized type)
+    clock: MonotonicClock,   // 40 bytes
 }
-// Total: 24 bytes
 ```
 
 **Cache Efficiency**:

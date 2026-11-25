@@ -139,7 +139,7 @@ use flux_limiter::{FluxLimiterConfig, FluxLimiterError};
 
 // Invalid configuration: negative rate
 let config = FluxLimiterConfig::new(-10.0, 5.0);
-match FluxLimiter::with_config(config, SystemClock) {
+match FluxLimiter::with_config(config, MonotonicClock::new()) {
     Ok(_) => println!("Valid configuration"),
     Err(FluxLimiterError::InvalidRate) => {
         eprintln!("Error: Rate must be positive");
@@ -201,12 +201,12 @@ use std::sync::Arc;
 use parking_lot::RwLock;
 
 struct DynamicRateLimiter {
-    limiter: Arc<RwLock<FluxLimiter<String, SystemClock>>>,
+    limiter: Arc<RwLock<FluxLimiter<String, MonotonicClock>>>,
 }
 
 impl DynamicRateLimiter {
     fn update_config(&self, new_config: FluxLimiterConfig) {
-        let new_limiter = FluxLimiter::with_config(new_config, SystemClock).unwrap();
+        let new_limiter = FluxLimiter::with_config(new_config, MonotonicClock::new()).unwrap();
         *self.limiter.write() = new_limiter;
     }
 

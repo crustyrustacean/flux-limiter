@@ -40,7 +40,8 @@ Flux Limiter is built on several key architectural principles:
 ├─────────────────────────────────────────────────────────────┤
 │  Time Abstraction                                           │
 │  ├─ Clock Trait           │ Pluggable time source           │
-│  ├─ SystemClock           │ Production time implementation   │
+│  ├─ MonotonicClock        │ Production time (the default)   │
+│  ├─ SystemClock           │ Wall-clock time, opt-in         │
 │  └─ TestClock             │ Deterministic test time         │
 └─────────────────────────────────────────────────────────────┘
 ```
@@ -145,7 +146,8 @@ Thread-safe state management:
 ### 4. Time Abstraction Layer
 
 Clock trait for time source flexibility:
-- SystemClock for production
+- MonotonicClock for production (the default; immune to OS clock steps)
+- SystemClock for wall-clock time, opt-in
 - TestClock for deterministic testing
 - Custom clocks for special scenarios
 

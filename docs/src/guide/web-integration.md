@@ -14,10 +14,10 @@ use axum::{
     middleware::Next,
     response::{IntoResponse, Response},
 };
-use flux_limiter::{FluxLimiter, FluxLimiterError, SystemClock};
+use flux_limiter::{FluxLimiter, FluxLimiterError, MonotonicClock};
 use std::sync::Arc;
 
-type SharedLimiter = Arc<FluxLimiter<String, SystemClock>>;
+type SharedLimiter = Arc<FluxLimiter<String, MonotonicClock>>;
 
 // `from_fn` middleware always sees the concrete body type `Body`, so the
 // request is `Request<Body>` and `Next` takes no generic parameter.
@@ -85,14 +85,14 @@ use axum::{
     Router,
     middleware,
 };
-use flux_limiter::{FluxLimiter, FluxLimiterConfig, SystemClock};
+use flux_limiter::{FluxLimiter, FluxLimiterConfig, MonotonicClock};
 use std::sync::Arc;
 
 #[tokio::main]
 async fn main() {
     // Create rate limiter
     let config = FluxLimiterConfig::new(10.0, 5.0);
-    let limiter = Arc::new(FluxLimiter::with_config(config, SystemClock).unwrap());
+    let limiter = Arc::new(FluxLimiter::with_config(config, MonotonicClock::new()).unwrap());
 
     // Build router with middleware
     let app = Router::new()
@@ -126,17 +126,17 @@ use actix_web::{
     dev::{Service, ServiceRequest, ServiceResponse, Transform},
     Error, HttpResponse, http::header,
 };
-use flux_limiter::{FluxLimiter, FluxLimiterError, SystemClock};
+use flux_limiter::{FluxLimiter, FluxLimiterError, MonotonicClock};
 use std::future::{ready, Future, Ready};
 use std::pin::Pin;
 use std::sync::Arc;
 
 pub struct RateLimitMiddleware {
-    limiter: Arc<FluxLimiter<String, SystemClock>>,
+    limiter: Arc<FluxLimiter<String, MonotonicClock>>,
 }
 
 impl RateLimitMiddleware {
-    pub fn new(limiter: Arc<FluxLimiter<String, SystemClock>>) -> Self {
+    pub fn new(limiter: Arc<FluxLimiter<String, MonotonicClock>>) -> Self {
         Self { limiter }
     }
 }
@@ -164,7 +164,7 @@ where
 
 pub struct RateLimitMiddlewareService<S> {
     service: S,
-    limiter: Arc<FluxLimiter<String, SystemClock>>,
+    limiter: Arc<FluxLimiter<String, MonotonicClock>>,
 }
 
 impl<S> Service<ServiceRequest> for RateLimitMiddlewareService<S>
@@ -243,7 +243,7 @@ use rocket::{
     http::Status,
     State,
 };
-use flux_limiter::{FluxLimiter, FluxLimiterDecision, SystemClock};
+use flux_limiter::{FluxLimiter, FluxLimiterDecision, MonotonicClock};
 use std::sync::Arc;
 
 pub struct RateLimited {
@@ -258,7 +258,7 @@ impl<'r> FromRequest<'r> for RateLimited {
 
     async fn from_request(request: &'r Request<'_>) -> Outcome<Self, Self::Error> {
         let limiter = request
-            .guard::<&State<Arc<FluxLimiter<String, SystemClock>>>>()
+            .guard::<&State<Arc<FluxLimiter<String, MonotonicClock>>>>()
             .await
             .unwrap();
 
@@ -349,7 +349,7 @@ use std::collections::HashMap;
 use std::sync::Arc;
 
 struct TieredLimiters {
-    limiters: HashMap<String, Arc<FluxLimiter<String, SystemClock>>>,
+    limiters: HashMap<String, Arc<FluxLimiter<String, MonotonicClock>>>,
 }
 
 impl TieredLimiters {
@@ -360,7 +360,7 @@ impl TieredLimiters {
             "free".to_string(),
             Arc::new(FluxLimiter::with_config(
                 FluxLimiterConfig::new(10.0, 5.0),
-                SystemClock
+                MonotonicClock::new()
             )?),
         );
 
@@ -368,14 +368,14 @@ impl TieredLimiters {
             "paid".to_string(),
             Arc::new(FluxLimiter::with_config(
                 FluxLimiterConfig::new(100.0, 50.0),
-                SystemClock
+                MonotonicClock::new()
             )?),
         );
 
         Ok(Self { limiters })
     }
 
-    fn get_limiter(&self, tier: &str) -> &Arc<FluxLimiter<String, SystemClock>> {
+    fn get_limiter(&self, tier: &str) -> &Arc<FluxLimiter<String, MonotonicClock>> {
         self.limiters.get(tier).unwrap_or_else(|| &self.limiters["free"])
     }
 }
@@ -407,7 +407,7 @@ Automatically clean up stale clients:
 use tokio::time::{interval, Duration};
 use std::sync::Arc;
 
-async fn cleanup_task(limiter: Arc<FluxLimiter<String, SystemClock>>) {
+async fn cleanup_task(limiter: Arc<FluxLimiter<String, MonotonicClock>>) {
     let mut cleanup_interval = interval(Duration::from_secs(3600)); // 1 hour
 
     loop {
@@ -430,7 +430,7 @@ async fn cleanup_task(limiter: Arc<FluxLimiter<String, SystemClock>>) {
 #[tokio::main]
 async fn main() {
     let config = FluxLimiterConfig::new(100.0, 50.0);
-    let limiter = Arc::new(FluxLimiter::with_config(config, SystemClock).unwrap());
+    let limiter = Arc::new(FluxLimiter::with_config(config, MonotonicClock::new()).unwrap());
 
     // Start cleanup in background
     tokio::spawn(cleanup_task(limiter.clone()));

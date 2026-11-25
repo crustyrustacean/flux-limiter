@@ -55,7 +55,7 @@ Validate configuration at startup:
 fn main() -> Result<(), Box<dyn std::error::Error>> {
     let config = FluxLimiterConfig::new(100.0, 50.0);
 
-    let limiter = FluxLimiter::with_config(config, SystemClock)
+    let limiter = FluxLimiter::with_config(config, MonotonicClock::new())
         .map_err(|e| match e {
             FluxLimiterError::InvalidRate => {
                 "Invalid rate: must be positive".to_string()
@@ -238,7 +238,7 @@ impl ErrorMetrics {
 
 ```rust
 fn check_with_alerting(
-    limiter: &FluxLimiter<String, SystemClock>,
+    limiter: &FluxLimiter<String, MonotonicClock>,
     metrics: &ErrorMetrics,
     client_id: String,
 ) -> bool {
@@ -307,7 +307,7 @@ impl CircuitBreaker {
 }
 
 fn check_with_circuit_breaker(
-    limiter: &FluxLimiter<String, SystemClock>,
+    limiter: &FluxLimiter<String, MonotonicClock>,
     breaker: &CircuitBreaker,
     client_id: String,
 ) -> bool {
@@ -354,7 +354,7 @@ match limiter.cleanup_stale_clients(threshold) {
 
 ```rust
 async fn check_with_retry(
-    limiter: &FluxLimiter<String, SystemClock>,
+    limiter: &FluxLimiter<String, MonotonicClock>,
     client_id: String,
     max_retries: u32,
 ) -> Result<FluxLimiterDecision, FluxLimiterError> {
@@ -380,7 +380,7 @@ async fn check_with_retry(
 
 ```rust
 enum RateLimitStrategy {
-    Primary(FluxLimiter<String, SystemClock>),
+    Primary(FluxLimiter<String, MonotonicClock>),
     Fallback(SimpleCounter),
 }
 
@@ -409,7 +409,7 @@ impl RateLimitStrategy {
 
 ```rust
 fn check_with_logging(
-    limiter: &FluxLimiter<String, SystemClock>,
+    limiter: &FluxLimiter<String, MonotonicClock>,
     client_id: String,
 ) -> bool {
     match limiter.check_request(client_id.clone()) {

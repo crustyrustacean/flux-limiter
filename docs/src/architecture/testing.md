@@ -155,7 +155,7 @@ Validate configuration handling:
 #[test]
 fn test_invalid_rate() {
     let config = FluxLimiterConfig::new(-10.0, 5.0);
-    let result = FluxLimiter::with_config(config, SystemClock);
+    let result = FluxLimiter::with_config(config, MonotonicClock::new());
 
     assert!(matches!(result, Err(FluxLimiterError::InvalidRate)));
 }
@@ -163,7 +163,7 @@ fn test_invalid_rate() {
 #[test]
 fn test_invalid_burst() {
     let config = FluxLimiterConfig::new(10.0, -5.0);
-    let result = FluxLimiter::with_config(config, SystemClock);
+    let result = FluxLimiter::with_config(config, MonotonicClock::new());
 
     assert!(matches!(result, Err(FluxLimiterError::InvalidBurst)));
 }
@@ -255,7 +255,7 @@ fn test_concurrent_access() {
 
     let config = FluxLimiterConfig::new(100.0, 50.0);
     let limiter = Arc::new(
-        FluxLimiter::with_config(config, SystemClock).unwrap()
+        FluxLimiter::with_config(config, MonotonicClock::new()).unwrap()
     );
 
     let handles: Vec<_> = (0..10)
@@ -337,7 +337,7 @@ mod benchmarks {
     fn bench_check_request_latency() {
         let limiter = FluxLimiter::with_config(
             FluxLimiterConfig::new(1000.0, 500.0),
-            SystemClock,
+            MonotonicClock::new(),
         ).unwrap();
 
         let iterations = 100_000;
@@ -365,7 +365,7 @@ fn test_throughput() {
     let limiter = Arc::new(
         FluxLimiter::with_config(
             FluxLimiterConfig::new(10_000.0, 5_000.0),
-            SystemClock,
+            MonotonicClock::new(),
         ).unwrap()
     );
 
