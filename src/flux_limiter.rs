@@ -117,8 +117,9 @@ where
                     current_time_nanos >= previous_tat_nanos.saturating_sub(self.tolerance_nanos);
 
                 if is_conforming {
-                    let new_tat_nanos =
-                        current_time_nanos.max(previous_tat_nanos) + self.rate_nanos;
+                    let new_tat_nanos = current_time_nanos
+                        .max(previous_tat_nanos)
+                        .saturating_add(self.rate_nanos);
                     occupied.insert(new_tat_nanos);
 
                     Ok(FluxLimiterDecision {
@@ -144,7 +145,7 @@ where
             }
             Entry::Vacant(vacant) => {
                 // First request from this client is always allowed
-                let new_tat_nanos = current_time_nanos + self.rate_nanos;
+                let new_tat_nanos = current_time_nanos.saturating_add(self.rate_nanos);
                 vacant.insert(new_tat_nanos);
 
                 Ok(FluxLimiterDecision {
@@ -173,7 +174,11 @@ where
     pub fn cleanup_stale_clients(&self, max_stale_nanos: u64) -> Result<(), FluxLimiterError> {
         let current_time_nanos = self.clock.now()?;
         self.client_state.retain(|_, &mut tat| {
-            tat + self.tolerance_nanos > current_time_nanos.saturating_sub(max_stale_nanos)
+            // Saturating keeps a client whose TAT + tolerance would overflow: a wrapped
+            // value could compare as "old" and evict a live client, whereas u64::MAX is
+            // always newer than the cutoff.
+            tat.saturating_add(self.tolerance_nanos)
+                > current_time_nanos.saturating_sub(max_stale_nanos)
         });
 
         Ok(())
