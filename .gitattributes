@@ -1,0 +1,29 @@
+# Line-ending policy for flux-limiter
+#
+# This repo is developed on both Windows and Linux. These rules make line
+# endings a property of the repository rather than of any one machine's
+# core.autocrlf setting, so the working tree is identical everywhere.
+#
+#   * text=auto eol=lf  -> every text file is stored AND checked out with LF
+#   * binary            -> never normalize; keep bytes exactly as committed
+#
+# To re-normalize an existing checkout after adding this file:
+#   git add --renormalize .
+#   git status            # should show nothing to commit if index was already LF
+
+* text=auto eol=lf
+
+# Explicitly mark binary types so they are never touched by normalization
+*.png binary
+*.jpg binary
+*.jpeg binary
+*.gif binary
+*.ico binary
+*.woff binary
+*.woff2 binary
+*.ttf binary
+*.otf binary
+*.pdf binary
+*.zip binary
+*.gz binary
+*.tar binary

@@ -20,3 +20,6 @@ target/
 /docs/book
 # Vendored dependencies (local only, not published)
 vendor/
+
+# Local planning notes (not tracked)
+/.plans/

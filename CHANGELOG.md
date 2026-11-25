@@ -6,6 +6,18 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [0.8.4] - 2026-11-25
+
+### Added
+- Criterion benchmark suite (`benches/flux_limiter_bench.rs`) — measures the `check_request()` hot path in three scenarios: single-thread `u64` key, single-thread `String` key (clone), and 4 threads contending on one client. Establishes a measured baseline for upcoming performance work
+- `.gitattributes` with `* text=auto eol=lf` — line endings are now a property of the repository rather than of each machine's `core.autocrlf`, so the working tree is identical on Windows and Linux
+
+### Changed
+- Added `criterion = "0.8"` as a dev-dependency (dev-only; does not affect the published library or its dependency tree)
+
+### Fixed
+- `.gitignore` was missing a trailing newline
+
 ## [0.8.3] - 2026-07-11
 
 ### Fixed
@@ -145,7 +157,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - O(number of active clients) memory usage
 - Support for configurable rate and burst capacity
 
-[Unreleased]: https://github.com/crustyrustacean/flux-limiter/compare/v0.8.3...HEAD
+[Unreleased]: https://github.com/crustyrustacean/flux-limiter/compare/v0.8.4...HEAD
+[0.8.4]: https://github.com/crustyrustacean/flux-limiter/compare/v0.8.3...v0.8.4
 [0.8.3]: https://github.com/crustyrustacean/flux-limiter/compare/v0.8.2...v0.8.3
 [0.8.2]: https://github.com/crustyrustacean/flux-limiter/compare/v0.8.1...v0.8.2
 [0.8.1]: https://github.com/crustyrustacean/flux-limiter/compare/v0.8.0...v0.8.1

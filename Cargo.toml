@@ -1,6 +1,6 @@
 [package]
 name = "flux-limiter"
-version = "0.8.3"
+version = "0.8.4"
 edition = "2024"
 authors = ["Jeffery D. Mitchell <crusty-rustacean@gmail.com>"]
 description = "A rate limiter based on the Generic Cell Rate Algorithm (GCRA)."
@@ -15,6 +15,13 @@ publish = true
 
 [dependencies]
 dashmap = "6.2.1"
+
+[dev-dependencies]
+criterion = "0.8"
+
+[[bench]]
+name = "flux_limiter_bench"
+harness = false
 
 [package.metadata.docs.rs]
 features = []
