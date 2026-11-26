@@ -6,6 +6,15 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [0.9.1] - 2026-11-26
+
+### Added
+- `FluxLimiter::check_request_ref`, which takes the client key by reference. For a `String`-keyed limiter a caller can pass a `&str` instead of building a `String` per request. The key is hashed and compared without being owned, and is copied once, on the request that first adds the client. A request for a client the limiter already knows makes no allocation, where `check_request` with a cloned key made one. Measured on one machine with a `String` key: 71.5 ns down to 47.5 ns per check, the same as a `u64` key
+- `FluxLimiter::contains_client` accepts a borrowed key in the same way, so it takes a `&str` for a `String`-keyed limiter
+
+### Changed
+- `check_request` is unchanged in behaviour and still takes the key by value. Use it when you already own the key, and `check_request_ref` when you hold a reference. Both make the same decisions
+
 ## [0.9.0] - 2026-11-25
 
 ### Fixed
@@ -200,7 +209,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - O(number of active clients) memory usage
 - Support for configurable rate and burst capacity
 
-[Unreleased]: https://github.com/crustyrustacean/flux-limiter/compare/v0.9.0...HEAD
+[Unreleased]: https://github.com/crustyrustacean/flux-limiter/compare/v0.9.1...HEAD
+[0.9.1]: https://github.com/crustyrustacean/flux-limiter/compare/v0.9.0...v0.9.1
 [0.9.0]: https://github.com/crustyrustacean/flux-limiter/compare/v0.8.6...v0.9.0
 [0.8.6]: https://github.com/crustyrustacean/flux-limiter/compare/v0.8.5...v0.8.6
 [0.8.5]: https://github.com/crustyrustacean/flux-limiter/compare/v0.8.4...v0.8.5
