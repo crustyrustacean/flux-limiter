@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-9b29f404.js";
+            window.path_to_searchindex_js = "../searchindex-9b512f0d.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-a16be429.js"></script>
@@ -321,7 +321,7 @@ fn test_burst_capacity() {
 </span>#[test]
 fn test_invalid_rate() {
     let config = FluxLimiterConfig::new(-10.0, 5.0);
-    let result = FluxLimiter::with_config(config, SystemClock);
+    let result = FluxLimiter::with_config(config, MonotonicClock::new());
 
     assert!(matches!(result, Err(FluxLimiterError::InvalidRate)));
 }
@@ -329,7 +329,7 @@ fn test_invalid_rate() {
 #[test]
 fn test_invalid_burst() {
     let config = FluxLimiterConfig::new(10.0, -5.0);
-    let result = FluxLimiter::with_config(config, SystemClock);
+    let result = FluxLimiter::with_config(config, MonotonicClock::new());
 
     assert!(matches!(result, Err(FluxLimiterError::InvalidBurst)));
 }
@@ -415,7 +415,7 @@ fn test_concurrent_access() {
 
     let config = FluxLimiterConfig::new(100.0, 50.0);
     let limiter = Arc::new(
-        FluxLimiter::with_config(config, SystemClock).unwrap()
+        FluxLimiter::with_config(config, MonotonicClock::new()).unwrap()
     );
 
     let handles: Vec&lt;_&gt; = (0..10)
@@ -481,76 +481,42 @@ fn test_remaining_capacity() {
 }
 <span class="boring">}</span></code></pre>
 <h2 id="performance-testing"><a class="header" href="#performance-testing">Performance Testing</a></h2>
-<h3 id="latency-benchmarks"><a class="header" href="#latency-benchmarks">Latency Benchmarks</a></h3>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>#[cfg(test)]
-mod benchmarks {
-    use super::*;
-    use std::time::Instant;
-
-    #[test]
-    fn bench_check_request_latency() {
-        let limiter = FluxLimiter::with_config(
-            FluxLimiterConfig::new(1000.0, 500.0),
-            SystemClock,
-        ).unwrap();
-
-        let iterations = 100_000;
-        let start = Instant::now();
-
-        for i in 0..iterations {
-            let client_id = format!("client_{}", i % 1000);
-            limiter.check_request(client_id).unwrap();
-        }
-
-        let elapsed = start.elapsed();
-        let avg_latency = elapsed.as_nanos() / iterations;
-
-        println!("Average latency: {}ns", avg_latency);
-        assert!(avg_latency &lt; 1000); // Should be under 1μs
-    }
-}
-<span class="boring">}</span></code></pre>
-<h3 id="throughput-tests"><a class="header" href="#throughput-tests">Throughput Tests</a></h3>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>#[test]
-fn test_throughput() {
-    let limiter = Arc::new(
-        FluxLimiter::with_config(
-            FluxLimiterConfig::new(10_000.0, 5_000.0),
-            SystemClock,
-        ).unwrap()
-    );
-
-    let start = Instant::now();
-    let threads = 8;
-    let requests_per_thread = 100_000;
-
-    let handles: Vec&lt;_&gt; = (0..threads)
-        .map(|t| {
-            let limiter = Arc::clone(&amp;limiter);
-            thread::spawn(move || {
-                for i in 0..requests_per_thread {
-                    let client_id = format!("client_{}_{}", t, i % 1000);
-                    limiter.check_request(client_id).unwrap();
-                }
-            })
-        })
-        .collect();
-
-    for handle in handles {
-        handle.join().unwrap();
-    }
-
-    let elapsed = start.elapsed();
-    let total_requests = threads * requests_per_thread;
-    let throughput = total_requests as f64 / elapsed.as_secs_f64();
-
-    println!("Throughput: {:.2} req/s", throughput);
-}
-<span class="boring">}</span></code></pre>
+<p>Timing does not belong in a test. A test that measures wall-clock time, such
+as asserting that a request takes under a microsecond, passes on a fast idle
+machine and fails on a slow or loaded one, and the failure says nothing about
+the code. The crate’s own tests contain no timing assertions: <code>cargo test</code>
+checks behaviour only, and every test runs to the same result whatever the
+machine is doing.</p>
+<p>Timing is measured with <a href="https://github.com/bheisler/criterion.rs">Criterion</a>
+benchmarks, which live in <code>benches/</code> and are not part of <code>cargo test</code>:</p>
+<pre><code class="language-sh">cargo bench                        # all benchmarks
+cargo bench contention             # only the multi-threaded ones
+cargo bench -- --save-baseline before
+# ... make a change ...
+cargo bench -- --baseline before   # compare against the saved run
+</code></pre>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Benchmark</th><th>What it measures</th></tr>
+</thead>
+<tbody>
+<tr><td><code>single_client_u64</code></td><td>One thread, one client, <code>u64</code> key</td></tr>
+<tr><td><code>single_client_string_clone</code></td><td>One thread, one client, <code>String</code> key cloned per request</td></tr>
+<tr><td><code>contended_4_threads_u64</code></td><td>4 threads on one client, per batch</td></tr>
+<tr><td><code>contention_hot_key_u64</code></td><td>4 threads on one client, per request</td></tr>
+<tr><td><code>contention_spread_keys_u64</code></td><td>4 threads, each with its own clients, per request</td></tr>
+</tbody>
+</table>
+</div>
+<p>A test that needs to prove something about <em>time</em> rather than <em>speed</em> does it
+with <code>TestClock</code>, which never waits: it sets the clock to an exact value, so a
+test of “what happens after 9.9 seconds” runs instantly and always gives the
+same answer.</p>
+<p>Throughput figures from a benchmark are specific to the machine that produced
+them. The numbers quoted in <a href="./performance.html">Performance Design</a> were taken
+on one laptop and are there to show the relative cost of the two contention
+cases, not to promise a particular rate.</p>
 <h2 id="test-utilities"><a class="header" href="#test-utilities">Test Utilities</a></h2>
 <h3 id="helper-functions"><a class="header" href="#helper-functions">Helper Functions</a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
@@ -574,27 +540,45 @@ fn assert_error&lt;T&gt;(result: Result&lt;T, FluxLimiterError&gt;) {
 }
 <span class="boring">}</span></code></pre>
 <h3 id="test-fixtures"><a class="header" href="#test-fixtures">Test Fixtures</a></h3>
+<p>The suite builds limiters through two helpers, which always pair the limiter
+with the <code>TestClock</code> it reads so a test can advance time:</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>fn create_test_limiter(rate: f64, burst: f64) -&gt; (FluxLimiter&lt;String, TestClock&gt;, TestClock) {
-    let clock = TestClock::new(0.0);
-    let config = FluxLimiterConfig::new(rate, burst);
-    let limiter = FluxLimiter::with_config(config, clock.clone()).unwrap();
-    (limiter, clock)
-}
+</span>/// A limiter with the given rate, burst and starting time, on a fresh TestClock.
+fn setup_limiter(
+    rate: f64,
+    burst: f64,
+    initial_time: f64,
+) -&gt; (FluxLimiter&lt;String, TestClock&gt;, TestClock&gt;)
+
+/// A limiter with the suite's standard configuration.
+fn setup_standard_limiter() -&gt; (FluxLimiter&lt;String, TestClock&gt;, TestClock)
 <span class="boring">}</span></code></pre>
+<p>A <code>TestClock</code> is created at time zero and can be moved forward by an amount
+(<code>advance</code>) or set to an exact instant (<code>set_time</code> in seconds, <code>set_nanos</code> in
+nanoseconds). It can also fail its next reading on request.</p>
 <h2 id="test-coverage"><a class="header" href="#test-coverage">Test Coverage</a></h2>
-<p>Aim for comprehensive coverage:</p>
-<ul>
-<li>✅ Algorithm correctness</li>
-<li>✅ Configuration validation</li>
-<li>✅ Error handling and recovery</li>
-<li>✅ Concurrency safety</li>
-<li>✅ Memory management</li>
-<li>✅ Decision metadata accuracy</li>
-<li>✅ Performance characteristics</li>
-<li>✅ Edge cases and boundary conditions</li>
-</ul>
+<p>The suite is one integration test binary, <code>tests/ratelimiter</code>, split by
+concern. It has 71 tests:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>File</th><th>Tests</th><th>Covers</th></tr>
+</thead>
+<tbody>
+<tr><td><code>config_tests.rs</code></td><td>22</td><td>Every rejected rate and burst, the bounds, and which error wins</td></tr>
+<tr><td><code>clock_tests.rs</code></td><td>13</td><td>The clocks: monotonicity, clock steps, anchors, epoch accuracy</td></tr>
+<tr><td><code>error_tests.rs</code></td><td>8</td><td>Clock failures and the errors they produce</td></tr>
+<tr><td><code>gcra_algorithm_tests.rs</code></td><td>8</td><td>Allow and deny decisions against hand-computed sequences</td></tr>
+<tr><td><code>overflow_tests.rs</code></td><td>9</td><td>Timestamps near <code>u64::MAX</code>, in both build profiles</td></tr>
+<tr><td><code>concurrency_tests.rs</code></td><td>5</td><td>Many threads on one client, and that no update is lost</td></tr>
+<tr><td><code>cleanup_tests.rs</code></td><td>3</td><td>Stale clients are removed and live ones are kept</td></tr>
+<tr><td><code>performance_tests.rs</code></td><td>2</td><td>Behaviour at high request volumes, with no timing assertions</td></tr>
+<tr><td><code>decision_metadata_tests.rs</code></td><td>1</td><td>The fields returned with a decision</td></tr>
+</tbody>
+</table>
+</div>
+<p>Performance itself is not tested here; see <a href="#performance-testing">Performance Testing</a>.</p>
 <h2 id="best-practices"><a class="header" href="#best-practices">Best Practices</a></h2>
 <ol>
 <li><strong>Use TestClock</strong> for deterministic time control</li>

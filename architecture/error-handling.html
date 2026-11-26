@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-9b29f404.js";
+            window.path_to_searchindex_js = "../searchindex-9b512f0d.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-a16be429.js"></script>
@@ -195,9 +195,9 @@
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>pub enum FluxLimiterError {
-    InvalidRate,           // Rate non-finite, ≤ 0, or &gt; 1e9
-    InvalidBurst,          // Burst non-finite, &lt; 0, or too large to fit
-    ClockError(ClockError), // System time failure
+    InvalidRate,            // Rate non-finite, ≤ 0, or &gt; 1e9
+    InvalidBurst,           // Burst non-finite, &lt; 0, or too large to fit
+    ClockError(ClockError), // A clock reading failed
 }
 <span class="boring">}</span></code></pre>
 <h3 id="2-configuration-vs-runtime-errors"><a class="header" href="#2-configuration-vs-runtime-errors">2. Configuration vs Runtime Errors</a></h3>
@@ -209,7 +209,8 @@
 </ul>
 <p><strong>Runtime Errors</strong> (during operation):</p>
 <ul>
-<li><code>ClockError</code>: Can occur anytime</li>
+<li><code>ClockError</code>: only if you use <code>SystemClock</code> or a custom clock</li>
+<li>The default <code>MonotonicClock</code> never produces it</li>
 <li>Requires graceful handling</li>
 <li>Application chooses policy</li>
 </ul>
@@ -226,7 +227,7 @@
 <pre class="playground"><code class="language-rust">fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
     let config = FluxLimiterConfig::new(100.0, 50.0);
 
-    let limiter = FluxLimiter::with_config(config, SystemClock)
+    let limiter = FluxLimiter::with_config(config, MonotonicClock::new())
         .map_err(|e| match e {
             FluxLimiterError::InvalidRate =&gt; {
                 "Invalid rate: must be positive".to_string()
@@ -266,17 +267,26 @@
 </ul>
 <h2 id="runtime-clock-errors"><a class="header" href="#runtime-clock-errors">Runtime Clock Errors</a></h2>
 <h3 id="clock-error-sources"><a class="header" href="#clock-error-sources">Clock Error Sources</a></h3>
-<p>On current platforms there is one source of <code>ClockError</code>:</p>
+<p>The default <code>MonotonicClock</code> never returns a <code>ClockError</code>. The error has one
+source, and only if you opt into <code>SystemClock</code> or write your own clock:</p>
 <ol>
 <li><strong>System Time Unavailable</strong>
 <ul>
-<li>The system clock could not be read</li>
+<li><code>SystemClock</code> could not read the system clock, which happens only if the
+clock is before the Unix epoch</li>
 <li>Reported as <code>ClockError::SystemTimeError</code></li>
 </ul>
 </li>
 </ol>
+<p>With the default clock, the <code>Err</code> arm of <code>check_request</code> can only be reached
+through a bug in a custom clock. Handling it is still correct, because the
+return type allows it, but it is not a path you should expect to run.</p>
 <h3 id="what-is-not-a-clock-error"><a class="header" href="#what-is-not-a-clock-error">What is <em>not</em> a clock error</a></h3>
-<p>{LIMIT}</p>
+<p>A clock that steps backwards is <strong>not</strong> a source of <code>ClockError</code>. Reading the
+clock still succeeds and simply returns an earlier value. With <code>SystemClock</code>
+that makes every client look over-limit until the clock catches back up, and
+no error is reported. This is why <code>SystemClock</code> is not the default: the
+<code>MonotonicClock</code> measures elapsed time and is unaffected by a step.</p>
 <h3 id="error-propagation"><a class="header" href="#error-propagation">Error Propagation</a></h3>
 <pre><code>Clock::now() → Result&lt;u64, ClockError&gt;
      ↓
@@ -397,7 +407,7 @@ impl ErrorMetrics {
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>fn check_with_alerting(
-    limiter: &amp;FluxLimiter&lt;String, SystemClock&gt;,
+    limiter: &amp;FluxLimiter&lt;String, MonotonicClock&gt;,
     metrics: &amp;ErrorMetrics,
     client_id: String,
 ) -&gt; bool {
@@ -464,7 +474,7 @@ impl CircuitBreaker {
 }
 
 fn check_with_circuit_breaker(
-    limiter: &amp;FluxLimiter&lt;String, SystemClock&gt;,
+    limiter: &amp;FluxLimiter&lt;String, MonotonicClock&gt;,
     breaker: &amp;CircuitBreaker,
     client_id: String,
 ) -&gt; bool {
@@ -507,7 +517,7 @@ fn check_with_circuit_breaker(
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>async fn check_with_retry(
-    limiter: &amp;FluxLimiter&lt;String, SystemClock&gt;,
+    limiter: &amp;FluxLimiter&lt;String, MonotonicClock&gt;,
     client_id: String,
     max_retries: u32,
 ) -&gt; Result&lt;FluxLimiterDecision, FluxLimiterError&gt; {
@@ -532,7 +542,7 @@ fn check_with_circuit_breaker(
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>enum RateLimitStrategy {
-    Primary(FluxLimiter&lt;String, SystemClock&gt;),
+    Primary(FluxLimiter&lt;String, MonotonicClock&gt;),
     Fallback(SimpleCounter),
 }
 
@@ -560,7 +570,7 @@ impl RateLimitStrategy {
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>fn check_with_logging(
-    limiter: &amp;FluxLimiter&lt;String, SystemClock&gt;,
+    limiter: &amp;FluxLimiter&lt;String, MonotonicClock&gt;,
     client_id: String,
 ) -&gt; bool {
     match limiter.check_request(client_id.clone()) {

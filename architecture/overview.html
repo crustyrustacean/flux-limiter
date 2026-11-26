@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-9b29f404.js";
+            window.path_to_searchindex_js = "../searchindex-9b512f0d.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-a16be429.js"></script>
@@ -186,9 +186,9 @@
 <p>Flux Limiter is built on several key architectural principles:</p>
 <ol>
 <li><strong>Fine-Grained Concurrency</strong>: Each client’s state is one atomic value, so updating a known client takes no lock</li>
-<li><strong>Clock Abstraction</strong>: Enables testing and handles time-related failures</li>
+<li><strong>Clock Abstraction</strong>: Enables testing, and lets the limiter use a monotonic clock by default</li>
 <li><strong>Type Safety</strong>: Leverages Rust’s type system for correctness guarantees</li>
-<li><strong>Graceful Degradation</strong>: Continues operation despite partial failures</li>
+<li><strong>Errors Instead of Panics</strong>: Invalid configuration and a failed clock reading are returned as errors, so the application chooses how to respond</li>
 </ol>
 <h2 id="core-architecture"><a class="header" href="#core-architecture">Core Architecture</a></h2>
 <pre><code>┌─────────────────────────────────────────────────────────────┐
@@ -207,17 +207,18 @@
 ├─────────────────────────────────────────────────────────────┤
 │  Algorithm Layer                                            │
 │  ├─ GCRA Implementation   │ Generic Cell Rate Algorithm     │
-│  ├─ Nanosecond Precision  │ u64 nanosecond calculations     │
+│  ├─ Integer Nanoseconds   │ u64 nanosecond calculations     │
 │  └─ TAT Tracking          │ Theoretical Arrival Time        │
 ├─────────────────────────────────────────────────────────────┤
 │  Storage Layer                                              │
 │  ├─ DashMap&lt;T, AtomicU64&gt; │ Sharded map of per-client TATs  │
 │  ├─ Atomic Operations     │ Thread-safe state updates       │
-│  └─ Memory Management     │ Automatic cleanup mechanisms    │
+│  └─ Memory Management     │ Explicit cleanup when asked     │
 ├─────────────────────────────────────────────────────────────┤
 │  Time Abstraction                                           │
 │  ├─ Clock Trait           │ Pluggable time source           │
-│  ├─ SystemClock           │ Production time implementation   │
+│  ├─ MonotonicClock        │ Production time (the default)   │
+│  ├─ SystemClock           │ Wall-clock time, opt-in         │
 │  └─ TestClock             │ Deterministic test time         │
 └─────────────────────────────────────────────────────────────┘
 </code></pre>
@@ -240,13 +241,13 @@ Return FluxLimiterDecision
 <h3 id="performance-first"><a class="header" href="#performance-first">Performance First</a></h3>
 <ul>
 <li><strong>O(1) operations</strong>: Constant time complexity for rate limit checks</li>
-<li><strong>Fine-grained concurrency</strong>: No global lock; requests for one client never wait on a lock</li>
-<li><strong>Nanosecond precision</strong>: Integer arithmetic avoids floating-point overhead</li>
+<li><strong>Fine-grained concurrency</strong>: No global lock. Updating a client takes none; only finding it, or adding it the first time, takes a brief lock on one shard</li>
+<li><strong>Nanosecond resolution</strong>: The limiter keeps time as integer nanoseconds, with no floating-point state</li>
 <li><strong>No lock on the hot path</strong>: updating a known client is a single compare-and-swap</li>
 </ul>
 <h3 id="correctness-guaranteed"><a class="header" href="#correctness-guaranteed">Correctness Guaranteed</a></h3>
 <ul>
-<li><strong>Mathematical precision</strong>: Exact GCRA implementation</li>
+<li><strong>Exact integer arithmetic</strong>: once the rate is a whole-nanosecond interval, every decision is computed exactly</li>
 <li><strong>Type safety</strong>: Rust’s type system prevents common errors</li>
 <li><strong>Comprehensive testing</strong>: Deterministic tests with TestClock</li>
 <li><strong>No silent failures</strong>: All errors are explicitly handled</li>
@@ -277,16 +278,23 @@ Return FluxLimiterDecision
 <li><strong>Memory</strong>: O(number of active clients)</li>
 <li><strong>Time complexity</strong>: O(1) for check_request()</li>
 <li><strong>Concurrency</strong>: Lock-free update of a known client; brief sharded locks for lookup and first insert</li>
-<li><strong>Precision</strong>: Nanosecond timing accuracy</li>
+<li><strong>Precision</strong>: Nanosecond resolution. The rate interval is rounded to a whole number of nanoseconds</li>
 <li><strong>Throughput</strong>: Depends on workload and hardware</li>
 </ul>
 <h3 id="scalability"><a class="header" href="#scalability">Scalability</a></h3>
-<pre><code>Clients     Memory Usage
-1K          ~48KB
-100K        ~4.8MB
-1M          ~48MB
-10M         ~480MB
+<p>Measured with <code>u64</code> client keys on a 64-bit target:</p>
+<pre><code>Clients     Memory
+1K          46 KB
+10K         0.3 MB
+100K        2.1 MB
+1M          34 MB
+10M         272 MB
 </code></pre>
+<p>That is about 31 bytes per client on average. Short <code>String</code> keys take about
+76 to 95 bytes each, so a million of them take 75 to 95 MB. An empty limiter
+already holds about 17 KB, because the client map allocates its tables up
+front. Memory does not grow smoothly: the map doubles its tables when they
+fill, so it holds flat for a while and then steps up.</p>
 <h2 id="architecture-layers"><a class="header" href="#architecture-layers">Architecture Layers</a></h2>
 <h3 id="1-api-layer"><a class="header" href="#1-api-layer">1. API Layer</a></h3>
 <p>Public interface for rate limiting operations:</p>
@@ -312,7 +320,8 @@ Return FluxLimiterDecision
 <h3 id="4-time-abstraction-layer"><a class="header" href="#4-time-abstraction-layer">4. Time Abstraction Layer</a></h3>
 <p>Clock trait for time source flexibility:</p>
 <ul>
-<li>SystemClock for production</li>
+<li>MonotonicClock for production (the default; immune to OS clock steps)</li>
+<li>SystemClock for wall-clock time, opt-in</li>
 <li>TestClock for deterministic testing</li>
 <li>Custom clocks for special scenarios</li>
 </ul>

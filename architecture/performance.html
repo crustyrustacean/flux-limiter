@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-9b29f404.js";
+            window.path_to_searchindex_js = "../searchindex-9b512f0d.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-a16be429.js"></script>
@@ -229,39 +229,79 @@ compare-and-swap, and simple integer arithmetic — all O(1).</p>
 <h3 id="fluxlimiter-structure"><a class="header" href="#fluxlimiter-structure">FluxLimiter Structure</a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>FluxLimiter&lt;String, SystemClock&gt; {
-    rate_nanos: u64,         // 8 bytes - cache-friendly
+</span>FluxLimiter&lt;String, MonotonicClock&gt; {   // 64 bytes in total
+    rate_nanos: u64,         // 8 bytes
     tolerance_nanos: u64,    // 8 bytes
-    client_state: Arc&lt;..&gt;,   // 8 bytes - pointer
-    clock: SystemClock,      // 0 bytes - zero-sized type
+    client_state: Arc&lt;..&gt;,   // 8 bytes (pointer)
+    clock: MonotonicClock,   // 40 bytes - see below
 }
-// Total: 24 bytes - fits in single cache line
 <span class="boring">}</span></code></pre>
+<p><strong>Size</strong> (measured with <code>size_of</code> on a 64-bit target):</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Type</th><th>Size</th></tr>
+</thead>
+<tbody>
+<tr><td><code>FluxLimiter&lt;T, MonotonicClock&gt;</code></td><td>64 bytes</td></tr>
+<tr><td><code>FluxLimiter&lt;T, SystemClock&gt;</code></td><td>24 bytes</td></tr>
+<tr><td><code>MonotonicClock</code></td><td>40 bytes</td></tr>
+<tr><td><code>SystemClock</code></td><td>0 bytes</td></tr>
+</tbody>
+</table>
+</div>
+<p>The size does not depend on the client ID type: <code>String</code> and <code>u64</code> keys both give
+64 bytes, because the key lives in the map, not in the limiter.</p>
 <p><strong>Cache Efficiency</strong>:</p>
 <ul>
-<li>Small struct size (24-32 bytes)</li>
-<li>Frequently accessed fields grouped</li>
-<li>Arc enables sharing without duplication</li>
-<li>Zero-sized clock type (SystemClock)</li>
+<li>The limiter with the default clock is exactly one 64-byte cache line</li>
+<li>Frequently accessed fields are grouped at the start of the struct</li>
+<li><code>Arc</code> enables sharing without duplication</li>
+<li>The clock is 40 bytes: an <code>Arc</code> to the shared anchor, an <code>Instant</code> origin, and a
+lazily-read epoch. That is why the struct grew from 24 bytes when the zero-sized
+<code>SystemClock</code> was the default. Pass <code>SystemClock</code> explicitly if those 40 bytes
+matter and you accept its limitation</li>
 </ul>
 <h3 id="per-client-state"><a class="header" href="#per-client-state">Per-Client State</a></h3>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>DashMap&lt;String, AtomicU64&gt; entry:
-    String:    ~24 bytes (pointer + len + capacity)
-    AtomicU64: 8 bytes (TAT; same size as a plain u64)
-    Overhead:  ~16 bytes (hash map metadata)
-// Total: ~48 bytes per client
-<span class="boring">}</span></code></pre>
+<p>One map entry per client, holding the key and its TAT. Memory is allocated
+in steps: DashMap grows its tables by doubling, so the total is flat for a
+while and then jumps. Measured on a 64-bit target (Windows system allocator):</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Key</th><th>Average bytes per client, 1M+ clients</th><th>Range across client counts</th></tr>
+</thead>
+<tbody>
+<tr><td><code>u64</code></td><td>~31</td><td>24 to 36</td></tr>
+<tr><td><code>String</code>, 15 chars</td><td>~76</td><td>63 to 86</td></tr>
+<tr><td><code>String</code>, 36 chars</td><td>~95</td><td>82 to 105</td></tr>
+</tbody>
+</table>
+</div>
+<p>A <code>String</code> key costs the map entry plus the key’s characters, and the
+allocator rounds those up to a power of two (16, 32, 64 bytes).
+One million clients take about 34 MB with <code>u64</code> keys.</p>
 <h3 id="memory-scalability"><a class="header" href="#memory-scalability">Memory Scalability</a></h3>
-<pre><code>Clients         Memory Usage    Example
-1,000           ~48 KB          Small API
-10,000          ~480 KB         Medium service
-100,000         ~4.8 MB         Large service
-1,000,000       ~48 MB          Very large service
-10,000,000      ~480 MB         Massive scale
-</code></pre>
-<p><strong>Memory Growth</strong>: Linear with number of active clients</p>
+<p>Measured with <code>u64</code> keys on a 64-bit target:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Clients</th><th>Memory</th><th>Example</th></tr>
+</thead>
+<tbody>
+<tr><td>1,000</td><td>46 KB</td><td>Small API</td></tr>
+<tr><td>10,000</td><td>0.3 MB</td><td>Medium service</td></tr>
+<tr><td>100,000</td><td>2.1 MB</td><td>Large service</td></tr>
+<tr><td>1,000,000</td><td>34 MB</td><td>Very large service</td></tr>
+<tr><td>10,000,000</td><td>272 MB</td><td>Massive scale</td></tr>
+</tbody>
+</table>
+</div>
+<p>Short <code>String</code> keys take about two and a half to three times as much.</p>
+<p><strong>Memory Growth</strong>: linear in the number of active clients on average, but not
+smoothly. The client map doubles its tables when they fill, so memory holds
+flat for a while and then steps up. At any one client count the true figure is
+between about two thirds and the whole of a step.</p>
 <h2 id="algorithmic-complexity"><a class="header" href="#algorithmic-complexity">Algorithmic Complexity</a></h2>
 <h3 id="time-complexity"><a class="header" href="#time-complexity">Time Complexity</a></h3>
 <div class="table-wrapper">
@@ -305,9 +345,13 @@ Short critical sections → minimal lock duration
 <li>Inserting a client for the first time: that shard’s write lock, once per client</li>
 <li><code>cleanup_stale_clients</code>: each shard’s write lock in turn</li>
 </ul>
-<p>Measured with 4 threads on one client (i7-13700HX, criterion): 159 ns per request
-before the atomic TAT, 74 ns after. Distinct clients were unchanged at 30 ns, since
-they were never contending for the same lock to begin with.</p>
+<p>Measured with 4 threads on one client (i7-13700HX, criterion, 1,000 requests per
+iteration): 159 ns per request before the atomic TAT, and 67 to 96 ns per request
+after it, over nine runs. That makes it roughly 1.6 to 2.4 times faster. The figure
+moves by about 40% between runs, which happens when threads contend for one key on
+a laptop, so treat the range as the result and not any single number in it. Four
+threads on distinct clients take 31 ns per request and stay within 3% between runs,
+since they were never waiting on the same lock to begin with.</p>
 <h3 id="contention-patterns"><a class="header" href="#contention-patterns">Contention Patterns</a></h3>
 <p><strong>Low Contention</strong> (different clients):</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
@@ -483,7 +527,7 @@ where
 
 static REQUEST_COUNT: AtomicU64 = AtomicU64::new(0);
 
-fn track_throughput(limiter: &amp;FluxLimiter&lt;String, SystemClock&gt;, client_id: String) -&gt; bool {
+fn track_throughput(limiter: &amp;FluxLimiter&lt;String, MonotonicClock&gt;, client_id: String) -&gt; bool {
     REQUEST_COUNT.fetch_add(1, Ordering::Relaxed);
 
     match limiter.check_request(client_id) {
@@ -506,7 +550,7 @@ fn report_throughput(duration: Duration) {
 <tr><th>Metric</th><th>Value</th></tr>
 </thead>
 <tbody>
-<tr><td>Memory per client</td><td>~48 bytes</td></tr>
+<tr><td>Memory per client</td><td>~31 bytes with a <code>u64</code> key, ~76-95 with a short <code>String</code> key (average over 1M+ clients; grows in steps)</td></tr>
 <tr><td>Time complexity</td><td>O(1)</td></tr>
 <tr><td>Space complexity</td><td>O(n)</td></tr>
 <tr><td>Cleanup overhead</td><td>O(n) but infrequent</td></tr>
@@ -516,7 +560,7 @@ fn report_throughput(duration: Duration) {
 <h2 id="best-practices"><a class="header" href="#best-practices">Best Practices</a></h2>
 <ol>
 <li><strong>Use numeric client IDs</strong> when possible for best performance</li>
-<li><strong>Share limiter via Arc</strong> to avoid state duplication</li>
+<li><strong>Clone the limiter or share it via <code>Arc</code></strong> rather than building one per thread; clones share the same clients, configuration and clock</li>
 <li><strong>Cleanup periodically</strong> to prevent memory growth</li>
 <li><strong>Profile in production</strong> to identify bottlenecks</li>
 <li><strong>Monitor latency</strong> and alert on degradation</li>

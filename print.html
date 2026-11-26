@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-9b29f404.js";
+            window.path_to_searchindex_js = "searchindex-9b512f0d.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-a16be429.js"></script>
@@ -182,11 +182,12 @@
 <p>A simple rate limiter based on the Generic Cell Rate Algorithm (GCRA) with nanosecond precision and lock-free per-client updates.</p>
 <h2 id="features"><a class="header" href="#features">Features</a></h2>
 <ul>
-<li><strong>Mathematically precise</strong>: Implements the GCRA algorithm with exact nanosecond timing</li>
+<li><strong>Precise</strong>: Implements the GCRA algorithm in integer nanoseconds. The rate is rounded to a whole-nanosecond interval, which is exact for any rate that divides one billion</li>
 <li><strong>Generic client IDs</strong>: Works with any hashable client identifier (<code>String</code>, <code>IpAddr</code>, <code>u64</code>, etc.)</li>
 <li><strong>Rich metadata</strong>: Returns detailed decision information for HTTP response construction</li>
-<li><strong>Memory efficient</strong>: Automatic cleanup of stale client entries</li>
-<li><strong>Robust error handling</strong>: Graceful handling of clock failures and configuration errors</li>
+<li><strong>Unaffected by clock changes</strong>: The default clock measures elapsed time, so an operating-system clock correction cannot lock clients out</li>
+<li><strong>Memory efficient</strong>: One atomic timestamp per client. Idle clients are removed when you call <code>cleanup_stale_clients()</code>; nothing runs in the background</li>
+<li><strong>Robust error handling</strong>: Invalid configuration is rejected with an error, and the default clock cannot fail</li>
 <li><strong>Testable</strong>: Clock abstraction enables deterministic testing</li>
 <li><strong>Thread-safe</strong>: Safe to use across multiple threads</li>
 </ul>
@@ -201,9 +202,9 @@
 <h2 id="why-flux-limiter"><a class="header" href="#why-flux-limiter">Why Flux Limiter?</a></h2>
 <p>Flux Limiter stands out with its focus on:</p>
 <ol>
-<li><strong>Correctness</strong>: Mathematically precise GCRA implementation</li>
+<li><strong>Correctness</strong>: GCRA in integer arithmetic, with no floating-point state</li>
 <li><strong>Performance</strong>: O(1) operations, and updating a known client takes no lock</li>
-<li><strong>Reliability</strong>: Comprehensive error handling and graceful degradation</li>
+<li><strong>Reliability</strong>: Invalid configuration is reported, and rate limiting does not depend on the operating-system clock being correct</li>
 <li><strong>Observability</strong>: Rich metadata for monitoring and HTTP headers</li>
 <li><strong>Flexibility</strong>: Generic design supporting various client ID types</li>
 </ol>
@@ -211,7 +212,7 @@
 <p>Flux Limiter implements the Generic Cell Rate Algorithm (GCRA), which is mathematically equivalent to the token bucket algorithm but offers several advantages:</p>
 <ul>
 <li>No background token refill processes</li>
-<li>Exact timing without floating-point precision loss</li>
+<li>No floating-point state: once the rate is a whole-nanosecond interval, the arithmetic is exact</li>
 <li>Efficient state representation (one timestamp per client)</li>
 <li>Deterministic behavior with integer arithmetic</li>
 </ul>
@@ -220,8 +221,8 @@
 <li><strong>Memory</strong>: O(number of active clients)</li>
 <li><strong>Time complexity</strong>: O(1) for <code>check_request()</code> operations</li>
 <li><strong>Concurrency</strong>: Each client’s state is a single atomic in a sharded <code>DashMap</code>; updating a known client is a compare-and-swap with no lock</li>
-<li><strong>Precision</strong>: Nanosecond timing accuracy</li>
-<li><strong>Reliability</strong>: Graceful degradation on system clock issues</li>
+<li><strong>Precision</strong>: Nanosecond resolution. The rate interval is rounded to a whole number of nanoseconds</li>
+<li><strong>Reliability</strong>: The default clock is monotonic, so a backwards clock step does not deny requests</li>
 </ul>
 <h2 id="next-steps"><a class="header" href="#next-steps">Next Steps</a></h2>
 <ul>
@@ -235,7 +236,7 @@
 <h2 id="adding-to-cargotoml"><a class="header" href="#adding-to-cargotoml">Adding to Cargo.toml</a></h2>
 <p>Add this to your <code>Cargo.toml</code>:</p>
 <pre><code class="language-toml">[dependencies]
-flux-limiter = "0.8.6"
+flux-limiter = "0.9.0"
 </code></pre>
 <h2 id="alternative-using-cargo-add"><a class="header" href="#alternative-using-cargo-add">Alternative: Using Cargo Add</a></h2>
 <p>If you have <code>cargo-edit</code> installed, you can use:</p>
@@ -243,11 +244,11 @@ flux-limiter = "0.8.6"
 </code></pre>
 <h2 id="verify-installation"><a class="header" href="#verify-installation">Verify Installation</a></h2>
 <p>Create a simple example to verify the installation:</p>
-<pre class="playground"><code class="language-rust">use flux_limiter::{FluxLimiter, FluxLimiterConfig, SystemClock};
+<pre class="playground"><code class="language-rust">use flux_limiter::{FluxLimiter, FluxLimiterConfig, MonotonicClock};
 
 fn main() {
     let config = FluxLimiterConfig::new(10.0, 5.0);
-    let limiter = FluxLimiter::with_config(config, SystemClock).unwrap();
+    let limiter = FluxLimiter::with_config(config, MonotonicClock::new()).unwrap();
 
     match limiter.check_request("test_client") {
         Ok(decision) =&gt; {
@@ -276,11 +277,11 @@ fn main() {
 <h2 id="basic-example"><a class="header" href="#basic-example">Basic Example</a></h2>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>use flux_limiter::{FluxLimiter, FluxLimiterConfig, SystemClock};
+</span>use flux_limiter::{FluxLimiter, FluxLimiterConfig, MonotonicClock};
 
 // Create a rate limiter: 10 requests per second with burst of 5
 let config = FluxLimiterConfig::new(10.0, 5.0);
-let limiter = FluxLimiter::with_config(config, SystemClock).unwrap();
+let limiter = FluxLimiter::with_config(config, MonotonicClock::new()).unwrap();
 
 // Check if a request should be allowed
 match limiter.check_request("user_123") {
@@ -310,10 +311,10 @@ match limiter.check_request("user_123") {
 </ul>
 </li>
 <li>
-<p><strong>Create Rate Limiter</strong>: <code>FluxLimiter::with_config(config, SystemClock)</code></p>
+<p><strong>Create Rate Limiter</strong>: <code>FluxLimiter::with_config(config, MonotonicClock::new())</code></p>
 <ul>
 <li>Uses the configuration</li>
-<li>Uses <code>SystemClock</code> for production time source</li>
+<li>Uses <code>MonotonicClock</code>, the default monotonic time source, which is unaffected by OS clock steps</li>
 <li>Returns <code>Result</code> to handle configuration errors</li>
 </ul>
 </li>
@@ -366,7 +367,7 @@ without a breaking change. You can still access all fields via dot notation.</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>let config = FluxLimiterConfig::new(10.0, 5.0);
-let limiter = FluxLimiter::with_config(config, SystemClock).unwrap();
+let limiter = FluxLimiter::with_config(config, MonotonicClock::new()).unwrap();
 
 // Different clients have independent rate limits
 limiter.check_request("user_1").unwrap();
@@ -383,7 +384,7 @@ limiter.check_request("user_3").unwrap();
 use std::thread;
 
 let config = FluxLimiterConfig::new(10.0, 5.0);
-let limiter = Arc::new(FluxLimiter::with_config(config, SystemClock).unwrap());
+let limiter = Arc::new(FluxLimiter::with_config(config, MonotonicClock::new()).unwrap());
 
 let mut handles = vec![];
 
@@ -538,7 +539,7 @@ let config = FluxLimiterConfig::new(rate_per_minute, 5.0);
 
 // Invalid configuration: negative rate
 let config = FluxLimiterConfig::new(-10.0, 5.0);
-match FluxLimiter::with_config(config, SystemClock) {
+match FluxLimiter::with_config(config, MonotonicClock::new()) {
     Ok(_) =&gt; println!("Valid configuration"),
     Err(FluxLimiterError::InvalidRate) =&gt; {
         eprintln!("Error: Rate must be positive");
@@ -558,18 +559,19 @@ match FluxLimiter::with_config(config, SystemClock) {
 <p>In practice this is invisible at ordinary rates, but it has two visible consequences:</p>
 <ul>
 <li><strong>A fractional burst can truncate to nothing, but only at very high rates.</strong> The tolerance is <code>burst × interval</code> in nanoseconds, so it is lost entirely when that product is under 1 ns. At <code>rate = 10.0</code> the interval is 100 ms and even <code>burst = 0.004</code> keeps a 0.4 ms tolerance. But at <code>rate = 1e8</code> the interval is 10 ns, so <code>burst = 0.05</code> asks for 0.5 ns and gets no burst at all, while <code>burst = 0.1</code> (exactly 1 ns) is preserved.</li>
-<li><strong>Rates above roughly 100 million per second are enforced slightly higher than requested.</strong> For example <code>rate = 6e8</code> has a true interval of 1.667 ns, which truncates to 1 ns, so the limiter actually enforces 1e9 requests per second — 67% more than asked for.</li>
+<li><strong>A rate that does not divide one billion is enforced higher than requested.</strong> The interval is exact only when <code>1_000_000_000 / rate</code> is a whole number. Below about 10 million per second the discarded fraction is under 1% and not noticeable. Above that it grows quickly, because the interval is only a few nanoseconds and a fraction of one is a large share of it. For example <code>rate = 6e8</code> has a true interval of 1.667 ns, which truncates to 1 ns, so the limiter enforces 1e9 requests per second: 67% more than asked for.</li>
 </ul>
 <div class="table-wrapper">
 <table>
 <thead>
-<tr><th>Requested rate</th><th>Enforced rate</th><th>Difference</th></tr>
+<tr><th>Requested rate</th><th>Interval (ns)</th><th>Enforced rate</th><th>Difference</th></tr>
 </thead>
 <tbody>
-<tr><td>1e8</td><td>1.0e8</td><td>0%</td></tr>
-<tr><td>1.5e8</td><td>1.6667e8</td><td>+11.1%</td></tr>
-<tr><td>4e8</td><td>5.0e8</td><td>+25.0%</td></tr>
-<tr><td>6e8</td><td>1.0e9</td><td>+66.7%</td></tr>
+<tr><td>1e8</td><td>10</td><td>1.0e8</td><td>0%</td></tr>
+<tr><td>1.5e8</td><td>6</td><td>1.6667e8</td><td>+11.1%</td></tr>
+<tr><td>2.5e8</td><td>4</td><td>2.5e8</td><td>0%</td></tr>
+<tr><td>4e8</td><td>2</td><td>5.0e8</td><td>+25.0%</td></tr>
+<tr><td>6e8</td><td>1</td><td>1.0e9</td><td>+66.7%</td></tr>
 </tbody>
 </table>
 </div>
@@ -597,12 +599,12 @@ match FluxLimiter::with_config(config, SystemClock) {
 use parking_lot::RwLock;
 
 struct DynamicRateLimiter {
-    limiter: Arc&lt;RwLock&lt;FluxLimiter&lt;String, SystemClock&gt;&gt;&gt;,
+    limiter: Arc&lt;RwLock&lt;FluxLimiter&lt;String, MonotonicClock&gt;&gt;&gt;,
 }
 
 impl DynamicRateLimiter {
     fn update_config(&amp;self, new_config: FluxLimiterConfig) {
-        let new_limiter = FluxLimiter::with_config(new_config, SystemClock).unwrap();
+        let new_limiter = FluxLimiter::with_config(new_config, MonotonicClock::new()).unwrap();
         *self.limiter.write() = new_limiter;
     }
 
@@ -625,10 +627,10 @@ impl DynamicRateLimiter {
 <p>The most basic use case - check if a request should be allowed:</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>use flux_limiter::{FluxLimiter, FluxLimiterConfig, SystemClock};
+</span>use flux_limiter::{FluxLimiter, FluxLimiterConfig, MonotonicClock};
 
 let config = FluxLimiterConfig::new(10.0, 5.0);
-let limiter = FluxLimiter::with_config(config, SystemClock).unwrap();
+let limiter = FluxLimiter::with_config(config, MonotonicClock::new()).unwrap();
 
 match limiter.check_request("user_123") {
     Ok(decision) if decision.allowed =&gt; {
@@ -651,7 +653,7 @@ match limiter.check_request("user_123") {
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>// User IDs, session IDs, API keys
-let limiter = FluxLimiter::&lt;String, _&gt;::with_config(config, SystemClock).unwrap();
+let limiter = FluxLimiter::&lt;String, _&gt;::with_config(config, MonotonicClock::new()).unwrap();
 
 limiter.check_request("user_123".to_string())?;
 limiter.check_request("session_abc".to_string())?;
@@ -661,7 +663,7 @@ limiter.check_request("session_abc".to_string())?;
 </span><span class="boring">fn main() {
 </span>use std::net::IpAddr;
 
-let limiter = FluxLimiter::&lt;IpAddr, _&gt;::with_config(config, SystemClock).unwrap();
+let limiter = FluxLimiter::&lt;IpAddr, _&gt;::with_config(config, MonotonicClock::new()).unwrap();
 
 let client_ip: IpAddr = "192.168.1.1".parse().unwrap();
 limiter.check_request(client_ip)?;
@@ -670,7 +672,7 @@ limiter.check_request(client_ip)?;
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>// Numeric IDs avoid string allocation overhead
-let limiter = FluxLimiter::&lt;u64, _&gt;::with_config(config, SystemClock).unwrap();
+let limiter = FluxLimiter::&lt;u64, _&gt;::with_config(config, MonotonicClock::new()).unwrap();
 
 limiter.check_request(12345)?;
 limiter.check_request(67890)?;
@@ -686,7 +688,7 @@ struct ClientId {
     endpoint: String,
 }
 
-let limiter = FluxLimiter::&lt;ClientId, _&gt;::with_config(config, SystemClock).unwrap();
+let limiter = FluxLimiter::&lt;ClientId, _&gt;::with_config(config, MonotonicClock::new()).unwrap();
 
 let client = ClientId {
     user_id: 123,
@@ -699,7 +701,7 @@ limiter.check_request(client)?;
 <p>You can query the current rate limiter configuration:</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>let limiter = FluxLimiter::with_config(config, SystemClock).unwrap();
+</span>let limiter = FluxLimiter::with_config(config, MonotonicClock::new()).unwrap();
 
 println!("Rate: {} req/sec", limiter.rate());
 println!("Burst: {}", limiter.burst());
@@ -753,7 +755,7 @@ match limiter.check_request("user_123") {
 use std::thread;
 
 let config = FluxLimiterConfig::new(100.0, 50.0);
-let limiter = Arc::new(FluxLimiter::with_config(config, SystemClock).unwrap());
+let limiter = Arc::new(FluxLimiter::with_config(config, MonotonicClock::new()).unwrap());
 
 // Share across multiple threads
 let handles: Vec&lt;_&gt; = (0..10)
@@ -779,7 +781,7 @@ state, providing the same shared-state semantics without an outer <code>Arc</cod
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>let config = FluxLimiterConfig::new(100.0, 50.0);
-let limiter = FluxLimiter::with_config(config, SystemClock).unwrap();
+let limiter = FluxLimiter::with_config(config, MonotonicClock::new()).unwrap();
 
 // Clone directly — both share the same client state
 let limiter1 = limiter.clone();
@@ -804,7 +806,7 @@ use tokio;
 #[tokio::main]
 async fn main() {
     let config = FluxLimiterConfig::new(100.0, 50.0);
-    let limiter = Arc::new(FluxLimiter::with_config(config, SystemClock).unwrap());
+    let limiter = Arc::new(FluxLimiter::with_config(config, MonotonicClock::new()).unwrap());
 
     // Use in async tasks
     let limiter_clone = Arc::clone(&amp;limiter);
@@ -828,13 +830,13 @@ async fn main() {
 </span>// Global rate limiter
 let global_limiter = FluxLimiter::with_config(
     FluxLimiterConfig::new(1000.0, 500.0),
-    SystemClock
+    MonotonicClock::new()
 ).unwrap();
 
 // Per-user rate limiter
 let user_limiter = FluxLimiter::with_config(
     FluxLimiterConfig::new(10.0, 5.0),
-    SystemClock
+    MonotonicClock::new()
 ).unwrap();
 
 // Apply both limits
@@ -856,7 +858,7 @@ fn check_both_limits(user_id: &amp;str) -&gt; bool {
 </span><span class="boring">fn main() {
 </span>use flux_limiter::{FluxLimiter, FluxLimiterError};
 
-fn process_request(limiter: &amp;FluxLimiter&lt;String, SystemClock&gt;, client_id: String) -&gt; Result&lt;(), String&gt; {
+fn process_request(limiter: &amp;FluxLimiter&lt;String, MonotonicClock&gt;, client_id: String) -&gt; Result&lt;(), String&gt; {
     let decision = limiter
         .check_request(client_id)
         .map_err(|e| format!("Rate limiter error: {}", e))?;
@@ -901,12 +903,12 @@ pub enum ClockError {
 <p>Returned when the rate is not a finite number (<code>NaN</code> or <code>±Infinity</code>), is ≤ 0, or is greater than 1,000,000,000 requests per second.</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>use flux_limiter::{FluxLimiterConfig, FluxLimiter, SystemClock, FluxLimiterError};
+</span>use flux_limiter::{FluxLimiterConfig, FluxLimiter, MonotonicClock, FluxLimiterError};
 
 // Invalid: rate must be finite, positive, and at most 1e9
 let config = FluxLimiterConfig::new(-10.0, 5.0);
 
-match FluxLimiter::with_config(config, SystemClock) {
+match FluxLimiter::with_config(config, MonotonicClock::new()) {
     Ok(_) =&gt; println!("Success"),
     Err(FluxLimiterError::InvalidRate) =&gt; {
         eprintln!("Error: Rate must be finite, &gt; 0, and &lt;= 1_000_000_000");
@@ -921,7 +923,7 @@ match FluxLimiter::with_config(config, SystemClock) {
 </span>// Invalid: burst must be finite and non-negative
 let config = FluxLimiterConfig::new(10.0, -5.0);
 
-match FluxLimiter::&lt;String, _&gt;::with_config(config, SystemClock) {
+match FluxLimiter::&lt;String, _&gt;::with_config(config, MonotonicClock::new()) {
     Ok(_) =&gt; println!("Success"),
     Err(FluxLimiterError::InvalidBurst) =&gt; {
         eprintln!("Error: Burst must be finite, &gt;= 0, and small enough to fit");
@@ -931,10 +933,10 @@ match FluxLimiter::&lt;String, _&gt;::with_config(config, SystemClock) {
 <span class="boring">}</span></code></pre>
 <h3 id="handling-configuration-errors"><a class="header" href="#handling-configuration-errors">Handling Configuration Errors</a></h3>
 <p>Configuration errors should be caught early, typically at application startup:</p>
-<pre class="playground"><code class="language-rust">fn create_rate_limiter() -&gt; Result&lt;FluxLimiter&lt;String, SystemClock&gt;, String&gt; {
+<pre class="playground"><code class="language-rust">fn create_rate_limiter() -&gt; Result&lt;FluxLimiter&lt;String, MonotonicClock&gt;, String&gt; {
     let config = FluxLimiterConfig::new(100.0, 50.0);
 
-    FluxLimiter::with_config(config, SystemClock)
+    FluxLimiter::with_config(config, MonotonicClock::new())
         .map_err(|e| match e {
             FluxLimiterError::InvalidRate =&gt; {
                 "Invalid configuration: rate must be positive".to_string()
@@ -955,11 +957,9 @@ fn main() {
 <h2 id="runtime-clock-errors"><a class="header" href="#runtime-clock-errors">Runtime Clock Errors</a></h2>
 <p>Clock errors can occur during normal operation when the system clock is unavailable or behaves unexpectedly.</p>
 <h3 id="understanding-clock-errors"><a class="header" href="#understanding-clock-errors">Understanding Clock Errors</a></h3>
-<p>Clock errors happen when:</p>
-<ul>
-<li>The system time API fails (this is the only cause on current platforms)</li>
-</ul>
-<p>Not a clock error: A clock that steps backwards is <strong>not</strong> a source of <code>ClockError</code>: <code>SystemTime::now()</code> still succeeds, it simply returns an earlier value. Such a step makes clients look over-limit until the clock catches back up; see <a href="https://github.com/crustyrustacean/flux-limiter/issues/5">#5</a>.</p>
+<p>With the default <code>MonotonicClock</code>, clock errors do not happen: it never returns one.</p>
+<p>They can happen only if you pass <code>SystemClock</code> explicitly or write your own clock. With <code>SystemClock</code> there is one cause: the system clock is before the Unix epoch, so it cannot be read as a time since the epoch.</p>
+<p>Not a clock error: A clock that steps backwards is <strong>not</strong> a source of <code>ClockError</code>. Reading the clock still succeeds and simply returns an earlier value. With <code>SystemClock</code> that makes clients look over-limit until the clock catches back up, with no error reported. This is why <code>SystemClock</code> is not the default.</p>
 <h3 id="basic-clock-error-handling"><a class="header" href="#basic-clock-error-handling">Basic Clock Error Handling</a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
@@ -987,7 +987,7 @@ fn main() {
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>fn should_allow_request(
-    limiter: &amp;FluxLimiter&lt;String, SystemClock&gt;,
+    limiter: &amp;FluxLimiter&lt;String, MonotonicClock&gt;,
     client_id: &amp;str
 ) -&gt; bool {
     match limiter.check_request(client_id.to_string()) {
@@ -1015,7 +1015,7 @@ fn main() {
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>fn should_allow_request(
-    limiter: &amp;FluxLimiter&lt;String, SystemClock&gt;,
+    limiter: &amp;FluxLimiter&lt;String, MonotonicClock&gt;,
     client_id: &amp;str
 ) -&gt; bool {
     match limiter.check_request(client_id.to_string()) {
@@ -1046,7 +1046,7 @@ fn main() {
 use std::sync::Arc;
 
 struct FallbackRateLimiter {
-    primary: FluxLimiter&lt;String, SystemClock&gt;,
+    primary: FluxLimiter&lt;String, MonotonicClock&gt;,
     fallback_counter: Arc&lt;AtomicU64&gt;,
     fallback_limit: u64,
 }
@@ -1085,7 +1085,7 @@ static CLOCK_ERROR_COUNT: AtomicU64 = AtomicU64::new(0);
 static TOTAL_REQUESTS: AtomicU64 = AtomicU64::new(0);
 
 fn check_with_monitoring(
-    limiter: &amp;FluxLimiter&lt;String, SystemClock&gt;,
+    limiter: &amp;FluxLimiter&lt;String, MonotonicClock&gt;,
     client_id: String
 ) -&gt; bool {
     TOTAL_REQUESTS.fetch_add(1, Ordering::Relaxed);
@@ -1118,7 +1118,7 @@ fn check_with_monitoring(
 </span>use std::sync::atomic::{AtomicU64, Ordering};
 
 struct CircuitBreakerLimiter {
-    limiter: FluxLimiter&lt;String, SystemClock&gt;,
+    limiter: FluxLimiter&lt;String, MonotonicClock&gt;,
     consecutive_failures: AtomicU64,
     failure_threshold: u64,
     bypassed: AtomicU64,
@@ -1198,8 +1198,9 @@ match limiter.cleanup_stale_clients(one_hour_nanos) {
 <h3 id="understanding-memory-usage"><a class="header" href="#understanding-memory-usage">Understanding Memory Usage</a></h3>
 <ul>
 <li><strong>Memory</strong>: O(number of active clients)</li>
-<li><strong>Per-client overhead</strong>: ~40-48 bytes (client ID + TAT timestamp)</li>
-<li><strong>Example</strong>: 1 million clients ≈ 40-48 MB</li>
+<li><strong>Per-client overhead</strong>: about 31 bytes with a <code>u64</code> key and about 76-95 bytes with a short <code>String</code> key, measured as the average over a million or more clients</li>
+<li><strong>It grows in steps, not smoothly</strong>: the client map doubles its tables when it fills, so memory holds flat for a while and then jumps. At any one client count the true figure is between about two thirds and the whole of the average above</li>
+<li><strong>Example</strong>: 1 million clients take about 34 MB with <code>u64</code> keys</li>
 </ul>
 <h3 id="manual-cleanup"><a class="header" href="#manual-cleanup">Manual Cleanup</a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
@@ -1221,7 +1222,7 @@ match limiter.cleanup_stale_clients(one_hour_nanos) {
 <pre class="playground"><code class="language-rust">use std::sync::Arc;
 use tokio::time::{interval, Duration};
 
-async fn start_cleanup_task(limiter: Arc&lt;FluxLimiter&lt;String, SystemClock&gt;&gt;) {
+async fn start_cleanup_task(limiter: Arc&lt;FluxLimiter&lt;String, MonotonicClock&gt;&gt;) {
     let mut cleanup_interval = interval(Duration::from_secs(3600)); // 1 hour
 
     loop {
@@ -1244,7 +1245,7 @@ async fn start_cleanup_task(limiter: Arc&lt;FluxLimiter&lt;String, SystemClock&g
 #[tokio::main]
 async fn main() {
     let config = FluxLimiterConfig::new(100.0, 50.0);
-    let limiter = Arc::new(FluxLimiter::with_config(config, SystemClock).unwrap());
+    let limiter = Arc::new(FluxLimiter::with_config(config, MonotonicClock::new()).unwrap());
 
     // Start cleanup task in background
     let limiter_clone = Arc::clone(&amp;limiter);
@@ -1256,7 +1257,7 @@ async fn main() {
 <p>Base cleanup threshold on the configured rate:</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>fn calculate_cleanup_threshold(limiter: &amp;FluxLimiter&lt;String, SystemClock&gt;) -&gt; u64 {
+</span>fn calculate_cleanup_threshold(limiter: &amp;FluxLimiter&lt;String, MonotonicClock&gt;) -&gt; u64 {
     // Clean up clients inactive for 100x the rate interval
     let rate = limiter.rate();
     let rate_interval_nanos = (1_000_000_000.0 / rate) as u64;
@@ -1282,7 +1283,7 @@ struct CompositeClientId {
 
 let limiter = FluxLimiter::&lt;CompositeClientId, _&gt;::with_config(
     FluxLimiterConfig::new(100.0, 50.0),
-    SystemClock
+    MonotonicClock::new()
 ).unwrap();
 
 // Different rate limits per user per endpoint
@@ -1305,12 +1306,12 @@ enum RateLimitKey {
 
 let limiter = FluxLimiter::&lt;RateLimitKey, _&gt;::with_config(
     FluxLimiterConfig::new(1000.0, 500.0),
-    SystemClock
+    MonotonicClock::new()
 ).unwrap();
 
 // Check multiple levels
 fn check_hierarchical(
-    limiter: &amp;FluxLimiter&lt;RateLimitKey, SystemClock&gt;,
+    limiter: &amp;FluxLimiter&lt;RateLimitKey, MonotonicClock&gt;,
     tenant_id: &amp;str,
     user_id: &amp;str,
 ) -&gt; bool {
@@ -1338,9 +1339,9 @@ fn check_hierarchical(
 </span>use std::sync::Arc;
 
 struct TieredRateLimiter {
-    free_tier: Arc&lt;FluxLimiter&lt;String, SystemClock&gt;&gt;,
-    paid_tier: Arc&lt;FluxLimiter&lt;String, SystemClock&gt;&gt;,
-    premium_tier: Arc&lt;FluxLimiter&lt;String, SystemClock&gt;&gt;,
+    free_tier: Arc&lt;FluxLimiter&lt;String, MonotonicClock&gt;&gt;,
+    paid_tier: Arc&lt;FluxLimiter&lt;String, MonotonicClock&gt;&gt;,
+    premium_tier: Arc&lt;FluxLimiter&lt;String, MonotonicClock&gt;&gt;,
 }
 
 impl TieredRateLimiter {
@@ -1348,15 +1349,15 @@ impl TieredRateLimiter {
         Ok(Self {
             free_tier: Arc::new(FluxLimiter::with_config(
                 FluxLimiterConfig::new(10.0, 5.0), // 10 req/s
-                SystemClock
+                MonotonicClock::new()
             )?),
             paid_tier: Arc::new(FluxLimiter::with_config(
                 FluxLimiterConfig::new(100.0, 50.0), // 100 req/s
-                SystemClock
+                MonotonicClock::new()
             )?),
             premium_tier: Arc::new(FluxLimiter::with_config(
                 FluxLimiterConfig::new(1000.0, 500.0), // 1000 req/s
-                SystemClock
+                MonotonicClock::new()
             )?),
         })
     }
@@ -1378,8 +1379,8 @@ impl TieredRateLimiter {
 use std::sync::Arc;
 
 struct EndpointRateLimiter {
-    limiters: HashMap&lt;String, Arc&lt;FluxLimiter&lt;String, SystemClock&gt;&gt;&gt;,
-    default: Arc&lt;FluxLimiter&lt;String, SystemClock&gt;&gt;,
+    limiters: HashMap&lt;String, Arc&lt;FluxLimiter&lt;String, MonotonicClock&gt;&gt;&gt;,
+    default: Arc&lt;FluxLimiter&lt;String, MonotonicClock&gt;&gt;,
 }
 
 impl EndpointRateLimiter {
@@ -1391,7 +1392,7 @@ impl EndpointRateLimiter {
             "/api/expensive".to_string(),
             Arc::new(FluxLimiter::with_config(
                 FluxLimiterConfig::new(1.0, 2.0),
-                SystemClock
+                MonotonicClock::new()
             )?),
         );
 
@@ -1400,14 +1401,14 @@ impl EndpointRateLimiter {
             "/api/cheap".to_string(),
             Arc::new(FluxLimiter::with_config(
                 FluxLimiterConfig::new(1000.0, 500.0),
-                SystemClock
+                MonotonicClock::new()
             )?),
         );
 
         // Default limit
         let default = Arc::new(FluxLimiter::with_config(
             FluxLimiterConfig::new(100.0, 50.0),
-            SystemClock
+            MonotonicClock::new()
         )?);
 
         Ok(Self { limiters, default })
@@ -1425,12 +1426,12 @@ impl EndpointRateLimiter {
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>// Instead of allocating new strings
-fn check_request_owned(limiter: &amp;FluxLimiter&lt;String, SystemClock&gt;, id: String) -&gt; bool {
+fn check_request_owned(limiter: &amp;FluxLimiter&lt;String, MonotonicClock&gt;, id: String) -&gt; bool {
     limiter.check_request(id).unwrap().allowed
 }
 
 // Use string slices and clone only when needed
-fn check_request_borrowed(limiter: &amp;FluxLimiter&lt;String, SystemClock&gt;, id: &amp;str) -&gt; bool {
+fn check_request_borrowed(limiter: &amp;FluxLimiter&lt;String, MonotonicClock&gt;, id: &amp;str) -&gt; bool {
     limiter.check_request(id.to_string()).unwrap().allowed
 }
 <span class="boring">}</span></code></pre>
@@ -1438,7 +1439,7 @@ fn check_request_borrowed(limiter: &amp;FluxLimiter&lt;String, SystemClock&gt;, 
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>// Faster: no string allocation
-let limiter = FluxLimiter::&lt;u64, _&gt;::with_config(config, SystemClock).unwrap();
+let limiter = FluxLimiter::&lt;u64, _&gt;::with_config(config, MonotonicClock::new()).unwrap();
 limiter.check_request(user_id_numeric).unwrap();
 <span class="boring">}</span></code></pre>
 <h3 id="batch-operations"><a class="header" href="#batch-operations">Batch Operations</a></h3>
@@ -1446,7 +1447,7 @@ limiter.check_request(user_id_numeric).unwrap();
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>fn check_batch(
-    limiter: &amp;FluxLimiter&lt;String, SystemClock&gt;,
+    limiter: &amp;FluxLimiter&lt;String, MonotonicClock&gt;,
     client_ids: &amp;[String],
 ) -&gt; Vec&lt;bool&gt; {
     client_ids
@@ -1464,7 +1465,7 @@ limiter.check_request(user_id_numeric).unwrap();
 </span>use rayon::prelude::*;
 
 fn check_parallel(
-    limiter: &amp;FluxLimiter&lt;String, SystemClock&gt;,
+    limiter: &amp;FluxLimiter&lt;String, MonotonicClock&gt;,
     client_ids: Vec&lt;String&gt;,
 ) -&gt; Vec&lt;bool&gt; {
     client_ids
@@ -1518,54 +1519,21 @@ let limiter = FluxLimiter::with_config(config, clock.clone()).unwrap();
 // Control time in tests
 clock.advance(1_000_000_000); // Advance 1 second
 <span class="boring">}</span></code></pre>
-<h3 id="monotonic-clock"><a class="header" href="#monotonic-clock">Monotonic Clock</a></h3>
-<p>The built-in <code>SystemClock</code> does not detect a backwards clock step
-(<a href="https://github.com/crustyrustacean/flux-limiter/issues/5">#5</a>). If that matters to
-you, wrap it so <code>now()</code> can never return a value lower than the last one it returned:</p>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use flux_limiter::{Clock, ClockError};
-use std::sync::atomic::{AtomicU64, Ordering};
-use std::sync::Arc;
-use std::time::{SystemTime, UNIX_EPOCH};
-
-#[derive(Clone)]
-struct MonotonicClock {
-    last_time: Arc&lt;AtomicU64&gt;,
-}
-
-impl MonotonicClock {
-    fn new() -&gt; Self {
-        Self {
-            last_time: Arc::new(AtomicU64::new(0)),
-        }
-    }
-}
-
-impl Clock for MonotonicClock {
-    fn now(&amp;self) -&gt; Result&lt;u64, ClockError&gt; {
-        let current_time = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .map_err(|_| ClockError::SystemTimeError)?
-            .as_nanos() as u64;
-
-        // Ensure monotonicity
-        let mut last = self.last_time.load(Ordering::Acquire);
-        loop {
-            let next = current_time.max(last);
-            match self.last_time.compare_exchange_weak(
-                last,
-                next,
-                Ordering::Release,
-                Ordering::Acquire,
-            ) {
-                Ok(_) =&gt; return Ok(next),
-                Err(x) =&gt; last = x,
-            }
-        }
-    }
-}
-<span class="boring">}</span></code></pre>
+<h3 id="clock-steps"><a class="header" href="#clock-steps">Clock steps</a></h3>
+<p>The default <code>MonotonicClock</code> is immune to operating-system clock steps. It
+reads the OS clock once, when it is first used, and then measures <em>elapsed</em>
+time. A backwards step (an NTP correction, a manual change, a VM resuming with
+a stale clock) therefore has no effect on decisions, and capacity refills
+according to how much time really passed.</p>
+<p>If you pass <code>SystemClock</code> explicitly you get wall-clock time instead, with its
+known limitation: a backwards step makes every client look over-limit until the
+OS clock catches back up, and no error is reported.</p>
+<p>An earlier version of this page showed a workaround to layer on top of
+<code>SystemClock</code>: clamp its readings so they never go backwards. That is not a
+fix. The clamp freezes the limiter’s time at the instant of the step, so
+nothing refills until the OS clock climbs back past it. Measured, a client that
+waits 9.9 real seconds after a 10-second step gets none of the requests it has
+earned. Use <code>MonotonicClock</code>, which does not have the problem.</p>
 <h2 id="next-steps-6"><a class="header" href="#next-steps-6">Next Steps</a></h2>
 <ul>
 <li><a href="#web-framework-integration">Web Integration</a> - Use with web frameworks</li>
@@ -1586,10 +1554,10 @@ impl Clock for MonotonicClock {
     middleware::Next,
     response::{IntoResponse, Response},
 };
-use flux_limiter::{FluxLimiter, FluxLimiterError, SystemClock};
+use flux_limiter::{FluxLimiter, FluxLimiterError, MonotonicClock};
 use std::sync::Arc;
 
-type SharedLimiter = Arc&lt;FluxLimiter&lt;String, SystemClock&gt;&gt;;
+type SharedLimiter = Arc&lt;FluxLimiter&lt;String, MonotonicClock&gt;&gt;;
 
 // `from_fn` middleware always sees the concrete body type `Body`, so the
 // request is `Request&lt;Body&gt;` and `Next` takes no generic parameter.
@@ -1654,14 +1622,14 @@ fn extract_client_ip&lt;B&gt;(request: &amp;Request&lt;B&gt;) -&gt; String {
     Router,
     middleware,
 };
-use flux_limiter::{FluxLimiter, FluxLimiterConfig, SystemClock};
+use flux_limiter::{FluxLimiter, FluxLimiterConfig, MonotonicClock};
 use std::sync::Arc;
 
 #[tokio::main]
 async fn main() {
     // Create rate limiter
     let config = FluxLimiterConfig::new(10.0, 5.0);
-    let limiter = Arc::new(FluxLimiter::with_config(config, SystemClock).unwrap());
+    let limiter = Arc::new(FluxLimiter::with_config(config, MonotonicClock::new()).unwrap());
 
     // Build router with middleware
     let app = Router::new()
@@ -1692,17 +1660,17 @@ async fn handler() -&gt; &amp;'static str {
     dev::{Service, ServiceRequest, ServiceResponse, Transform},
     Error, HttpResponse, http::header,
 };
-use flux_limiter::{FluxLimiter, FluxLimiterError, SystemClock};
+use flux_limiter::{FluxLimiter, FluxLimiterError, MonotonicClock};
 use std::future::{ready, Future, Ready};
 use std::pin::Pin;
 use std::sync::Arc;
 
 pub struct RateLimitMiddleware {
-    limiter: Arc&lt;FluxLimiter&lt;String, SystemClock&gt;&gt;,
+    limiter: Arc&lt;FluxLimiter&lt;String, MonotonicClock&gt;&gt;,
 }
 
 impl RateLimitMiddleware {
-    pub fn new(limiter: Arc&lt;FluxLimiter&lt;String, SystemClock&gt;&gt;) -&gt; Self {
+    pub fn new(limiter: Arc&lt;FluxLimiter&lt;String, MonotonicClock&gt;&gt;) -&gt; Self {
         Self { limiter }
     }
 }
@@ -1730,7 +1698,7 @@ where
 
 pub struct RateLimitMiddlewareService&lt;S&gt; {
     service: S,
-    limiter: Arc&lt;FluxLimiter&lt;String, SystemClock&gt;&gt;,
+    limiter: Arc&lt;FluxLimiter&lt;String, MonotonicClock&gt;&gt;,
 }
 
 impl&lt;S&gt; Service&lt;ServiceRequest&gt; for RateLimitMiddlewareService&lt;S&gt;
@@ -1807,7 +1775,7 @@ where
     http::Status,
     State,
 };
-use flux_limiter::{FluxLimiter, FluxLimiterDecision, SystemClock};
+use flux_limiter::{FluxLimiter, FluxLimiterDecision, MonotonicClock};
 use std::sync::Arc;
 
 pub struct RateLimited {
@@ -1822,7 +1790,7 @@ impl&lt;'r&gt; FromRequest&lt;'r&gt; for RateLimited {
 
     async fn from_request(request: &amp;'r Request&lt;'_&gt;) -&gt; Outcome&lt;Self, Self::Error&gt; {
         let limiter = request
-            .guard::&lt;&amp;State&lt;Arc&lt;FluxLimiter&lt;String, SystemClock&gt;&gt;&gt;&gt;()
+            .guard::&lt;&amp;State&lt;Arc&lt;FluxLimiter&lt;String, MonotonicClock&gt;&gt;&gt;&gt;()
             .await
             .unwrap();
 
@@ -1908,7 +1876,7 @@ use std::collections::HashMap;
 use std::sync::Arc;
 
 struct TieredLimiters {
-    limiters: HashMap&lt;String, Arc&lt;FluxLimiter&lt;String, SystemClock&gt;&gt;&gt;,
+    limiters: HashMap&lt;String, Arc&lt;FluxLimiter&lt;String, MonotonicClock&gt;&gt;&gt;,
 }
 
 impl TieredLimiters {
@@ -1919,7 +1887,7 @@ impl TieredLimiters {
             "free".to_string(),
             Arc::new(FluxLimiter::with_config(
                 FluxLimiterConfig::new(10.0, 5.0),
-                SystemClock
+                MonotonicClock::new()
             )?),
         );
 
@@ -1927,14 +1895,14 @@ impl TieredLimiters {
             "paid".to_string(),
             Arc::new(FluxLimiter::with_config(
                 FluxLimiterConfig::new(100.0, 50.0),
-                SystemClock
+                MonotonicClock::new()
             )?),
         );
 
         Ok(Self { limiters })
     }
 
-    fn get_limiter(&amp;self, tier: &amp;str) -&gt; &amp;Arc&lt;FluxLimiter&lt;String, SystemClock&gt;&gt; {
+    fn get_limiter(&amp;self, tier: &amp;str) -&gt; &amp;Arc&lt;FluxLimiter&lt;String, MonotonicClock&gt;&gt; {
         self.limiters.get(tier).unwrap_or_else(|| &amp;self.limiters["free"])
     }
 }
@@ -1962,7 +1930,7 @@ async fn tiered_rate_limit(
 <pre class="playground"><code class="language-rust">use tokio::time::{interval, Duration};
 use std::sync::Arc;
 
-async fn cleanup_task(limiter: Arc&lt;FluxLimiter&lt;String, SystemClock&gt;&gt;) {
+async fn cleanup_task(limiter: Arc&lt;FluxLimiter&lt;String, MonotonicClock&gt;&gt;) {
     let mut cleanup_interval = interval(Duration::from_secs(3600)); // 1 hour
 
     loop {
@@ -1985,7 +1953,7 @@ async fn cleanup_task(limiter: Arc&lt;FluxLimiter&lt;String, SystemClock&gt;&gt;
 #[tokio::main]
 async fn main() {
     let config = FluxLimiterConfig::new(100.0, 50.0);
-    let limiter = Arc::new(FluxLimiter::with_config(config, SystemClock).unwrap());
+    let limiter = Arc::new(FluxLimiter::with_config(config, MonotonicClock::new()).unwrap());
 
     // Start cleanup in background
     tokio::spawn(cleanup_task(limiter.clone()));
@@ -2019,7 +1987,7 @@ let config = FluxLimiterConfig::new(rate_per_client, rate_per_client * 0.5);
 </span><span class="boring">fn main() {
 </span>use std::env;
 
-fn create_rate_limiter() -&gt; Result&lt;FluxLimiter&lt;String, SystemClock&gt;, FluxLimiterError&gt; {
+fn create_rate_limiter() -&gt; Result&lt;FluxLimiter&lt;String, MonotonicClock&gt;, FluxLimiterError&gt; {
     let rate = env::var("RATE_LIMIT_RATE")
         .unwrap_or_else(|_| "100.0".to_string())
         .parse::&lt;f64&gt;()
@@ -2031,7 +1999,7 @@ fn create_rate_limiter() -&gt; Result&lt;FluxLimiter&lt;String, SystemClock&gt;,
         .expect("Invalid RATE_LIMIT_BURST");
 
     let config = FluxLimiterConfig::new(rate, burst);
-    FluxLimiter::with_config(config, SystemClock)
+    FluxLimiter::with_config(config, MonotonicClock::new())
 }
 <span class="boring">}</span></code></pre>
 <h2 id="monitoring-and-observability"><a class="header" href="#monitoring-and-observability">Monitoring and Observability</a></h2>
@@ -2092,7 +2060,7 @@ impl RateLimiterMetrics {
 use std::sync::Arc;
 
 struct PrometheusRateLimiter {
-    limiter: Arc&lt;FluxLimiter&lt;String, SystemClock&gt;&gt;,
+    limiter: Arc&lt;FluxLimiter&lt;String, MonotonicClock&gt;&gt;,
     requests_total: IntCounter,
     requests_allowed: IntCounter,
     requests_denied: IntCounter,
@@ -2101,7 +2069,7 @@ struct PrometheusRateLimiter {
 
 impl PrometheusRateLimiter {
     fn new(
-        limiter: FluxLimiter&lt;String, SystemClock&gt;,
+        limiter: FluxLimiter&lt;String, MonotonicClock&gt;,
         registry: &amp;Registry,
     ) -&gt; Result&lt;Self, Box&lt;dyn std::error::Error&gt;&gt; {
         let requests_total = IntCounter::new(
@@ -2160,7 +2128,7 @@ impl PrometheusRateLimiter {
 </span>use tracing::{info, warn, error};
 
 fn check_request_with_logging(
-    limiter: &amp;FluxLimiter&lt;String, SystemClock&gt;,
+    limiter: &amp;FluxLimiter&lt;String, MonotonicClock&gt;,
     client_id: String,
 ) -&gt; bool {
     match limiter.check_request(client_id.clone()) {
@@ -2208,12 +2176,12 @@ fn check_request_with_logging(
 use std::sync::Arc;
 
 struct ManagedRateLimiter {
-    limiter: Arc&lt;FluxLimiter&lt;String, SystemClock&gt;&gt;,
+    limiter: Arc&lt;FluxLimiter&lt;String, MonotonicClock&gt;&gt;,
 }
 
 impl ManagedRateLimiter {
     fn new(config: FluxLimiterConfig) -&gt; Result&lt;Self, FluxLimiterError&gt; {
-        let limiter = Arc::new(FluxLimiter::with_config(config, SystemClock)?);
+        let limiter = Arc::new(FluxLimiter::with_config(config, MonotonicClock::new())?);
 
         // Start background cleanup task
         let limiter_clone = Arc::clone(&amp;limiter);
@@ -2224,7 +2192,7 @@ impl ManagedRateLimiter {
         Ok(Self { limiter })
     }
 
-    async fn cleanup_loop(limiter: Arc&lt;FluxLimiter&lt;String, SystemClock&gt;&gt;) {
+    async fn cleanup_loop(limiter: Arc&lt;FluxLimiter&lt;String, MonotonicClock&gt;&gt;) {
         let mut interval = interval(Duration::from_secs(3600)); // 1 hour
 
         loop {
@@ -2252,14 +2220,32 @@ impl ManagedRateLimiter {
 <p>Monitor memory usage and alert on growth:</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>fn estimate_memory_usage(limiter: &amp;FluxLimiter&lt;String, SystemClock&gt;) -&gt; usize {
-    // Estimate: ~48 bytes per client (HashMap overhead + String + u64)
-    let estimated_clients = 1_000_000; // Adjust based on your load
-    estimated_clients * 48
+</span>/// Rough estimate of the bytes held for `clients` clients whose keys are
+/// `key_len` characters long.
+///
+/// The client map grows by doubling its tables, so memory holds flat for a
+/// while and then jumps. This interpolates between measured averages over
+/// large populations on a 64-bit target: about 76 bytes per client for a
+/// 15-character `String` key and about 95 for a 36-character one. At any one
+/// client count the true figure ranges from roughly 20% below to 15% above
+/// the average, so size a capacity limit against the high end.
+fn estimate_memory_usage(clients: usize, key_len: usize) -&gt; usize {
+    const MEASURED: [(usize, f64); 2] = [(15, 76.0), (36, 95.0)]; // (key length, bytes per client)
+    let (lo, hi) = (MEASURED[0], MEASURED[1]);
+    let per_client = if key_len &lt;= lo.0 {
+        lo.1
+    } else if key_len &gt;= hi.0 {
+        // beyond the measured range, assume each extra character costs one byte
+        hi.1 + (key_len - hi.0) as f64
+    } else {
+        lo.1 + (hi.1 - lo.1) * (key_len - lo.0) as f64 / (hi.0 - lo.0) as f64
+    };
+    (clients as f64 * per_client * 1.15).ceil() as usize // 1.15 = high end of the range
 }
 
-fn check_memory_threshold(limiter: &amp;FluxLimiter&lt;String, SystemClock&gt;) {
-    let estimated_usage = estimate_memory_usage(limiter);
+fn check_memory_threshold(limiter: &amp;FluxLimiter&lt;String, MonotonicClock&gt;) {
+    let client_count = limiter.client_count();
+    let estimated_usage = estimate_memory_usage(client_count, "user_".len() + 36);
     let threshold = 100 * 1024 * 1024; // 100 MB
 
     if estimated_usage &gt; threshold {
@@ -2279,7 +2265,7 @@ fn check_memory_threshold(limiter: &amp;FluxLimiter&lt;String, SystemClock&gt;) 
 use std::time::{SystemTime, Duration};
 
 struct CircuitBreakerRateLimiter {
-    limiter: FluxLimiter&lt;String, SystemClock&gt;,
+    limiter: FluxLimiter&lt;String, MonotonicClock&gt;,
     consecutive_failures: AtomicU64,
     circuit_open: AtomicBool,
     circuit_open_time: AtomicU64,
@@ -2294,7 +2280,7 @@ impl CircuitBreakerRateLimiter {
         reset_timeout_secs: u64,
     ) -&gt; Result&lt;Self, FluxLimiterError&gt; {
         Ok(Self {
-            limiter: FluxLimiter::with_config(config, SystemClock)?,
+            limiter: FluxLimiter::with_config(config, MonotonicClock::new())?,
             consecutive_failures: AtomicU64::new(0),
             circuit_open: AtomicBool::new(false),
             circuit_open_time: AtomicU64::new(0),
@@ -2368,7 +2354,7 @@ mod load_tests {
     #[test]
     fn test_concurrent_load() {
         let config = FluxLimiterConfig::new(1000.0, 500.0);
-        let limiter = Arc::new(FluxLimiter::with_config(config, SystemClock).unwrap());
+        let limiter = Arc::new(FluxLimiter::with_config(config, MonotonicClock::new()).unwrap());
 
         let start = Instant::now();
         let threads: Vec&lt;_&gt; = (0..10)
@@ -2416,11 +2402,11 @@ mod load_tests {
 <li><input disabled="" type="checkbox"> Implement error handling policy (fail-open/fail-closed)</li>
 <li><input disabled="" type="checkbox"> Set up monitoring and alerting</li>
 <li><input disabled="" type="checkbox"> Enable structured logging</li>
-<li><input disabled="" type="checkbox"> Configure automatic cleanup</li>
+<li><input disabled="" type="checkbox"> Schedule <code>cleanup_stale_clients()</code>; it does not run on its own</li>
 <li><input disabled="" type="checkbox"> Load test under expected traffic</li>
 <li><input disabled="" type="checkbox"> Document rate limit headers in API docs</li>
 <li><input disabled="" type="checkbox"> Set up memory monitoring</li>
-<li><input disabled="" type="checkbox"> Test clock error handling</li>
+<li><input disabled="" type="checkbox"> Test the clock error path, if you use <code>SystemClock</code> or a custom clock (the default clock cannot fail)</li>
 <li><input disabled="" type="checkbox"> Implement circuit breaker if needed</li>
 </ul>
 <h2 id="next-steps-8"><a class="header" href="#next-steps-8">Next Steps</a></h2>
@@ -2436,9 +2422,9 @@ mod load_tests {
 <p>Flux Limiter is built on several key architectural principles:</p>
 <ol>
 <li><strong>Fine-Grained Concurrency</strong>: Each client’s state is one atomic value, so updating a known client takes no lock</li>
-<li><strong>Clock Abstraction</strong>: Enables testing and handles time-related failures</li>
+<li><strong>Clock Abstraction</strong>: Enables testing, and lets the limiter use a monotonic clock by default</li>
 <li><strong>Type Safety</strong>: Leverages Rust’s type system for correctness guarantees</li>
-<li><strong>Graceful Degradation</strong>: Continues operation despite partial failures</li>
+<li><strong>Errors Instead of Panics</strong>: Invalid configuration and a failed clock reading are returned as errors, so the application chooses how to respond</li>
 </ol>
 <h2 id="core-architecture"><a class="header" href="#core-architecture">Core Architecture</a></h2>
 <pre><code>┌─────────────────────────────────────────────────────────────┐
@@ -2457,17 +2443,18 @@ mod load_tests {
 ├─────────────────────────────────────────────────────────────┤
 │  Algorithm Layer                                            │
 │  ├─ GCRA Implementation   │ Generic Cell Rate Algorithm     │
-│  ├─ Nanosecond Precision  │ u64 nanosecond calculations     │
+│  ├─ Integer Nanoseconds   │ u64 nanosecond calculations     │
 │  └─ TAT Tracking          │ Theoretical Arrival Time        │
 ├─────────────────────────────────────────────────────────────┤
 │  Storage Layer                                              │
 │  ├─ DashMap&lt;T, AtomicU64&gt; │ Sharded map of per-client TATs  │
 │  ├─ Atomic Operations     │ Thread-safe state updates       │
-│  └─ Memory Management     │ Automatic cleanup mechanisms    │
+│  └─ Memory Management     │ Explicit cleanup when asked     │
 ├─────────────────────────────────────────────────────────────┤
 │  Time Abstraction                                           │
 │  ├─ Clock Trait           │ Pluggable time source           │
-│  ├─ SystemClock           │ Production time implementation   │
+│  ├─ MonotonicClock        │ Production time (the default)   │
+│  ├─ SystemClock           │ Wall-clock time, opt-in         │
 │  └─ TestClock             │ Deterministic test time         │
 └─────────────────────────────────────────────────────────────┘
 </code></pre>
@@ -2490,13 +2477,13 @@ Return FluxLimiterDecision
 <h3 id="performance-first"><a class="header" href="#performance-first">Performance First</a></h3>
 <ul>
 <li><strong>O(1) operations</strong>: Constant time complexity for rate limit checks</li>
-<li><strong>Fine-grained concurrency</strong>: No global lock; requests for one client never wait on a lock</li>
-<li><strong>Nanosecond precision</strong>: Integer arithmetic avoids floating-point overhead</li>
+<li><strong>Fine-grained concurrency</strong>: No global lock. Updating a client takes none; only finding it, or adding it the first time, takes a brief lock on one shard</li>
+<li><strong>Nanosecond resolution</strong>: The limiter keeps time as integer nanoseconds, with no floating-point state</li>
 <li><strong>No lock on the hot path</strong>: updating a known client is a single compare-and-swap</li>
 </ul>
 <h3 id="correctness-guaranteed"><a class="header" href="#correctness-guaranteed">Correctness Guaranteed</a></h3>
 <ul>
-<li><strong>Mathematical precision</strong>: Exact GCRA implementation</li>
+<li><strong>Exact integer arithmetic</strong>: once the rate is a whole-nanosecond interval, every decision is computed exactly</li>
 <li><strong>Type safety</strong>: Rust’s type system prevents common errors</li>
 <li><strong>Comprehensive testing</strong>: Deterministic tests with TestClock</li>
 <li><strong>No silent failures</strong>: All errors are explicitly handled</li>
@@ -2527,16 +2514,23 @@ Return FluxLimiterDecision
 <li><strong>Memory</strong>: O(number of active clients)</li>
 <li><strong>Time complexity</strong>: O(1) for check_request()</li>
 <li><strong>Concurrency</strong>: Lock-free update of a known client; brief sharded locks for lookup and first insert</li>
-<li><strong>Precision</strong>: Nanosecond timing accuracy</li>
+<li><strong>Precision</strong>: Nanosecond resolution. The rate interval is rounded to a whole number of nanoseconds</li>
 <li><strong>Throughput</strong>: Depends on workload and hardware</li>
 </ul>
 <h3 id="scalability"><a class="header" href="#scalability">Scalability</a></h3>
-<pre><code>Clients     Memory Usage
-1K          ~48KB
-100K        ~4.8MB
-1M          ~48MB
-10M         ~480MB
+<p>Measured with <code>u64</code> client keys on a 64-bit target:</p>
+<pre><code>Clients     Memory
+1K          46 KB
+10K         0.3 MB
+100K        2.1 MB
+1M          34 MB
+10M         272 MB
 </code></pre>
+<p>That is about 31 bytes per client on average. Short <code>String</code> keys take about
+76 to 95 bytes each, so a million of them take 75 to 95 MB. An empty limiter
+already holds about 17 KB, because the client map allocates its tables up
+front. Memory does not grow smoothly: the map doubles its tables when they
+fill, so it holds flat for a while and then steps up.</p>
 <h2 id="architecture-layers"><a class="header" href="#architecture-layers">Architecture Layers</a></h2>
 <h3 id="1-api-layer"><a class="header" href="#1-api-layer">1. API Layer</a></h3>
 <p>Public interface for rate limiting operations:</p>
@@ -2562,7 +2556,8 @@ Return FluxLimiterDecision
 <h3 id="4-time-abstraction-layer"><a class="header" href="#4-time-abstraction-layer">4. Time Abstraction Layer</a></h3>
 <p>Clock trait for time source flexibility:</p>
 <ul>
-<li>SystemClock for production</li>
+<li>MonotonicClock for production (the default; immune to OS clock steps)</li>
+<li>SystemClock for wall-clock time, opt-in</li>
 <li>TestClock for deterministic testing</li>
 <li>Custom clocks for special scenarios</li>
 </ul>
@@ -2655,14 +2650,28 @@ if let Some(tat) = client_state.get(&amp;client_id) {
         // Return denied decision with retry_after
     }
 } else {
-    // First request from this client — always allowed.
-    // Inserted under the shard lock; a lost insert race rejoins the path above.
-    client_state.entry(client_id).or_insert_with(|| {
-        AtomicU64::new(current_time_nanos.saturating_add(rate_nanos))
-    });
-    // Return allowed decision
+    // First request from this client. The entry lock is held only here.
+    match client_state.entry(client_id) {
+        Entry::Vacant(vacant) =&gt; {
+            // Always allowed. Insert the initial TAT.
+            vacant.insert(AtomicU64::new(
+                current_time_nanos.saturating_add(rate_nanos),
+            ));
+            // Return allowed decision
+        }
+        Entry::Occupied(occupied) =&gt; {
+            // Another request inserted this client first. Drop the guard so the
+            // shard is not held, then retry the lock-free path on its value.
+            drop(occupied);
+            // ... retry as a known client, with a bounded number of attempts
+        }
+    }
 }
 <span class="boring">}</span></code></pre>
+<p>A request that keeps losing the compare-and-swap retries up to 64 times. After
+that it takes the shard’s write lock once and settles the decision there, so a
+hot client cannot make a request spin forever. Even under that lock the store
+is a compare-and-swap, because the lock does not stop lock-free updates.</p>
 <p><strong>Conforming Request</strong>: <code>current_time &gt;= TAT - τ</code></p>
 <p>This allows requests to arrive up to <code>τ</code> nanoseconds early (burst capacity).</p>
 <p>The conformance check and TAT update are made atomic by the compare-and-swap:
@@ -2674,15 +2683,26 @@ makes concurrent requests.</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>if is_conforming {
-    // Allow request and update TAT atomically
+    // Compute the new TAT. The addition saturates rather than wrapping.
     let new_tat_nanos = current_time_nanos
-        .max(previous_tat_nanos) + rate_nanos;
+        .max(previous_tat_nanos)
+        .saturating_add(rate_nanos);
 
-    occupied.insert(new_tat_nanos);
+    // Publish it only if the TAT we decided on is still current. If another
+    // request advanced it first, this fails and we retry on the new value.
+    tat.compare_exchange(
+        previous_tat_nanos,
+        new_tat_nanos,
+        Ordering::Relaxed,
+        Ordering::Relaxed,
+    )?;
 
     // Return allowed decision
 }
 <span class="boring">}</span></code></pre>
+<p>No lock is held here. <code>Relaxed</code> ordering is sufficient because the atomic
+itself carries the ordering: a request either sees the TAT it decided on and
+wins the compare-and-swap, or sees a newer one and retries.</p>
 <p><strong>TAT Update Rule</strong>: <code>TAT' = max(current_time, previous_TAT) + T</code></p>
 <p>This ensures TAT advances by the rate interval while preventing it from going backward.</p>
 <h3 id="retry-after-calculation-denied-request"><a class="header" href="#retry-after-calculation-denied-request">Retry After Calculation (Denied Request)</a></h3>
@@ -2827,7 +2847,7 @@ t=1.0s:   6 requests → All allowed, TAT=1.6s
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>#[derive(Debug)]
-pub struct FluxLimiter&lt;T, C = SystemClock&gt;
+pub struct FluxLimiter&lt;T, C = MonotonicClock&gt;
 where
     T: Hash + Eq + Clone,  // Client identifier type
     C: Clock,              // Time source
@@ -2852,7 +2872,8 @@ where
 </ul>
 <p><strong>Generic Clock (C)</strong>:</p>
 <ul>
-<li>Default: <code>SystemClock</code> for production</li>
+<li>Default: <code>MonotonicClock</code>, which is immune to OS clock steps</li>
+<li>Opt-in: <code>SystemClock</code> for wall-clock time</li>
 <li>Alternative: <code>TestClock</code> for testing</li>
 <li>Custom: User-defined time sources</li>
 <li>Constrains: <code>Clock</code> trait</li>
@@ -3061,17 +3082,44 @@ pub enum ClockError {
 <p><strong>Benefits</strong>:</p>
 <ul>
 <li>Enables deterministic testing</li>
-<li>Handles real-world clock issues</li>
+<li>Lets the limiter use a monotonic clock instead of the OS clock</li>
 <li>Allows custom time sources</li>
-<li>Graceful error handling</li>
+<li>Reports a failed clock reading as an error instead of panicking</li>
 </ul>
 <p><strong>Send + Sync Requirements</strong>:</p>
 <ul>
 <li>Thread-safe: Can be shared across threads</li>
 <li>Required for concurrent rate limiting</li>
 </ul>
+<h3 id="monotonicclock"><a class="header" href="#monotonicclock">MonotonicClock</a></h3>
+<p>The default clock. It records an anchor (an <code>Instant</code> paired with the OS clock’s
+reading at that moment) the first time it is used, then reports
+<code>anchor + elapsed</code>:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>#[derive(Debug, Clone, Default)]
+pub struct MonotonicClock {
+    anchor: Arc&lt;OnceLock&lt;Anchor&gt;&gt;,
+    // ...
+}
+
+impl Clock for MonotonicClock {
+    fn now(&amp;self) -&gt; Result&lt;u64, ClockError&gt; {
+        // anchor is set on the first call; later calls only read elapsed time
+        // ...
+    }
+}
+<span class="boring">}</span></code></pre>
+<p><strong>Properties</strong>:</p>
+<ul>
+<li>Monotonic: readings never go backwards, whatever the OS clock does</li>
+<li>Advances by real elapsed time, so capacity refills correctly while the OS clock is wrong</li>
+<li>Still a Unix-epoch timestamp in nanoseconds, within microseconds of the OS clock for as long as that clock is not stepped</li>
+<li>Never returns <code>ClockError</code>; <code>Instant::elapsed</code> cannot fail</li>
+<li>40 bytes; clones share one anchor, so a cloned limiter and its original see the same time</li>
+</ul>
 <h3 id="systemclock"><a class="header" href="#systemclock">SystemClock</a></h3>
-<p>Production time source using system time:</p>
+<p>The opt-in wall-clock time source, for callers who need readings that match the OS clock exactly. Pass it explicitly: <code>FluxLimiter::with_config(config, SystemClock)</code>.</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>#[derive(Debug, Clone)]
@@ -3088,16 +3136,19 @@ impl Clock for SystemClock {
 <span class="boring">}</span></code></pre>
 <p><strong>Known limitations</strong>:</p>
 <ul>
-<li>A clock that steps backwards is <strong>not</strong> a source of <code>ClockError</code>: <code>SystemTime::now()</code> still succeeds, it simply returns an earlier value. Such a step makes clients look over-limit until the clock catches back up; see <a href="https://github.com/crustyrustacean/flux-limiter/issues/5">#5</a>.</li>
+<li>A clock that steps backwards is <strong>not</strong> a source of <code>ClockError</code>: <code>SystemTime::now()</code> still succeeds, it simply returns an earlier value. Such a step makes clients look over-limit until the clock catches back up; this is why it is not the default; use <code>MonotonicClock</code> unless you need wall-clock time.</li>
 <li>Clock resolution is whatever the OS provides; the nanosecond value is only as fine as that</li>
 <li>Suspend/resume and VM migration can produce a discontinuity, with the same consequence as above</li>
 </ul>
 <h3 id="testclock"><a class="header" href="#testclock">TestClock</a></h3>
-<p>Deterministic time source for testing:</p>
+<p>Deterministic time source for testing. It is part of the test suite
+(<code>tests/ratelimiter/fixtures/test_clock.rs</code>), not of the crate, because the
+<code>Clock</code> trait lets you write your own:</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>pub struct TestClock {
-    time: Arc&lt;AtomicU64&gt;,        // Current time in nanoseconds
+</span>#[derive(Debug, Clone)]
+pub struct TestClock {
+    time: Arc&lt;AtomicU64&gt;,         // Current time in nanoseconds
     should_fail: Arc&lt;AtomicBool&gt;, // Failure simulation flag
 }
 
@@ -3105,13 +3156,20 @@ impl TestClock {
     pub fn new(initial_time_secs: f64) -&gt; Self
     pub fn advance(&amp;self, duration_secs: f64)
     pub fn set_time(&amp;self, time_secs: f64)
-    pub fn fail_next_call(&amp;self)
+    pub fn set_nanos(&amp;self, nanos: u64)      // exact; set_time takes f64
+    pub fn fail_next_call(&amp;self)             // the next now() returns Err
+    pub fn reset_failure(&amp;self)
+    pub fn time_as_f64(&amp;self) -&gt; f64
 }
 <span class="boring">}</span></code></pre>
 <p><strong>Features</strong>:</p>
 <ul>
-<li>Precise time control</li>
-<li>Failure simulation</li>
+<li>Precise time control. A test sets the clock to an exact instant instead of
+waiting, so it runs instantly and always gives the same answer</li>
+<li><code>set_nanos</code> sets an exact nanosecond value. <code>set_time</code> takes an <code>f64</code> number
+of seconds, which cannot represent a current epoch timestamp exactly</li>
+<li>Failure simulation, for testing the error path</li>
+<li>Clones share one time, so the limiter and the test move the same clock</li>
 <li>Thread-safe</li>
 <li>Deterministic testing</li>
 </ul>
@@ -3119,35 +3177,57 @@ impl TestClock {
 <h3 id="fluxlimiter-size"><a class="header" href="#fluxlimiter-size">FluxLimiter Size</a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>FluxLimiter&lt;String, SystemClock&gt; {
+</span>FluxLimiter&lt;String, MonotonicClock&gt; {   // 64 bytes in total
     rate_nanos: u64,         // 8 bytes
     tolerance_nanos: u64,    // 8 bytes
     client_state: Arc&lt;..&gt;,   // 8 bytes (pointer)
-    clock: SystemClock,      // 0 bytes (zero-sized type)
+    clock: MonotonicClock,   // 40 bytes
 }
-// Total: 24 bytes
 <span class="boring">}</span></code></pre>
+<p><strong>Size</strong>: 64 bytes with the default clock, which is one 64-byte cache line, and 24
+bytes with <code>SystemClock</code>. The size does not depend on the client ID type.</p>
 <p><strong>Cache Efficiency</strong>:</p>
 <ul>
-<li>Small struct size fits in cache line</li>
+<li>The limiter with the default clock occupies exactly one cache line</li>
 <li>Frequently accessed fields grouped</li>
 <li>Arc enables cheap cloning</li>
 </ul>
 <h3 id="per-client-state"><a class="header" href="#per-client-state">Per-Client State</a></h3>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>DashMap&lt;String, AtomicU64&gt; entry:
-    String:    ~24 bytes (pointer + len + capacity)
-    AtomicU64:  8 bytes (TAT; same size as a plain u64)
-    Overhead:  ~16 bytes (hash map metadata)
-// Total per client: ~48 bytes
-<span class="boring">}</span></code></pre>
+<p>One map entry per client, holding the key and its TAT. Memory is allocated
+in steps: DashMap grows its tables by doubling, so the total is flat for a
+while and then jumps. Measured on a 64-bit target (Windows system allocator):</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Key</th><th>Average bytes per client, 1M+ clients</th><th>Range across client counts</th></tr>
+</thead>
+<tbody>
+<tr><td><code>u64</code></td><td>~31</td><td>24 to 36</td></tr>
+<tr><td><code>String</code>, 15 chars</td><td>~76</td><td>63 to 86</td></tr>
+<tr><td><code>String</code>, 36 chars</td><td>~95</td><td>82 to 105</td></tr>
+</tbody>
+</table>
+</div>
+<p>A <code>String</code> key costs the map entry plus the key’s characters, and the
+allocator rounds those up to a power of two (16, 32, 64 bytes).
+One million clients take about 34 MB with <code>u64</code> keys.</p>
 <h3 id="scalability-1"><a class="header" href="#scalability-1">Scalability</a></h3>
-<pre><code>1,000 clients     = ~48 KB
-10,000 clients    = ~480 KB
-100,000 clients   = ~4.8 MB
-1,000,000 clients = ~48 MB
-</code></pre>
+<p>Measured with <code>u64</code> keys on a 64-bit target:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Clients</th><th>Memory</th></tr>
+</thead>
+<tbody>
+<tr><td>1,000</td><td>46 KB</td></tr>
+<tr><td>10,000</td><td>0.3 MB</td></tr>
+<tr><td>100,000</td><td>2.1 MB</td></tr>
+<tr><td>1,000,000</td><td>34 MB</td></tr>
+<tr><td>10,000,000</td><td>272 MB</td></tr>
+</tbody>
+</table>
+</div>
+<p>Short <code>String</code> keys take about two and a half to three times as much.</p>
 <h2 id="thread-safety-1"><a class="header" href="#thread-safety-1">Thread Safety</a></h2>
 <p>All components are thread-safe:</p>
 <ul>
@@ -3178,10 +3258,16 @@ Arc&lt;DashMap&lt;ClientId, AtomicU64&gt;&gt;     one TAT per client
   known client   → load, decide, compare-and-swap   (no lock)
   new client     → insert under the shard lock      (once per client)
 </code></pre>
-<p>The word “lock-free” is used here in a precise sense: an update to a client that
-is already tracked cannot block, and never waits on another request. The map
-itself is built from sharded <code>RwLock</code>s, so lookups and first-time inserts do take
-a (brief, sharded) lock.</p>
+<p>The word “lock-free” is used here in a precise sense. An update to a client
+that is already tracked takes no lock: it retries instead of waiting, so it
+makes progress as long as the thread running it gets to run. The map itself is
+built from sharded <code>RwLock</code>s, so finding a client and adding one the first time
+do take a brief lock on one shard.</p>
+<p>There is one deliberate exception. A request that loses the compare-and-swap 64
+times in a row stops retrying and settles under the shard’s write lock, where
+it waits for that lock. This only happens under extreme contention on a single
+client, and it is there so that a hot client cannot make a request retry
+forever.</p>
 <h2 id="thread-safety-guarantees"><a class="header" href="#thread-safety-guarantees">Thread Safety Guarantees</a></h2>
 <h3 id="1-read-operations"><a class="header" href="#1-read-operations">1. Read Operations</a></h3>
 <p>Multiple concurrent readers without contention:</p>
@@ -3354,7 +3440,7 @@ if anyone else already moved the TAT on.</p>
 </span>use std::sync::Arc;
 
 let config = FluxLimiterConfig::new(100.0, 50.0);
-let limiter = Arc::new(FluxLimiter::with_config(config, SystemClock)?);
+let limiter = Arc::new(FluxLimiter::with_config(config, MonotonicClock::new())?);
 
 // Clone Arc for each thread (cheap)
 let limiter1 = Arc::clone(&amp;limiter);
@@ -3377,7 +3463,7 @@ client state via <code>Arc::clone</code> on the internal <code>DashMap</code>:</
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>let config = FluxLimiterConfig::new(100.0, 50.0);
-let limiter = FluxLimiter::with_config(config, SystemClock)?;
+let limiter = FluxLimiter::with_config(config, MonotonicClock::new())?;
 
 // Clone the limiter directly — shares the same DashMap
 let limiter1 = limiter.clone();
@@ -3439,35 +3525,39 @@ Same client        → one atomic         (compare-and-swap, no lock)
 <p>Requests for different clients never wait on each other’s TAT. Requests for the
 same client do not queue: each one that loses a compare-and-swap retries, and the
 retry count rises with contention rather than the wait time.</p>
-<h3 id="benchmark-concurrent-access"><a class="header" href="#benchmark-concurrent-access">Benchmark: Concurrent Access</a></h3>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>#[bench]
-fn bench_concurrent_different_clients(b: &amp;mut Bencher) {
-    let limiter = Arc::new(FluxLimiter::with_config(
-        FluxLimiterConfig::new(1000.0, 500.0),
-        SystemClock
-    ).unwrap());
-
-    b.iter(|| {
-        let handles: Vec&lt;_&gt; = (0..8)
-            .map(|i| {
-                let limiter = Arc::clone(&amp;limiter);
-                thread::spawn(move || {
-                    for j in 0..1000 {
-                        let client_id = format!("client_{}_{}", i, j);
-                        limiter.check_request(client_id).unwrap();
-                    }
-                })
-            })
-            .collect();
-
-        for handle in handles {
-            handle.join().unwrap();
-        }
-    });
-}
-<span class="boring">}</span></code></pre>
+<h3 id="benchmarking-concurrent-access"><a class="header" href="#benchmarking-concurrent-access">Benchmarking concurrent access</a></h3>
+<p>The repository has Criterion benchmarks for exactly these two cases. They
+produced the figures in <a href="#concurrency-performance">Performance Design</a>,
+and they are the right way to check a change against them:</p>
+<pre><code class="language-sh">cargo bench contention
+</code></pre>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Benchmark</th><th>What it measures</th></tr>
+</thead>
+<tbody>
+<tr><td><code>contention_hot_key_u64</code></td><td>4 threads, all hitting one client: the worst case for same-client contention</td></tr>
+<tr><td><code>contention_spread_keys_u64</code></td><td>4 threads, each with its own clients: the common case</td></tr>
+</tbody>
+</table>
+</div>
+<p>Both are reported per request, with throughput in requests per second.</p>
+<p>If you write your own, three things decide whether the number means anything:</p>
+<ul>
+<li><strong>Start the threads before the timed region.</strong> Starting a thread costs tens of
+microseconds, which is hundreds of times the cost of a request. The
+repository’s benchmarks start their workers once and release them on a
+channel for each timed round.</li>
+<li><strong>Make sure requests are allowed.</strong> A denied request never touches the
+client’s state, so a run that is mostly denials measures nothing about
+contention. Use a high rate so that every request writes.</li>
+<li><strong>Release the threads together.</strong> Same-client requests only collide when they
+arrive at the same moment. Threads that start in a stagger take turns
+instead of contending, and the result looks far better than the worst case.</li>
+</ul>
+<p>Rust’s built-in <code>#[bench]</code> attribute is not stable and needs a nightly
+toolchain, which is why the crate uses Criterion.</p>
 <h2 id="clock-thread-safety"><a class="header" href="#clock-thread-safety">Clock Thread Safety</a></h2>
 <p>The <code>Clock</code> trait requires <code>Send + Sync</code>:</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
@@ -3600,9 +3690,9 @@ tokio::spawn(async move {
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>pub enum FluxLimiterError {
-    InvalidRate,           // Rate non-finite, ≤ 0, or &gt; 1e9
-    InvalidBurst,          // Burst non-finite, &lt; 0, or too large to fit
-    ClockError(ClockError), // System time failure
+    InvalidRate,            // Rate non-finite, ≤ 0, or &gt; 1e9
+    InvalidBurst,           // Burst non-finite, &lt; 0, or too large to fit
+    ClockError(ClockError), // A clock reading failed
 }
 <span class="boring">}</span></code></pre>
 <h3 id="2-configuration-vs-runtime-errors"><a class="header" href="#2-configuration-vs-runtime-errors">2. Configuration vs Runtime Errors</a></h3>
@@ -3614,7 +3704,8 @@ tokio::spawn(async move {
 </ul>
 <p><strong>Runtime Errors</strong> (during operation):</p>
 <ul>
-<li><code>ClockError</code>: Can occur anytime</li>
+<li><code>ClockError</code>: only if you use <code>SystemClock</code> or a custom clock</li>
+<li>The default <code>MonotonicClock</code> never produces it</li>
 <li>Requires graceful handling</li>
 <li>Application chooses policy</li>
 </ul>
@@ -3631,7 +3722,7 @@ tokio::spawn(async move {
 <pre class="playground"><code class="language-rust">fn main() -&gt; Result&lt;(), Box&lt;dyn std::error::Error&gt;&gt; {
     let config = FluxLimiterConfig::new(100.0, 50.0);
 
-    let limiter = FluxLimiter::with_config(config, SystemClock)
+    let limiter = FluxLimiter::with_config(config, MonotonicClock::new())
         .map_err(|e| match e {
             FluxLimiterError::InvalidRate =&gt; {
                 "Invalid rate: must be positive".to_string()
@@ -3671,17 +3762,26 @@ tokio::spawn(async move {
 </ul>
 <h2 id="runtime-clock-errors-1"><a class="header" href="#runtime-clock-errors-1">Runtime Clock Errors</a></h2>
 <h3 id="clock-error-sources"><a class="header" href="#clock-error-sources">Clock Error Sources</a></h3>
-<p>On current platforms there is one source of <code>ClockError</code>:</p>
+<p>The default <code>MonotonicClock</code> never returns a <code>ClockError</code>. The error has one
+source, and only if you opt into <code>SystemClock</code> or write your own clock:</p>
 <ol>
 <li><strong>System Time Unavailable</strong>
 <ul>
-<li>The system clock could not be read</li>
+<li><code>SystemClock</code> could not read the system clock, which happens only if the
+clock is before the Unix epoch</li>
 <li>Reported as <code>ClockError::SystemTimeError</code></li>
 </ul>
 </li>
 </ol>
+<p>With the default clock, the <code>Err</code> arm of <code>check_request</code> can only be reached
+through a bug in a custom clock. Handling it is still correct, because the
+return type allows it, but it is not a path you should expect to run.</p>
 <h3 id="what-is-not-a-clock-error"><a class="header" href="#what-is-not-a-clock-error">What is <em>not</em> a clock error</a></h3>
-<p>{LIMIT}</p>
+<p>A clock that steps backwards is <strong>not</strong> a source of <code>ClockError</code>. Reading the
+clock still succeeds and simply returns an earlier value. With <code>SystemClock</code>
+that makes every client look over-limit until the clock catches back up, and
+no error is reported. This is why <code>SystemClock</code> is not the default: the
+<code>MonotonicClock</code> measures elapsed time and is unaffected by a step.</p>
 <h3 id="error-propagation"><a class="header" href="#error-propagation">Error Propagation</a></h3>
 <pre><code>Clock::now() → Result&lt;u64, ClockError&gt;
      ↓
@@ -3802,7 +3902,7 @@ impl ErrorMetrics {
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>fn check_with_alerting(
-    limiter: &amp;FluxLimiter&lt;String, SystemClock&gt;,
+    limiter: &amp;FluxLimiter&lt;String, MonotonicClock&gt;,
     metrics: &amp;ErrorMetrics,
     client_id: String,
 ) -&gt; bool {
@@ -3869,7 +3969,7 @@ impl CircuitBreaker {
 }
 
 fn check_with_circuit_breaker(
-    limiter: &amp;FluxLimiter&lt;String, SystemClock&gt;,
+    limiter: &amp;FluxLimiter&lt;String, MonotonicClock&gt;,
     breaker: &amp;CircuitBreaker,
     client_id: String,
 ) -&gt; bool {
@@ -3912,7 +4012,7 @@ fn check_with_circuit_breaker(
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>async fn check_with_retry(
-    limiter: &amp;FluxLimiter&lt;String, SystemClock&gt;,
+    limiter: &amp;FluxLimiter&lt;String, MonotonicClock&gt;,
     client_id: String,
     max_retries: u32,
 ) -&gt; Result&lt;FluxLimiterDecision, FluxLimiterError&gt; {
@@ -3937,7 +4037,7 @@ fn check_with_circuit_breaker(
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>enum RateLimitStrategy {
-    Primary(FluxLimiter&lt;String, SystemClock&gt;),
+    Primary(FluxLimiter&lt;String, MonotonicClock&gt;),
     Fallback(SimpleCounter),
 }
 
@@ -3965,7 +4065,7 @@ impl RateLimitStrategy {
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>fn check_with_logging(
-    limiter: &amp;FluxLimiter&lt;String, SystemClock&gt;,
+    limiter: &amp;FluxLimiter&lt;String, MonotonicClock&gt;,
     client_id: String,
 ) -&gt; bool {
     match limiter.check_request(client_id.clone()) {
@@ -4080,39 +4180,79 @@ compare-and-swap, and simple integer arithmetic — all O(1).</p>
 <h3 id="fluxlimiter-structure"><a class="header" href="#fluxlimiter-structure">FluxLimiter Structure</a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>FluxLimiter&lt;String, SystemClock&gt; {
-    rate_nanos: u64,         // 8 bytes - cache-friendly
+</span>FluxLimiter&lt;String, MonotonicClock&gt; {   // 64 bytes in total
+    rate_nanos: u64,         // 8 bytes
     tolerance_nanos: u64,    // 8 bytes
-    client_state: Arc&lt;..&gt;,   // 8 bytes - pointer
-    clock: SystemClock,      // 0 bytes - zero-sized type
+    client_state: Arc&lt;..&gt;,   // 8 bytes (pointer)
+    clock: MonotonicClock,   // 40 bytes - see below
 }
-// Total: 24 bytes - fits in single cache line
 <span class="boring">}</span></code></pre>
+<p><strong>Size</strong> (measured with <code>size_of</code> on a 64-bit target):</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Type</th><th>Size</th></tr>
+</thead>
+<tbody>
+<tr><td><code>FluxLimiter&lt;T, MonotonicClock&gt;</code></td><td>64 bytes</td></tr>
+<tr><td><code>FluxLimiter&lt;T, SystemClock&gt;</code></td><td>24 bytes</td></tr>
+<tr><td><code>MonotonicClock</code></td><td>40 bytes</td></tr>
+<tr><td><code>SystemClock</code></td><td>0 bytes</td></tr>
+</tbody>
+</table>
+</div>
+<p>The size does not depend on the client ID type: <code>String</code> and <code>u64</code> keys both give
+64 bytes, because the key lives in the map, not in the limiter.</p>
 <p><strong>Cache Efficiency</strong>:</p>
 <ul>
-<li>Small struct size (24-32 bytes)</li>
-<li>Frequently accessed fields grouped</li>
-<li>Arc enables sharing without duplication</li>
-<li>Zero-sized clock type (SystemClock)</li>
+<li>The limiter with the default clock is exactly one 64-byte cache line</li>
+<li>Frequently accessed fields are grouped at the start of the struct</li>
+<li><code>Arc</code> enables sharing without duplication</li>
+<li>The clock is 40 bytes: an <code>Arc</code> to the shared anchor, an <code>Instant</code> origin, and a
+lazily-read epoch. That is why the struct grew from 24 bytes when the zero-sized
+<code>SystemClock</code> was the default. Pass <code>SystemClock</code> explicitly if those 40 bytes
+matter and you accept its limitation</li>
 </ul>
 <h3 id="per-client-state-1"><a class="header" href="#per-client-state-1">Per-Client State</a></h3>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>DashMap&lt;String, AtomicU64&gt; entry:
-    String:    ~24 bytes (pointer + len + capacity)
-    AtomicU64: 8 bytes (TAT; same size as a plain u64)
-    Overhead:  ~16 bytes (hash map metadata)
-// Total: ~48 bytes per client
-<span class="boring">}</span></code></pre>
+<p>One map entry per client, holding the key and its TAT. Memory is allocated
+in steps: DashMap grows its tables by doubling, so the total is flat for a
+while and then jumps. Measured on a 64-bit target (Windows system allocator):</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Key</th><th>Average bytes per client, 1M+ clients</th><th>Range across client counts</th></tr>
+</thead>
+<tbody>
+<tr><td><code>u64</code></td><td>~31</td><td>24 to 36</td></tr>
+<tr><td><code>String</code>, 15 chars</td><td>~76</td><td>63 to 86</td></tr>
+<tr><td><code>String</code>, 36 chars</td><td>~95</td><td>82 to 105</td></tr>
+</tbody>
+</table>
+</div>
+<p>A <code>String</code> key costs the map entry plus the key’s characters, and the
+allocator rounds those up to a power of two (16, 32, 64 bytes).
+One million clients take about 34 MB with <code>u64</code> keys.</p>
 <h3 id="memory-scalability"><a class="header" href="#memory-scalability">Memory Scalability</a></h3>
-<pre><code>Clients         Memory Usage    Example
-1,000           ~48 KB          Small API
-10,000          ~480 KB         Medium service
-100,000         ~4.8 MB         Large service
-1,000,000       ~48 MB          Very large service
-10,000,000      ~480 MB         Massive scale
-</code></pre>
-<p><strong>Memory Growth</strong>: Linear with number of active clients</p>
+<p>Measured with <code>u64</code> keys on a 64-bit target:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Clients</th><th>Memory</th><th>Example</th></tr>
+</thead>
+<tbody>
+<tr><td>1,000</td><td>46 KB</td><td>Small API</td></tr>
+<tr><td>10,000</td><td>0.3 MB</td><td>Medium service</td></tr>
+<tr><td>100,000</td><td>2.1 MB</td><td>Large service</td></tr>
+<tr><td>1,000,000</td><td>34 MB</td><td>Very large service</td></tr>
+<tr><td>10,000,000</td><td>272 MB</td><td>Massive scale</td></tr>
+</tbody>
+</table>
+</div>
+<p>Short <code>String</code> keys take about two and a half to three times as much.</p>
+<p><strong>Memory Growth</strong>: linear in the number of active clients on average, but not
+smoothly. The client map doubles its tables when they fill, so memory holds
+flat for a while and then steps up. At any one client count the true figure is
+between about two thirds and the whole of a step.</p>
 <h2 id="algorithmic-complexity"><a class="header" href="#algorithmic-complexity">Algorithmic Complexity</a></h2>
 <h3 id="time-complexity"><a class="header" href="#time-complexity">Time Complexity</a></h3>
 <div class="table-wrapper">
@@ -4156,9 +4296,13 @@ Short critical sections → minimal lock duration
 <li>Inserting a client for the first time: that shard’s write lock, once per client</li>
 <li><code>cleanup_stale_clients</code>: each shard’s write lock in turn</li>
 </ul>
-<p>Measured with 4 threads on one client (i7-13700HX, criterion): 159 ns per request
-before the atomic TAT, 74 ns after. Distinct clients were unchanged at 30 ns, since
-they were never contending for the same lock to begin with.</p>
+<p>Measured with 4 threads on one client (i7-13700HX, criterion, 1,000 requests per
+iteration): 159 ns per request before the atomic TAT, and 67 to 96 ns per request
+after it, over nine runs. That makes it roughly 1.6 to 2.4 times faster. The figure
+moves by about 40% between runs, which happens when threads contend for one key on
+a laptop, so treat the range as the result and not any single number in it. Four
+threads on distinct clients take 31 ns per request and stay within 3% between runs,
+since they were never waiting on the same lock to begin with.</p>
 <h3 id="contention-patterns"><a class="header" href="#contention-patterns">Contention Patterns</a></h3>
 <p><strong>Low Contention</strong> (different clients):</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
@@ -4334,7 +4478,7 @@ where
 
 static REQUEST_COUNT: AtomicU64 = AtomicU64::new(0);
 
-fn track_throughput(limiter: &amp;FluxLimiter&lt;String, SystemClock&gt;, client_id: String) -&gt; bool {
+fn track_throughput(limiter: &amp;FluxLimiter&lt;String, MonotonicClock&gt;, client_id: String) -&gt; bool {
     REQUEST_COUNT.fetch_add(1, Ordering::Relaxed);
 
     match limiter.check_request(client_id) {
@@ -4357,7 +4501,7 @@ fn report_throughput(duration: Duration) {
 <tr><th>Metric</th><th>Value</th></tr>
 </thead>
 <tbody>
-<tr><td>Memory per client</td><td>~48 bytes</td></tr>
+<tr><td>Memory per client</td><td>~31 bytes with a <code>u64</code> key, ~76-95 with a short <code>String</code> key (average over 1M+ clients; grows in steps)</td></tr>
 <tr><td>Time complexity</td><td>O(1)</td></tr>
 <tr><td>Space complexity</td><td>O(n)</td></tr>
 <tr><td>Cleanup overhead</td><td>O(n) but infrequent</td></tr>
@@ -4367,7 +4511,7 @@ fn report_throughput(duration: Duration) {
 <h2 id="best-practices-3"><a class="header" href="#best-practices-3">Best Practices</a></h2>
 <ol>
 <li><strong>Use numeric client IDs</strong> when possible for best performance</li>
-<li><strong>Share limiter via Arc</strong> to avoid state duplication</li>
+<li><strong>Clone the limiter or share it via <code>Arc</code></strong> rather than building one per thread; clones share the same clients, configuration and clock</li>
 <li><strong>Cleanup periodically</strong> to prevent memory growth</li>
 <li><strong>Profile in production</strong> to identify bottlenecks</li>
 <li><strong>Monitor latency</strong> and alert on degradation</li>
@@ -4521,7 +4665,7 @@ fn test_burst_capacity() {
 </span>#[test]
 fn test_invalid_rate() {
     let config = FluxLimiterConfig::new(-10.0, 5.0);
-    let result = FluxLimiter::with_config(config, SystemClock);
+    let result = FluxLimiter::with_config(config, MonotonicClock::new());
 
     assert!(matches!(result, Err(FluxLimiterError::InvalidRate)));
 }
@@ -4529,7 +4673,7 @@ fn test_invalid_rate() {
 #[test]
 fn test_invalid_burst() {
     let config = FluxLimiterConfig::new(10.0, -5.0);
-    let result = FluxLimiter::with_config(config, SystemClock);
+    let result = FluxLimiter::with_config(config, MonotonicClock::new());
 
     assert!(matches!(result, Err(FluxLimiterError::InvalidBurst)));
 }
@@ -4615,7 +4759,7 @@ fn test_concurrent_access() {
 
     let config = FluxLimiterConfig::new(100.0, 50.0);
     let limiter = Arc::new(
-        FluxLimiter::with_config(config, SystemClock).unwrap()
+        FluxLimiter::with_config(config, MonotonicClock::new()).unwrap()
     );
 
     let handles: Vec&lt;_&gt; = (0..10)
@@ -4681,76 +4825,42 @@ fn test_remaining_capacity() {
 }
 <span class="boring">}</span></code></pre>
 <h2 id="performance-testing"><a class="header" href="#performance-testing">Performance Testing</a></h2>
-<h3 id="latency-benchmarks"><a class="header" href="#latency-benchmarks">Latency Benchmarks</a></h3>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>#[cfg(test)]
-mod benchmarks {
-    use super::*;
-    use std::time::Instant;
-
-    #[test]
-    fn bench_check_request_latency() {
-        let limiter = FluxLimiter::with_config(
-            FluxLimiterConfig::new(1000.0, 500.0),
-            SystemClock,
-        ).unwrap();
-
-        let iterations = 100_000;
-        let start = Instant::now();
-
-        for i in 0..iterations {
-            let client_id = format!("client_{}", i % 1000);
-            limiter.check_request(client_id).unwrap();
-        }
-
-        let elapsed = start.elapsed();
-        let avg_latency = elapsed.as_nanos() / iterations;
-
-        println!("Average latency: {}ns", avg_latency);
-        assert!(avg_latency &lt; 1000); // Should be under 1μs
-    }
-}
-<span class="boring">}</span></code></pre>
-<h3 id="throughput-tests"><a class="header" href="#throughput-tests">Throughput Tests</a></h3>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>#[test]
-fn test_throughput() {
-    let limiter = Arc::new(
-        FluxLimiter::with_config(
-            FluxLimiterConfig::new(10_000.0, 5_000.0),
-            SystemClock,
-        ).unwrap()
-    );
-
-    let start = Instant::now();
-    let threads = 8;
-    let requests_per_thread = 100_000;
-
-    let handles: Vec&lt;_&gt; = (0..threads)
-        .map(|t| {
-            let limiter = Arc::clone(&amp;limiter);
-            thread::spawn(move || {
-                for i in 0..requests_per_thread {
-                    let client_id = format!("client_{}_{}", t, i % 1000);
-                    limiter.check_request(client_id).unwrap();
-                }
-            })
-        })
-        .collect();
-
-    for handle in handles {
-        handle.join().unwrap();
-    }
-
-    let elapsed = start.elapsed();
-    let total_requests = threads * requests_per_thread;
-    let throughput = total_requests as f64 / elapsed.as_secs_f64();
-
-    println!("Throughput: {:.2} req/s", throughput);
-}
-<span class="boring">}</span></code></pre>
+<p>Timing does not belong in a test. A test that measures wall-clock time, such
+as asserting that a request takes under a microsecond, passes on a fast idle
+machine and fails on a slow or loaded one, and the failure says nothing about
+the code. The crate’s own tests contain no timing assertions: <code>cargo test</code>
+checks behaviour only, and every test runs to the same result whatever the
+machine is doing.</p>
+<p>Timing is measured with <a href="https://github.com/bheisler/criterion.rs">Criterion</a>
+benchmarks, which live in <code>benches/</code> and are not part of <code>cargo test</code>:</p>
+<pre><code class="language-sh">cargo bench                        # all benchmarks
+cargo bench contention             # only the multi-threaded ones
+cargo bench -- --save-baseline before
+# ... make a change ...
+cargo bench -- --baseline before   # compare against the saved run
+</code></pre>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Benchmark</th><th>What it measures</th></tr>
+</thead>
+<tbody>
+<tr><td><code>single_client_u64</code></td><td>One thread, one client, <code>u64</code> key</td></tr>
+<tr><td><code>single_client_string_clone</code></td><td>One thread, one client, <code>String</code> key cloned per request</td></tr>
+<tr><td><code>contended_4_threads_u64</code></td><td>4 threads on one client, per batch</td></tr>
+<tr><td><code>contention_hot_key_u64</code></td><td>4 threads on one client, per request</td></tr>
+<tr><td><code>contention_spread_keys_u64</code></td><td>4 threads, each with its own clients, per request</td></tr>
+</tbody>
+</table>
+</div>
+<p>A test that needs to prove something about <em>time</em> rather than <em>speed</em> does it
+with <code>TestClock</code>, which never waits: it sets the clock to an exact value, so a
+test of “what happens after 9.9 seconds” runs instantly and always gives the
+same answer.</p>
+<p>Throughput figures from a benchmark are specific to the machine that produced
+them. The numbers quoted in <a href="#performance-design">Performance Design</a> were taken
+on one laptop and are there to show the relative cost of the two contention
+cases, not to promise a particular rate.</p>
 <h2 id="test-utilities"><a class="header" href="#test-utilities">Test Utilities</a></h2>
 <h3 id="helper-functions"><a class="header" href="#helper-functions">Helper Functions</a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
@@ -4774,27 +4884,45 @@ fn assert_error&lt;T&gt;(result: Result&lt;T, FluxLimiterError&gt;) {
 }
 <span class="boring">}</span></code></pre>
 <h3 id="test-fixtures"><a class="header" href="#test-fixtures">Test Fixtures</a></h3>
+<p>The suite builds limiters through two helpers, which always pair the limiter
+with the <code>TestClock</code> it reads so a test can advance time:</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>fn create_test_limiter(rate: f64, burst: f64) -&gt; (FluxLimiter&lt;String, TestClock&gt;, TestClock) {
-    let clock = TestClock::new(0.0);
-    let config = FluxLimiterConfig::new(rate, burst);
-    let limiter = FluxLimiter::with_config(config, clock.clone()).unwrap();
-    (limiter, clock)
-}
+</span>/// A limiter with the given rate, burst and starting time, on a fresh TestClock.
+fn setup_limiter(
+    rate: f64,
+    burst: f64,
+    initial_time: f64,
+) -&gt; (FluxLimiter&lt;String, TestClock&gt;, TestClock&gt;)
+
+/// A limiter with the suite's standard configuration.
+fn setup_standard_limiter() -&gt; (FluxLimiter&lt;String, TestClock&gt;, TestClock)
 <span class="boring">}</span></code></pre>
+<p>A <code>TestClock</code> is created at time zero and can be moved forward by an amount
+(<code>advance</code>) or set to an exact instant (<code>set_time</code> in seconds, <code>set_nanos</code> in
+nanoseconds). It can also fail its next reading on request.</p>
 <h2 id="test-coverage"><a class="header" href="#test-coverage">Test Coverage</a></h2>
-<p>Aim for comprehensive coverage:</p>
-<ul>
-<li>✅ Algorithm correctness</li>
-<li>✅ Configuration validation</li>
-<li>✅ Error handling and recovery</li>
-<li>✅ Concurrency safety</li>
-<li>✅ Memory management</li>
-<li>✅ Decision metadata accuracy</li>
-<li>✅ Performance characteristics</li>
-<li>✅ Edge cases and boundary conditions</li>
-</ul>
+<p>The suite is one integration test binary, <code>tests/ratelimiter</code>, split by
+concern. It has 71 tests:</p>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>File</th><th>Tests</th><th>Covers</th></tr>
+</thead>
+<tbody>
+<tr><td><code>config_tests.rs</code></td><td>22</td><td>Every rejected rate and burst, the bounds, and which error wins</td></tr>
+<tr><td><code>clock_tests.rs</code></td><td>13</td><td>The clocks: monotonicity, clock steps, anchors, epoch accuracy</td></tr>
+<tr><td><code>error_tests.rs</code></td><td>8</td><td>Clock failures and the errors they produce</td></tr>
+<tr><td><code>gcra_algorithm_tests.rs</code></td><td>8</td><td>Allow and deny decisions against hand-computed sequences</td></tr>
+<tr><td><code>overflow_tests.rs</code></td><td>9</td><td>Timestamps near <code>u64::MAX</code>, in both build profiles</td></tr>
+<tr><td><code>concurrency_tests.rs</code></td><td>5</td><td>Many threads on one client, and that no update is lost</td></tr>
+<tr><td><code>cleanup_tests.rs</code></td><td>3</td><td>Stale clients are removed and live ones are kept</td></tr>
+<tr><td><code>performance_tests.rs</code></td><td>2</td><td>Behaviour at high request volumes, with no timing assertions</td></tr>
+<tr><td><code>decision_metadata_tests.rs</code></td><td>1</td><td>The fields returned with a decision</td></tr>
+</tbody>
+</table>
+</div>
+<p>Performance itself is not tested here; see <a href="#performance-testing">Performance Testing</a>.</p>
 <h2 id="best-practices-4"><a class="header" href="#best-practices-4">Best Practices</a></h2>
 <ol>
 <li><strong>Use TestClock</strong> for deterministic time control</li>
@@ -4820,8 +4948,8 @@ fn assert_error&lt;T&gt;(result: Result&lt;T, FluxLimiterError&gt;) {
 <p>✅ <strong>Exact Mathematical Precision</strong></p>
 <ul>
 <li>Integer arithmetic with u64 nanoseconds</li>
-<li>No floating-point precision loss</li>
-<li>No accumulating rounding errors</li>
+<li>No floating-point state, so nothing drifts as requests accumulate</li>
+<li>The rate is truncated once, to a whole-nanosecond interval; see below</li>
 </ul>
 <p>✅ <strong>Stateless Calculation</strong></p>
 <ul>
@@ -4926,25 +5054,25 @@ Token Bucket: Request allowed if tokens &gt;= 1
 <p><strong>Why rejected</strong>: Not worth the complexity and risk when DashMap exists.</p>
 <h2 id="time-representation-nanoseconds"><a class="header" href="#time-representation-nanoseconds">Time Representation: Nanoseconds</a></h2>
 <h3 id="decision-use-u64-nanoseconds"><a class="header" href="#decision-use-u64-nanoseconds">Decision: Use u64 Nanoseconds</a></h3>
-<p><strong>Rationale</strong>: Nanoseconds provide maximum precision with efficient integer arithmetic.</p>
+<p><strong>Rationale</strong>: Nanoseconds give fine resolution with integer arithmetic, so every timing decision is reproducible.</p>
 <h3 id="benefits"><a class="header" href="#benefits">Benefits</a></h3>
-<p>✅ <strong>Maximum Precision</strong></p>
+<p>✅ <strong>Fine Resolution</strong></p>
 <ul>
-<li>Supports very high rates (1B req/s)</li>
-<li>No precision loss</li>
-<li>Exact calculations</li>
+<li>One nanosecond per unit</li>
+<li>Rates up to 1 billion per second can be represented</li>
+<li>The precision limit is the rate, not the timestamp: see below</li>
 </ul>
 <p>✅ <strong>Integer Arithmetic</strong></p>
 <ul>
-<li>Faster than floating-point</li>
-<li>No rounding errors</li>
+<li>No floating-point state</li>
 <li>Deterministic results</li>
+<li>Once the rate is an interval, the arithmetic has no rounding error</li>
 </ul>
 <p>✅ <strong>No Overflow</strong></p>
 <ul>
-<li>u64::MAX nanoseconds = 584 years</li>
-<li>Sufficient for any realistic usage</li>
-<li>Saturating arithmetic for safety</li>
+<li>u64::MAX nanoseconds is about 584 years</li>
+<li>All additions saturate rather than wrap, so an out-of-range value cannot evict a live client or panic</li>
+<li>The rate and burst are validated before any timestamp is computed from them</li>
 </ul>
 <p>✅ <strong>System Time Compatible</strong></p>
 <ul>
@@ -4952,14 +5080,21 @@ Token Bucket: Request allowed if tokens &gt;= 1
 <li>No conversion overhead</li>
 <li>Natural representation</li>
 </ul>
-<h3 id="alternative-milliseconds"><a class="header" href="#alternative-milliseconds">Alternative: Milliseconds</a></h3>
-<p>❌ <strong>Insufficient Precision</strong></p>
+<p>⚠️ <strong>Known limitation: the rate is truncated to a whole number of nanoseconds</strong></p>
 <ul>
-<li>Can’t support rates &gt; 1000 req/s precisely</li>
-<li>Precision loss for high rates</li>
-<li>Rounding errors</li>
+<li><code>rate</code> is stored as the interval <code>1_000_000_000 / rate</code>, truncated</li>
+<li>A rate that does not divide one billion is enforced slightly higher than requested</li>
+<li>Below about 10 million per second the difference is under 1%; at <code>rate = 6e8</code> it is 67%</li>
+<li>See <a href="#precision-whole-nanosecond-truncation">Configuration: precision</a></li>
 </ul>
-<p><strong>Why rejected</strong>: Limits maximum rate and precision.</p>
+<h3 id="alternative-milliseconds"><a class="header" href="#alternative-milliseconds">Alternative: Milliseconds</a></h3>
+<p>❌ <strong>Insufficient Resolution</strong></p>
+<ul>
+<li>One millisecond per unit, so no rate above 1000 per second can be represented</li>
+<li>The same truncation that affects high rates in nanoseconds would affect every rate above 1000</li>
+<li>Burst tolerance would be coarser by a factor of a million</li>
+</ul>
+<p><strong>Why rejected</strong>: Caps the supported rate far below what users ask for.</p>
 <h3 id="alternative-duration-type"><a class="header" href="#alternative-duration-type">Alternative: Duration Type</a></h3>
 <p>❌ <strong>Memory Overhead</strong></p>
 <ul>
@@ -5109,7 +5244,7 @@ Token Bucket: Request allowed if tokens &gt;= 1
 <p><strong>Why rejected</strong>: Generics provide flexibility without cost.</p>
 <h2 id="clock-abstraction"><a class="header" href="#clock-abstraction">Clock Abstraction</a></h2>
 <h3 id="decision-clock-trait"><a class="header" href="#decision-clock-trait">Decision: Clock Trait</a></h3>
-<p><strong>Rationale</strong>: Abstracting time enables testing and handles real-world clock issues.</p>
+<p><strong>Rationale</strong>: Abstracting time enables testing, and lets the limiter use a monotonic source instead of the operating system’s wall clock.</p>
 <h3 id="benefits-3"><a class="header" href="#benefits-3">Benefits</a></h3>
 <p>✅ <strong>Testable</strong></p>
 <ul>
@@ -5117,11 +5252,19 @@ Token Bucket: Request allowed if tokens &gt;= 1
 <li>Precise time control</li>
 <li>Failure simulation</li>
 </ul>
-<p>⚠️ <strong>Known limitation: wall-clock time</strong></p>
+<p>✅ <strong>Independent of the OS clock</strong></p>
 <ul>
-<li>The system clock can step backwards (NTP, manual change, VM migration)</li>
+<li>The default <code>MonotonicClock</code> measures elapsed time, so a backwards clock step does not affect decisions</li>
+<li>It reads the OS clock once, to anchor its readings to the Unix epoch</li>
+<li>It never returns an error</li>
+</ul>
+<p>⚠️ <strong>Known limitation: wall-clock time, if you opt into it</strong></p>
+<ul>
+<li><code>SystemClock</code> reads the OS clock directly</li>
+<li>That clock can step backwards (NTP, manual change, VM migration)</li>
 <li><code>SystemClock</code> does not detect this and does not return an error</li>
-<li>Clients then appear over-limit until the clock catches up (<a href="https://github.com/crustyrustacean/flux-limiter/issues/5">#5</a>)</li>
+<li>Clients then appear over-limit until the clock catches up</li>
+<li>This is why it is not the default</li>
 </ul>
 <p>✅ <strong>Flexible</strong></p>
 <ul>
@@ -5246,7 +5389,7 @@ Token Bucket: Request allowed if tokens &gt;= 1
 <tr><td>Time</td><td>u64 nanos</td><td>ms, Duration, f64</td><td>Precision, performance</td></tr>
 <tr><td>Errors</td><td>Result</td><td>Panic, Silent</td><td>Observability, recovery</td></tr>
 <tr><td>Client ID</td><td>Generic</td><td>Trait object, String</td><td>Flexibility, performance</td></tr>
-<tr><td>Clock</td><td>Trait</td><td>Direct SystemTime</td><td>Testing, error handling</td></tr>
+<tr><td>Clock</td><td>Trait, default <code>MonotonicClock</code></td><td>Direct SystemTime</td><td>Testing, independence from the OS clock</td></tr>
 <tr><td>Cleanup</td><td>Manual</td><td>Automatic</td><td>Control, simplicity</td></tr>
 <tr><td>Config</td><td>Builder</td><td>Constructor only</td><td>Ergonomics</td></tr>
 </tbody>
@@ -5600,7 +5743,7 @@ impl&lt;T, C, H&gt; AdaptiveRateLimiter&lt;T, C, H&gt; {
 where
     T: Hash + Eq + Clone,
 {
-    limiter: FluxLimiter&lt;T, SystemClock&gt;,
+    limiter: FluxLimiter&lt;T, MonotonicClock&gt;,
     quotas: DashMap&lt;T, QuotaState&gt;,
 }
 
@@ -5700,7 +5843,7 @@ than by type aliases (two aliases cannot share one name):</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>// `FluxLimiter&lt;T&gt;` is already the common spelling, because `C` defaults:
-pub struct FluxLimiter&lt;T, C = SystemClock&gt; { /* ... */ }
+pub struct FluxLimiter&lt;T, C = MonotonicClock&gt; { /* ... */ }
 
 // Users who need another clock name it explicitly:
 let limiter = FluxLimiter::&lt;String, C&gt;::with_config(config, clock)?;

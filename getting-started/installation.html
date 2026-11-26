@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-9b29f404.js";
+            window.path_to_searchindex_js = "../searchindex-9b512f0d.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-a16be429.js"></script>
@@ -185,7 +185,7 @@
 <h2 id="adding-to-cargotoml"><a class="header" href="#adding-to-cargotoml">Adding to Cargo.toml</a></h2>
 <p>Add this to your <code>Cargo.toml</code>:</p>
 <pre><code class="language-toml">[dependencies]
-flux-limiter = "0.8.6"
+flux-limiter = "0.9.0"
 </code></pre>
 <h2 id="alternative-using-cargo-add"><a class="header" href="#alternative-using-cargo-add">Alternative: Using Cargo Add</a></h2>
 <p>If you have <code>cargo-edit</code> installed, you can use:</p>
@@ -193,11 +193,11 @@ flux-limiter = "0.8.6"
 </code></pre>
 <h2 id="verify-installation"><a class="header" href="#verify-installation">Verify Installation</a></h2>
 <p>Create a simple example to verify the installation:</p>
-<pre class="playground"><code class="language-rust">use flux_limiter::{FluxLimiter, FluxLimiterConfig, SystemClock};
+<pre class="playground"><code class="language-rust">use flux_limiter::{FluxLimiter, FluxLimiterConfig, MonotonicClock};
 
 fn main() {
     let config = FluxLimiterConfig::new(10.0, 5.0);
-    let limiter = FluxLimiter::with_config(config, SystemClock).unwrap();
+    let limiter = FluxLimiter::with_config(config, MonotonicClock::new()).unwrap();
 
     match limiter.check_request("test_client") {
         Ok(decision) =&gt; {

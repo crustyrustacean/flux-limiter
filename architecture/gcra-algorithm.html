@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-9b29f404.js";
+            window.path_to_searchindex_js = "../searchindex-9b512f0d.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-a16be429.js"></script>
@@ -261,14 +261,28 @@ if let Some(tat) = client_state.get(&amp;client_id) {
         // Return denied decision with retry_after
     }
 } else {
-    // First request from this client — always allowed.
-    // Inserted under the shard lock; a lost insert race rejoins the path above.
-    client_state.entry(client_id).or_insert_with(|| {
-        AtomicU64::new(current_time_nanos.saturating_add(rate_nanos))
-    });
-    // Return allowed decision
+    // First request from this client. The entry lock is held only here.
+    match client_state.entry(client_id) {
+        Entry::Vacant(vacant) =&gt; {
+            // Always allowed. Insert the initial TAT.
+            vacant.insert(AtomicU64::new(
+                current_time_nanos.saturating_add(rate_nanos),
+            ));
+            // Return allowed decision
+        }
+        Entry::Occupied(occupied) =&gt; {
+            // Another request inserted this client first. Drop the guard so the
+            // shard is not held, then retry the lock-free path on its value.
+            drop(occupied);
+            // ... retry as a known client, with a bounded number of attempts
+        }
+    }
 }
 <span class="boring">}</span></code></pre>
+<p>A request that keeps losing the compare-and-swap retries up to 64 times. After
+that it takes the shard’s write lock once and settles the decision there, so a
+hot client cannot make a request spin forever. Even under that lock the store
+is a compare-and-swap, because the lock does not stop lock-free updates.</p>
 <p><strong>Conforming Request</strong>: <code>current_time &gt;= TAT - τ</code></p>
 <p>This allows requests to arrive up to <code>τ</code> nanoseconds early (burst capacity).</p>
 <p>The conformance check and TAT update are made atomic by the compare-and-swap:
@@ -280,15 +294,26 @@ makes concurrent requests.</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>if is_conforming {
-    // Allow request and update TAT atomically
+    // Compute the new TAT. The addition saturates rather than wrapping.
     let new_tat_nanos = current_time_nanos
-        .max(previous_tat_nanos) + rate_nanos;
+        .max(previous_tat_nanos)
+        .saturating_add(rate_nanos);
 
-    occupied.insert(new_tat_nanos);
+    // Publish it only if the TAT we decided on is still current. If another
+    // request advanced it first, this fails and we retry on the new value.
+    tat.compare_exchange(
+        previous_tat_nanos,
+        new_tat_nanos,
+        Ordering::Relaxed,
+        Ordering::Relaxed,
+    )?;
 
     // Return allowed decision
 }
 <span class="boring">}</span></code></pre>
+<p>No lock is held here. <code>Relaxed</code> ordering is sufficient because the atomic
+itself carries the ordering: a request either sees the TAT it decided on and
+wins the compare-and-swap, or sees a newer one and retries.</p>
 <p><strong>TAT Update Rule</strong>: <code>TAT' = max(current_time, previous_TAT) + T</code></p>
 <p>This ensures TAT advances by the rate interval while preventing it from going backward.</p>
 <h3 id="retry-after-calculation-denied-request"><a class="header" href="#retry-after-calculation-denied-request">Retry After Calculation (Denied Request)</a></h3>

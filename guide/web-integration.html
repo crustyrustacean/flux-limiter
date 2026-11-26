@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-9b29f404.js";
+            window.path_to_searchindex_js = "../searchindex-9b512f0d.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-a16be429.js"></script>
@@ -193,10 +193,10 @@
     middleware::Next,
     response::{IntoResponse, Response},
 };
-use flux_limiter::{FluxLimiter, FluxLimiterError, SystemClock};
+use flux_limiter::{FluxLimiter, FluxLimiterError, MonotonicClock};
 use std::sync::Arc;
 
-type SharedLimiter = Arc&lt;FluxLimiter&lt;String, SystemClock&gt;&gt;;
+type SharedLimiter = Arc&lt;FluxLimiter&lt;String, MonotonicClock&gt;&gt;;
 
 // `from_fn` middleware always sees the concrete body type `Body`, so the
 // request is `Request&lt;Body&gt;` and `Next` takes no generic parameter.
@@ -261,14 +261,14 @@ fn extract_client_ip&lt;B&gt;(request: &amp;Request&lt;B&gt;) -&gt; String {
     Router,
     middleware,
 };
-use flux_limiter::{FluxLimiter, FluxLimiterConfig, SystemClock};
+use flux_limiter::{FluxLimiter, FluxLimiterConfig, MonotonicClock};
 use std::sync::Arc;
 
 #[tokio::main]
 async fn main() {
     // Create rate limiter
     let config = FluxLimiterConfig::new(10.0, 5.0);
-    let limiter = Arc::new(FluxLimiter::with_config(config, SystemClock).unwrap());
+    let limiter = Arc::new(FluxLimiter::with_config(config, MonotonicClock::new()).unwrap());
 
     // Build router with middleware
     let app = Router::new()
@@ -299,17 +299,17 @@ async fn handler() -&gt; &amp;'static str {
     dev::{Service, ServiceRequest, ServiceResponse, Transform},
     Error, HttpResponse, http::header,
 };
-use flux_limiter::{FluxLimiter, FluxLimiterError, SystemClock};
+use flux_limiter::{FluxLimiter, FluxLimiterError, MonotonicClock};
 use std::future::{ready, Future, Ready};
 use std::pin::Pin;
 use std::sync::Arc;
 
 pub struct RateLimitMiddleware {
-    limiter: Arc&lt;FluxLimiter&lt;String, SystemClock&gt;&gt;,
+    limiter: Arc&lt;FluxLimiter&lt;String, MonotonicClock&gt;&gt;,
 }
 
 impl RateLimitMiddleware {
-    pub fn new(limiter: Arc&lt;FluxLimiter&lt;String, SystemClock&gt;&gt;) -&gt; Self {
+    pub fn new(limiter: Arc&lt;FluxLimiter&lt;String, MonotonicClock&gt;&gt;) -&gt; Self {
         Self { limiter }
     }
 }
@@ -337,7 +337,7 @@ where
 
 pub struct RateLimitMiddlewareService&lt;S&gt; {
     service: S,
-    limiter: Arc&lt;FluxLimiter&lt;String, SystemClock&gt;&gt;,
+    limiter: Arc&lt;FluxLimiter&lt;String, MonotonicClock&gt;&gt;,
 }
 
 impl&lt;S&gt; Service&lt;ServiceRequest&gt; for RateLimitMiddlewareService&lt;S&gt;
@@ -414,7 +414,7 @@ where
     http::Status,
     State,
 };
-use flux_limiter::{FluxLimiter, FluxLimiterDecision, SystemClock};
+use flux_limiter::{FluxLimiter, FluxLimiterDecision, MonotonicClock};
 use std::sync::Arc;
 
 pub struct RateLimited {
@@ -429,7 +429,7 @@ impl&lt;'r&gt; FromRequest&lt;'r&gt; for RateLimited {
 
     async fn from_request(request: &amp;'r Request&lt;'_&gt;) -&gt; Outcome&lt;Self, Self::Error&gt; {
         let limiter = request
-            .guard::&lt;&amp;State&lt;Arc&lt;FluxLimiter&lt;String, SystemClock&gt;&gt;&gt;&gt;()
+            .guard::&lt;&amp;State&lt;Arc&lt;FluxLimiter&lt;String, MonotonicClock&gt;&gt;&gt;&gt;()
             .await
             .unwrap();
 
@@ -515,7 +515,7 @@ use std::collections::HashMap;
 use std::sync::Arc;
 
 struct TieredLimiters {
-    limiters: HashMap&lt;String, Arc&lt;FluxLimiter&lt;String, SystemClock&gt;&gt;&gt;,
+    limiters: HashMap&lt;String, Arc&lt;FluxLimiter&lt;String, MonotonicClock&gt;&gt;&gt;,
 }
 
 impl TieredLimiters {
@@ -526,7 +526,7 @@ impl TieredLimiters {
             "free".to_string(),
             Arc::new(FluxLimiter::with_config(
                 FluxLimiterConfig::new(10.0, 5.0),
-                SystemClock
+                MonotonicClock::new()
             )?),
         );
 
@@ -534,14 +534,14 @@ impl TieredLimiters {
             "paid".to_string(),
             Arc::new(FluxLimiter::with_config(
                 FluxLimiterConfig::new(100.0, 50.0),
-                SystemClock
+                MonotonicClock::new()
             )?),
         );
 
         Ok(Self { limiters })
     }
 
-    fn get_limiter(&amp;self, tier: &amp;str) -&gt; &amp;Arc&lt;FluxLimiter&lt;String, SystemClock&gt;&gt; {
+    fn get_limiter(&amp;self, tier: &amp;str) -&gt; &amp;Arc&lt;FluxLimiter&lt;String, MonotonicClock&gt;&gt; {
         self.limiters.get(tier).unwrap_or_else(|| &amp;self.limiters["free"])
     }
 }
@@ -569,7 +569,7 @@ async fn tiered_rate_limit(
 <pre class="playground"><code class="language-rust">use tokio::time::{interval, Duration};
 use std::sync::Arc;
 
-async fn cleanup_task(limiter: Arc&lt;FluxLimiter&lt;String, SystemClock&gt;&gt;) {
+async fn cleanup_task(limiter: Arc&lt;FluxLimiter&lt;String, MonotonicClock&gt;&gt;) {
     let mut cleanup_interval = interval(Duration::from_secs(3600)); // 1 hour
 
     loop {
@@ -592,7 +592,7 @@ async fn cleanup_task(limiter: Arc&lt;FluxLimiter&lt;String, SystemClock&gt;&gt;
 #[tokio::main]
 async fn main() {
     let config = FluxLimiterConfig::new(100.0, 50.0);
-    let limiter = Arc::new(FluxLimiter::with_config(config, SystemClock).unwrap());
+    let limiter = Arc::new(FluxLimiter::with_config(config, MonotonicClock::new()).unwrap());
 
     // Start cleanup in background
     tokio::spawn(cleanup_task(limiter.clone()));

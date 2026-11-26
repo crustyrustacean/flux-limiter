@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-9b29f404.js";
+            window.path_to_searchindex_js = "../searchindex-9b512f0d.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-a16be429.js"></script>
@@ -195,10 +195,16 @@ Arc&lt;DashMap&lt;ClientId, AtomicU64&gt;&gt;     one TAT per client
   known client   → load, decide, compare-and-swap   (no lock)
   new client     → insert under the shard lock      (once per client)
 </code></pre>
-<p>The word “lock-free” is used here in a precise sense: an update to a client that
-is already tracked cannot block, and never waits on another request. The map
-itself is built from sharded <code>RwLock</code>s, so lookups and first-time inserts do take
-a (brief, sharded) lock.</p>
+<p>The word “lock-free” is used here in a precise sense. An update to a client
+that is already tracked takes no lock: it retries instead of waiting, so it
+makes progress as long as the thread running it gets to run. The map itself is
+built from sharded <code>RwLock</code>s, so finding a client and adding one the first time
+do take a brief lock on one shard.</p>
+<p>There is one deliberate exception. A request that loses the compare-and-swap 64
+times in a row stops retrying and settles under the shard’s write lock, where
+it waits for that lock. This only happens under extreme contention on a single
+client, and it is there so that a hot client cannot make a request retry
+forever.</p>
 <h2 id="thread-safety-guarantees"><a class="header" href="#thread-safety-guarantees">Thread Safety Guarantees</a></h2>
 <h3 id="1-read-operations"><a class="header" href="#1-read-operations">1. Read Operations</a></h3>
 <p>Multiple concurrent readers without contention:</p>
@@ -371,7 +377,7 @@ if anyone else already moved the TAT on.</p>
 </span>use std::sync::Arc;
 
 let config = FluxLimiterConfig::new(100.0, 50.0);
-let limiter = Arc::new(FluxLimiter::with_config(config, SystemClock)?);
+let limiter = Arc::new(FluxLimiter::with_config(config, MonotonicClock::new())?);
 
 // Clone Arc for each thread (cheap)
 let limiter1 = Arc::clone(&amp;limiter);
@@ -394,7 +400,7 @@ client state via <code>Arc::clone</code> on the internal <code>DashMap</code>:</
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>let config = FluxLimiterConfig::new(100.0, 50.0);
-let limiter = FluxLimiter::with_config(config, SystemClock)?;
+let limiter = FluxLimiter::with_config(config, MonotonicClock::new())?;
 
 // Clone the limiter directly — shares the same DashMap
 let limiter1 = limiter.clone();
@@ -456,35 +462,39 @@ Same client        → one atomic         (compare-and-swap, no lock)
 <p>Requests for different clients never wait on each other’s TAT. Requests for the
 same client do not queue: each one that loses a compare-and-swap retries, and the
 retry count rises with contention rather than the wait time.</p>
-<h3 id="benchmark-concurrent-access"><a class="header" href="#benchmark-concurrent-access">Benchmark: Concurrent Access</a></h3>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>#[bench]
-fn bench_concurrent_different_clients(b: &amp;mut Bencher) {
-    let limiter = Arc::new(FluxLimiter::with_config(
-        FluxLimiterConfig::new(1000.0, 500.0),
-        SystemClock
-    ).unwrap());
-
-    b.iter(|| {
-        let handles: Vec&lt;_&gt; = (0..8)
-            .map(|i| {
-                let limiter = Arc::clone(&amp;limiter);
-                thread::spawn(move || {
-                    for j in 0..1000 {
-                        let client_id = format!("client_{}_{}", i, j);
-                        limiter.check_request(client_id).unwrap();
-                    }
-                })
-            })
-            .collect();
-
-        for handle in handles {
-            handle.join().unwrap();
-        }
-    });
-}
-<span class="boring">}</span></code></pre>
+<h3 id="benchmarking-concurrent-access"><a class="header" href="#benchmarking-concurrent-access">Benchmarking concurrent access</a></h3>
+<p>The repository has Criterion benchmarks for exactly these two cases. They
+produced the figures in <a href="./performance.html#concurrency-performance">Performance Design</a>,
+and they are the right way to check a change against them:</p>
+<pre><code class="language-sh">cargo bench contention
+</code></pre>
+<div class="table-wrapper">
+<table>
+<thead>
+<tr><th>Benchmark</th><th>What it measures</th></tr>
+</thead>
+<tbody>
+<tr><td><code>contention_hot_key_u64</code></td><td>4 threads, all hitting one client: the worst case for same-client contention</td></tr>
+<tr><td><code>contention_spread_keys_u64</code></td><td>4 threads, each with its own clients: the common case</td></tr>
+</tbody>
+</table>
+</div>
+<p>Both are reported per request, with throughput in requests per second.</p>
+<p>If you write your own, three things decide whether the number means anything:</p>
+<ul>
+<li><strong>Start the threads before the timed region.</strong> Starting a thread costs tens of
+microseconds, which is hundreds of times the cost of a request. The
+repository’s benchmarks start their workers once and release them on a
+channel for each timed round.</li>
+<li><strong>Make sure requests are allowed.</strong> A denied request never touches the
+client’s state, so a run that is mostly denials measures nothing about
+contention. Use a high rate so that every request writes.</li>
+<li><strong>Release the threads together.</strong> Same-client requests only collide when they
+arrive at the same moment. Threads that start in a stagger take turns
+instead of contending, and the result looks far better than the worst case.</li>
+</ul>
+<p>Rust’s built-in <code>#[bench]</code> attribute is not stable and needs a nightly
+toolchain, which is why the crate uses Criterion.</p>
 <h2 id="clock-thread-safety"><a class="header" href="#clock-thread-safety">Clock Thread Safety</a></h2>
 <p>The <code>Clock</code> trait requires <code>Send + Sync</code>:</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]

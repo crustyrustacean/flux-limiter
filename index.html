@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-9b29f404.js";
+            window.path_to_searchindex_js = "searchindex-9b512f0d.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-a16be429.js"></script>
@@ -184,11 +184,12 @@
 <p>A simple rate limiter based on the Generic Cell Rate Algorithm (GCRA) with nanosecond precision and lock-free per-client updates.</p>
 <h2 id="features"><a class="header" href="#features">Features</a></h2>
 <ul>
-<li><strong>Mathematically precise</strong>: Implements the GCRA algorithm with exact nanosecond timing</li>
+<li><strong>Precise</strong>: Implements the GCRA algorithm in integer nanoseconds. The rate is rounded to a whole-nanosecond interval, which is exact for any rate that divides one billion</li>
 <li><strong>Generic client IDs</strong>: Works with any hashable client identifier (<code>String</code>, <code>IpAddr</code>, <code>u64</code>, etc.)</li>
 <li><strong>Rich metadata</strong>: Returns detailed decision information for HTTP response construction</li>
-<li><strong>Memory efficient</strong>: Automatic cleanup of stale client entries</li>
-<li><strong>Robust error handling</strong>: Graceful handling of clock failures and configuration errors</li>
+<li><strong>Unaffected by clock changes</strong>: The default clock measures elapsed time, so an operating-system clock correction cannot lock clients out</li>
+<li><strong>Memory efficient</strong>: One atomic timestamp per client. Idle clients are removed when you call <code>cleanup_stale_clients()</code>; nothing runs in the background</li>
+<li><strong>Robust error handling</strong>: Invalid configuration is rejected with an error, and the default clock cannot fail</li>
 <li><strong>Testable</strong>: Clock abstraction enables deterministic testing</li>
 <li><strong>Thread-safe</strong>: Safe to use across multiple threads</li>
 </ul>
@@ -203,9 +204,9 @@
 <h2 id="why-flux-limiter"><a class="header" href="#why-flux-limiter">Why Flux Limiter?</a></h2>
 <p>Flux Limiter stands out with its focus on:</p>
 <ol>
-<li><strong>Correctness</strong>: Mathematically precise GCRA implementation</li>
+<li><strong>Correctness</strong>: GCRA in integer arithmetic, with no floating-point state</li>
 <li><strong>Performance</strong>: O(1) operations, and updating a known client takes no lock</li>
-<li><strong>Reliability</strong>: Comprehensive error handling and graceful degradation</li>
+<li><strong>Reliability</strong>: Invalid configuration is reported, and rate limiting does not depend on the operating-system clock being correct</li>
 <li><strong>Observability</strong>: Rich metadata for monitoring and HTTP headers</li>
 <li><strong>Flexibility</strong>: Generic design supporting various client ID types</li>
 </ol>
@@ -213,7 +214,7 @@
 <p>Flux Limiter implements the Generic Cell Rate Algorithm (GCRA), which is mathematically equivalent to the token bucket algorithm but offers several advantages:</p>
 <ul>
 <li>No background token refill processes</li>
-<li>Exact timing without floating-point precision loss</li>
+<li>No floating-point state: once the rate is a whole-nanosecond interval, the arithmetic is exact</li>
 <li>Efficient state representation (one timestamp per client)</li>
 <li>Deterministic behavior with integer arithmetic</li>
 </ul>
@@ -222,8 +223,8 @@
 <li><strong>Memory</strong>: O(number of active clients)</li>
 <li><strong>Time complexity</strong>: O(1) for <code>check_request()</code> operations</li>
 <li><strong>Concurrency</strong>: Each client’s state is a single atomic in a sharded <code>DashMap</code>; updating a known client is a compare-and-swap with no lock</li>
-<li><strong>Precision</strong>: Nanosecond timing accuracy</li>
-<li><strong>Reliability</strong>: Graceful degradation on system clock issues</li>
+<li><strong>Precision</strong>: Nanosecond resolution. The rate interval is rounded to a whole number of nanoseconds</li>
+<li><strong>Reliability</strong>: The default clock is monotonic, so a backwards clock step does not deny requests</li>
 </ul>
 <h2 id="next-steps"><a class="header" href="#next-steps">Next Steps</a></h2>
 <ul>

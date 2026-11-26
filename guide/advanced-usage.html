@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-9b29f404.js";
+            window.path_to_searchindex_js = "../searchindex-9b512f0d.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-a16be429.js"></script>
@@ -187,8 +187,9 @@
 <h3 id="understanding-memory-usage"><a class="header" href="#understanding-memory-usage">Understanding Memory Usage</a></h3>
 <ul>
 <li><strong>Memory</strong>: O(number of active clients)</li>
-<li><strong>Per-client overhead</strong>: ~40-48 bytes (client ID + TAT timestamp)</li>
-<li><strong>Example</strong>: 1 million clients ≈ 40-48 MB</li>
+<li><strong>Per-client overhead</strong>: about 31 bytes with a <code>u64</code> key and about 76-95 bytes with a short <code>String</code> key, measured as the average over a million or more clients</li>
+<li><strong>It grows in steps, not smoothly</strong>: the client map doubles its tables when it fills, so memory holds flat for a while and then jumps. At any one client count the true figure is between about two thirds and the whole of the average above</li>
+<li><strong>Example</strong>: 1 million clients take about 34 MB with <code>u64</code> keys</li>
 </ul>
 <h3 id="manual-cleanup"><a class="header" href="#manual-cleanup">Manual Cleanup</a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
@@ -210,7 +211,7 @@ match limiter.cleanup_stale_clients(one_hour_nanos) {
 <pre class="playground"><code class="language-rust">use std::sync::Arc;
 use tokio::time::{interval, Duration};
 
-async fn start_cleanup_task(limiter: Arc&lt;FluxLimiter&lt;String, SystemClock&gt;&gt;) {
+async fn start_cleanup_task(limiter: Arc&lt;FluxLimiter&lt;String, MonotonicClock&gt;&gt;) {
     let mut cleanup_interval = interval(Duration::from_secs(3600)); // 1 hour
 
     loop {
@@ -233,7 +234,7 @@ async fn start_cleanup_task(limiter: Arc&lt;FluxLimiter&lt;String, SystemClock&g
 #[tokio::main]
 async fn main() {
     let config = FluxLimiterConfig::new(100.0, 50.0);
-    let limiter = Arc::new(FluxLimiter::with_config(config, SystemClock).unwrap());
+    let limiter = Arc::new(FluxLimiter::with_config(config, MonotonicClock::new()).unwrap());
 
     // Start cleanup task in background
     let limiter_clone = Arc::clone(&amp;limiter);
@@ -245,7 +246,7 @@ async fn main() {
 <p>Base cleanup threshold on the configured rate:</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>fn calculate_cleanup_threshold(limiter: &amp;FluxLimiter&lt;String, SystemClock&gt;) -&gt; u64 {
+</span>fn calculate_cleanup_threshold(limiter: &amp;FluxLimiter&lt;String, MonotonicClock&gt;) -&gt; u64 {
     // Clean up clients inactive for 100x the rate interval
     let rate = limiter.rate();
     let rate_interval_nanos = (1_000_000_000.0 / rate) as u64;
@@ -271,7 +272,7 @@ struct CompositeClientId {
 
 let limiter = FluxLimiter::&lt;CompositeClientId, _&gt;::with_config(
     FluxLimiterConfig::new(100.0, 50.0),
-    SystemClock
+    MonotonicClock::new()
 ).unwrap();
 
 // Different rate limits per user per endpoint
@@ -294,12 +295,12 @@ enum RateLimitKey {
 
 let limiter = FluxLimiter::&lt;RateLimitKey, _&gt;::with_config(
     FluxLimiterConfig::new(1000.0, 500.0),
-    SystemClock
+    MonotonicClock::new()
 ).unwrap();
 
 // Check multiple levels
 fn check_hierarchical(
-    limiter: &amp;FluxLimiter&lt;RateLimitKey, SystemClock&gt;,
+    limiter: &amp;FluxLimiter&lt;RateLimitKey, MonotonicClock&gt;,
     tenant_id: &amp;str,
     user_id: &amp;str,
 ) -&gt; bool {
@@ -327,9 +328,9 @@ fn check_hierarchical(
 </span>use std::sync::Arc;
 
 struct TieredRateLimiter {
-    free_tier: Arc&lt;FluxLimiter&lt;String, SystemClock&gt;&gt;,
-    paid_tier: Arc&lt;FluxLimiter&lt;String, SystemClock&gt;&gt;,
-    premium_tier: Arc&lt;FluxLimiter&lt;String, SystemClock&gt;&gt;,
+    free_tier: Arc&lt;FluxLimiter&lt;String, MonotonicClock&gt;&gt;,
+    paid_tier: Arc&lt;FluxLimiter&lt;String, MonotonicClock&gt;&gt;,
+    premium_tier: Arc&lt;FluxLimiter&lt;String, MonotonicClock&gt;&gt;,
 }
 
 impl TieredRateLimiter {
@@ -337,15 +338,15 @@ impl TieredRateLimiter {
         Ok(Self {
             free_tier: Arc::new(FluxLimiter::with_config(
                 FluxLimiterConfig::new(10.0, 5.0), // 10 req/s
-                SystemClock
+                MonotonicClock::new()
             )?),
             paid_tier: Arc::new(FluxLimiter::with_config(
                 FluxLimiterConfig::new(100.0, 50.0), // 100 req/s
-                SystemClock
+                MonotonicClock::new()
             )?),
             premium_tier: Arc::new(FluxLimiter::with_config(
                 FluxLimiterConfig::new(1000.0, 500.0), // 1000 req/s
-                SystemClock
+                MonotonicClock::new()
             )?),
         })
     }
@@ -367,8 +368,8 @@ impl TieredRateLimiter {
 use std::sync::Arc;
 
 struct EndpointRateLimiter {
-    limiters: HashMap&lt;String, Arc&lt;FluxLimiter&lt;String, SystemClock&gt;&gt;&gt;,
-    default: Arc&lt;FluxLimiter&lt;String, SystemClock&gt;&gt;,
+    limiters: HashMap&lt;String, Arc&lt;FluxLimiter&lt;String, MonotonicClock&gt;&gt;&gt;,
+    default: Arc&lt;FluxLimiter&lt;String, MonotonicClock&gt;&gt;,
 }
 
 impl EndpointRateLimiter {
@@ -380,7 +381,7 @@ impl EndpointRateLimiter {
             "/api/expensive".to_string(),
             Arc::new(FluxLimiter::with_config(
                 FluxLimiterConfig::new(1.0, 2.0),
-                SystemClock
+                MonotonicClock::new()
             )?),
         );
 
@@ -389,14 +390,14 @@ impl EndpointRateLimiter {
             "/api/cheap".to_string(),
             Arc::new(FluxLimiter::with_config(
                 FluxLimiterConfig::new(1000.0, 500.0),
-                SystemClock
+                MonotonicClock::new()
             )?),
         );
 
         // Default limit
         let default = Arc::new(FluxLimiter::with_config(
             FluxLimiterConfig::new(100.0, 50.0),
-            SystemClock
+            MonotonicClock::new()
         )?);
 
         Ok(Self { limiters, default })
@@ -414,12 +415,12 @@ impl EndpointRateLimiter {
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>// Instead of allocating new strings
-fn check_request_owned(limiter: &amp;FluxLimiter&lt;String, SystemClock&gt;, id: String) -&gt; bool {
+fn check_request_owned(limiter: &amp;FluxLimiter&lt;String, MonotonicClock&gt;, id: String) -&gt; bool {
     limiter.check_request(id).unwrap().allowed
 }
 
 // Use string slices and clone only when needed
-fn check_request_borrowed(limiter: &amp;FluxLimiter&lt;String, SystemClock&gt;, id: &amp;str) -&gt; bool {
+fn check_request_borrowed(limiter: &amp;FluxLimiter&lt;String, MonotonicClock&gt;, id: &amp;str) -&gt; bool {
     limiter.check_request(id.to_string()).unwrap().allowed
 }
 <span class="boring">}</span></code></pre>
@@ -427,7 +428,7 @@ fn check_request_borrowed(limiter: &amp;FluxLimiter&lt;String, SystemClock&gt;, 
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>// Faster: no string allocation
-let limiter = FluxLimiter::&lt;u64, _&gt;::with_config(config, SystemClock).unwrap();
+let limiter = FluxLimiter::&lt;u64, _&gt;::with_config(config, MonotonicClock::new()).unwrap();
 limiter.check_request(user_id_numeric).unwrap();
 <span class="boring">}</span></code></pre>
 <h3 id="batch-operations"><a class="header" href="#batch-operations">Batch Operations</a></h3>
@@ -435,7 +436,7 @@ limiter.check_request(user_id_numeric).unwrap();
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>fn check_batch(
-    limiter: &amp;FluxLimiter&lt;String, SystemClock&gt;,
+    limiter: &amp;FluxLimiter&lt;String, MonotonicClock&gt;,
     client_ids: &amp;[String],
 ) -&gt; Vec&lt;bool&gt; {
     client_ids
@@ -453,7 +454,7 @@ limiter.check_request(user_id_numeric).unwrap();
 </span>use rayon::prelude::*;
 
 fn check_parallel(
-    limiter: &amp;FluxLimiter&lt;String, SystemClock&gt;,
+    limiter: &amp;FluxLimiter&lt;String, MonotonicClock&gt;,
     client_ids: Vec&lt;String&gt;,
 ) -&gt; Vec&lt;bool&gt; {
     client_ids
@@ -507,54 +508,21 @@ let limiter = FluxLimiter::with_config(config, clock.clone()).unwrap();
 // Control time in tests
 clock.advance(1_000_000_000); // Advance 1 second
 <span class="boring">}</span></code></pre>
-<h3 id="monotonic-clock"><a class="header" href="#monotonic-clock">Monotonic Clock</a></h3>
-<p>The built-in <code>SystemClock</code> does not detect a backwards clock step
-(<a href="https://github.com/crustyrustacean/flux-limiter/issues/5">#5</a>). If that matters to
-you, wrap it so <code>now()</code> can never return a value lower than the last one it returned:</p>
-<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
-</span><span class="boring">fn main() {
-</span>use flux_limiter::{Clock, ClockError};
-use std::sync::atomic::{AtomicU64, Ordering};
-use std::sync::Arc;
-use std::time::{SystemTime, UNIX_EPOCH};
-
-#[derive(Clone)]
-struct MonotonicClock {
-    last_time: Arc&lt;AtomicU64&gt;,
-}
-
-impl MonotonicClock {
-    fn new() -&gt; Self {
-        Self {
-            last_time: Arc::new(AtomicU64::new(0)),
-        }
-    }
-}
-
-impl Clock for MonotonicClock {
-    fn now(&amp;self) -&gt; Result&lt;u64, ClockError&gt; {
-        let current_time = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .map_err(|_| ClockError::SystemTimeError)?
-            .as_nanos() as u64;
-
-        // Ensure monotonicity
-        let mut last = self.last_time.load(Ordering::Acquire);
-        loop {
-            let next = current_time.max(last);
-            match self.last_time.compare_exchange_weak(
-                last,
-                next,
-                Ordering::Release,
-                Ordering::Acquire,
-            ) {
-                Ok(_) =&gt; return Ok(next),
-                Err(x) =&gt; last = x,
-            }
-        }
-    }
-}
-<span class="boring">}</span></code></pre>
+<h3 id="clock-steps"><a class="header" href="#clock-steps">Clock steps</a></h3>
+<p>The default <code>MonotonicClock</code> is immune to operating-system clock steps. It
+reads the OS clock once, when it is first used, and then measures <em>elapsed</em>
+time. A backwards step (an NTP correction, a manual change, a VM resuming with
+a stale clock) therefore has no effect on decisions, and capacity refills
+according to how much time really passed.</p>
+<p>If you pass <code>SystemClock</code> explicitly you get wall-clock time instead, with its
+known limitation: a backwards step makes every client look over-limit until the
+OS clock catches back up, and no error is reported.</p>
+<p>An earlier version of this page showed a workaround to layer on top of
+<code>SystemClock</code>: clamp its readings so they never go backwards. That is not a
+fix. The clamp freezes the limiter’s time at the instant of the step, so
+nothing refills until the OS clock climbs back past it. Measured, a client that
+waits 9.9 real seconds after a 10-second step gets none of the requests it has
+earned. Use <code>MonotonicClock</code>, which does not have the problem.</p>
 <h2 id="next-steps"><a class="header" href="#next-steps">Next Steps</a></h2>
 <ul>
 <li><a href="./web-integration.html">Web Integration</a> - Use with web frameworks</li>

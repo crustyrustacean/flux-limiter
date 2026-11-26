@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-9b29f404.js";
+            window.path_to_searchindex_js = "../searchindex-9b512f0d.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-a16be429.js"></script>
@@ -189,8 +189,8 @@
 <p>✅ <strong>Exact Mathematical Precision</strong></p>
 <ul>
 <li>Integer arithmetic with u64 nanoseconds</li>
-<li>No floating-point precision loss</li>
-<li>No accumulating rounding errors</li>
+<li>No floating-point state, so nothing drifts as requests accumulate</li>
+<li>The rate is truncated once, to a whole-nanosecond interval; see below</li>
 </ul>
 <p>✅ <strong>Stateless Calculation</strong></p>
 <ul>
@@ -295,25 +295,25 @@ Token Bucket: Request allowed if tokens &gt;= 1
 <p><strong>Why rejected</strong>: Not worth the complexity and risk when DashMap exists.</p>
 <h2 id="time-representation-nanoseconds"><a class="header" href="#time-representation-nanoseconds">Time Representation: Nanoseconds</a></h2>
 <h3 id="decision-use-u64-nanoseconds"><a class="header" href="#decision-use-u64-nanoseconds">Decision: Use u64 Nanoseconds</a></h3>
-<p><strong>Rationale</strong>: Nanoseconds provide maximum precision with efficient integer arithmetic.</p>
+<p><strong>Rationale</strong>: Nanoseconds give fine resolution with integer arithmetic, so every timing decision is reproducible.</p>
 <h3 id="benefits"><a class="header" href="#benefits">Benefits</a></h3>
-<p>✅ <strong>Maximum Precision</strong></p>
+<p>✅ <strong>Fine Resolution</strong></p>
 <ul>
-<li>Supports very high rates (1B req/s)</li>
-<li>No precision loss</li>
-<li>Exact calculations</li>
+<li>One nanosecond per unit</li>
+<li>Rates up to 1 billion per second can be represented</li>
+<li>The precision limit is the rate, not the timestamp: see below</li>
 </ul>
 <p>✅ <strong>Integer Arithmetic</strong></p>
 <ul>
-<li>Faster than floating-point</li>
-<li>No rounding errors</li>
+<li>No floating-point state</li>
 <li>Deterministic results</li>
+<li>Once the rate is an interval, the arithmetic has no rounding error</li>
 </ul>
 <p>✅ <strong>No Overflow</strong></p>
 <ul>
-<li>u64::MAX nanoseconds = 584 years</li>
-<li>Sufficient for any realistic usage</li>
-<li>Saturating arithmetic for safety</li>
+<li>u64::MAX nanoseconds is about 584 years</li>
+<li>All additions saturate rather than wrap, so an out-of-range value cannot evict a live client or panic</li>
+<li>The rate and burst are validated before any timestamp is computed from them</li>
 </ul>
 <p>✅ <strong>System Time Compatible</strong></p>
 <ul>
@@ -321,14 +321,21 @@ Token Bucket: Request allowed if tokens &gt;= 1
 <li>No conversion overhead</li>
 <li>Natural representation</li>
 </ul>
-<h3 id="alternative-milliseconds"><a class="header" href="#alternative-milliseconds">Alternative: Milliseconds</a></h3>
-<p>❌ <strong>Insufficient Precision</strong></p>
+<p>⚠️ <strong>Known limitation: the rate is truncated to a whole number of nanoseconds</strong></p>
 <ul>
-<li>Can’t support rates &gt; 1000 req/s precisely</li>
-<li>Precision loss for high rates</li>
-<li>Rounding errors</li>
+<li><code>rate</code> is stored as the interval <code>1_000_000_000 / rate</code>, truncated</li>
+<li>A rate that does not divide one billion is enforced slightly higher than requested</li>
+<li>Below about 10 million per second the difference is under 1%; at <code>rate = 6e8</code> it is 67%</li>
+<li>See <a href="../getting-started/configuration.html#precision-whole-nanosecond-truncation">Configuration: precision</a></li>
 </ul>
-<p><strong>Why rejected</strong>: Limits maximum rate and precision.</p>
+<h3 id="alternative-milliseconds"><a class="header" href="#alternative-milliseconds">Alternative: Milliseconds</a></h3>
+<p>❌ <strong>Insufficient Resolution</strong></p>
+<ul>
+<li>One millisecond per unit, so no rate above 1000 per second can be represented</li>
+<li>The same truncation that affects high rates in nanoseconds would affect every rate above 1000</li>
+<li>Burst tolerance would be coarser by a factor of a million</li>
+</ul>
+<p><strong>Why rejected</strong>: Caps the supported rate far below what users ask for.</p>
 <h3 id="alternative-duration-type"><a class="header" href="#alternative-duration-type">Alternative: Duration Type</a></h3>
 <p>❌ <strong>Memory Overhead</strong></p>
 <ul>
@@ -478,7 +485,7 @@ Token Bucket: Request allowed if tokens &gt;= 1
 <p><strong>Why rejected</strong>: Generics provide flexibility without cost.</p>
 <h2 id="clock-abstraction"><a class="header" href="#clock-abstraction">Clock Abstraction</a></h2>
 <h3 id="decision-clock-trait"><a class="header" href="#decision-clock-trait">Decision: Clock Trait</a></h3>
-<p><strong>Rationale</strong>: Abstracting time enables testing and handles real-world clock issues.</p>
+<p><strong>Rationale</strong>: Abstracting time enables testing, and lets the limiter use a monotonic source instead of the operating system’s wall clock.</p>
 <h3 id="benefits-3"><a class="header" href="#benefits-3">Benefits</a></h3>
 <p>✅ <strong>Testable</strong></p>
 <ul>
@@ -486,11 +493,19 @@ Token Bucket: Request allowed if tokens &gt;= 1
 <li>Precise time control</li>
 <li>Failure simulation</li>
 </ul>
-<p>⚠️ <strong>Known limitation: wall-clock time</strong></p>
+<p>✅ <strong>Independent of the OS clock</strong></p>
 <ul>
-<li>The system clock can step backwards (NTP, manual change, VM migration)</li>
+<li>The default <code>MonotonicClock</code> measures elapsed time, so a backwards clock step does not affect decisions</li>
+<li>It reads the OS clock once, to anchor its readings to the Unix epoch</li>
+<li>It never returns an error</li>
+</ul>
+<p>⚠️ <strong>Known limitation: wall-clock time, if you opt into it</strong></p>
+<ul>
+<li><code>SystemClock</code> reads the OS clock directly</li>
+<li>That clock can step backwards (NTP, manual change, VM migration)</li>
 <li><code>SystemClock</code> does not detect this and does not return an error</li>
-<li>Clients then appear over-limit until the clock catches up (<a href="https://github.com/crustyrustacean/flux-limiter/issues/5">#5</a>)</li>
+<li>Clients then appear over-limit until the clock catches up</li>
+<li>This is why it is not the default</li>
 </ul>
 <p>✅ <strong>Flexible</strong></p>
 <ul>
@@ -615,7 +630,7 @@ Token Bucket: Request allowed if tokens &gt;= 1
 <tr><td>Time</td><td>u64 nanos</td><td>ms, Duration, f64</td><td>Precision, performance</td></tr>
 <tr><td>Errors</td><td>Result</td><td>Panic, Silent</td><td>Observability, recovery</td></tr>
 <tr><td>Client ID</td><td>Generic</td><td>Trait object, String</td><td>Flexibility, performance</td></tr>
-<tr><td>Clock</td><td>Trait</td><td>Direct SystemTime</td><td>Testing, error handling</td></tr>
+<tr><td>Clock</td><td>Trait, default <code>MonotonicClock</code></td><td>Direct SystemTime</td><td>Testing, independence from the OS clock</td></tr>
 <tr><td>Cleanup</td><td>Manual</td><td>Automatic</td><td>Control, simplicity</td></tr>
 <tr><td>Config</td><td>Builder</td><td>Constructor only</td><td>Ergonomics</td></tr>
 </tbody>

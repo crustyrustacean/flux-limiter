@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-9b29f404.js";
+            window.path_to_searchindex_js = "../searchindex-9b512f0d.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-a16be429.js"></script>
@@ -185,11 +185,11 @@
 <h2 id="basic-example"><a class="header" href="#basic-example">Basic Example</a></h2>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>use flux_limiter::{FluxLimiter, FluxLimiterConfig, SystemClock};
+</span>use flux_limiter::{FluxLimiter, FluxLimiterConfig, MonotonicClock};
 
 // Create a rate limiter: 10 requests per second with burst of 5
 let config = FluxLimiterConfig::new(10.0, 5.0);
-let limiter = FluxLimiter::with_config(config, SystemClock).unwrap();
+let limiter = FluxLimiter::with_config(config, MonotonicClock::new()).unwrap();
 
 // Check if a request should be allowed
 match limiter.check_request("user_123") {
@@ -219,10 +219,10 @@ match limiter.check_request("user_123") {
 </ul>
 </li>
 <li>
-<p><strong>Create Rate Limiter</strong>: <code>FluxLimiter::with_config(config, SystemClock)</code></p>
+<p><strong>Create Rate Limiter</strong>: <code>FluxLimiter::with_config(config, MonotonicClock::new())</code></p>
 <ul>
 <li>Uses the configuration</li>
-<li>Uses <code>SystemClock</code> for production time source</li>
+<li>Uses <code>MonotonicClock</code>, the default monotonic time source, which is unaffected by OS clock steps</li>
 <li>Returns <code>Result</code> to handle configuration errors</li>
 </ul>
 </li>
@@ -275,7 +275,7 @@ without a breaking change. You can still access all fields via dot notation.</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>let config = FluxLimiterConfig::new(10.0, 5.0);
-let limiter = FluxLimiter::with_config(config, SystemClock).unwrap();
+let limiter = FluxLimiter::with_config(config, MonotonicClock::new()).unwrap();
 
 // Different clients have independent rate limits
 limiter.check_request("user_1").unwrap();
@@ -292,7 +292,7 @@ limiter.check_request("user_3").unwrap();
 use std::thread;
 
 let config = FluxLimiterConfig::new(10.0, 5.0);
-let limiter = Arc::new(FluxLimiter::with_config(config, SystemClock).unwrap());
+let limiter = Arc::new(FluxLimiter::with_config(config, MonotonicClock::new()).unwrap());
 
 let mut handles = vec![];
 

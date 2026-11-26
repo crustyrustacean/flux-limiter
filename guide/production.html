@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-9b29f404.js";
+            window.path_to_searchindex_js = "../searchindex-9b512f0d.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-a16be429.js"></script>
@@ -200,7 +200,7 @@ let config = FluxLimiterConfig::new(rate_per_client, rate_per_client * 0.5);
 </span><span class="boring">fn main() {
 </span>use std::env;
 
-fn create_rate_limiter() -&gt; Result&lt;FluxLimiter&lt;String, SystemClock&gt;, FluxLimiterError&gt; {
+fn create_rate_limiter() -&gt; Result&lt;FluxLimiter&lt;String, MonotonicClock&gt;, FluxLimiterError&gt; {
     let rate = env::var("RATE_LIMIT_RATE")
         .unwrap_or_else(|_| "100.0".to_string())
         .parse::&lt;f64&gt;()
@@ -212,7 +212,7 @@ fn create_rate_limiter() -&gt; Result&lt;FluxLimiter&lt;String, SystemClock&gt;,
         .expect("Invalid RATE_LIMIT_BURST");
 
     let config = FluxLimiterConfig::new(rate, burst);
-    FluxLimiter::with_config(config, SystemClock)
+    FluxLimiter::with_config(config, MonotonicClock::new())
 }
 <span class="boring">}</span></code></pre>
 <h2 id="monitoring-and-observability"><a class="header" href="#monitoring-and-observability">Monitoring and Observability</a></h2>
@@ -273,7 +273,7 @@ impl RateLimiterMetrics {
 use std::sync::Arc;
 
 struct PrometheusRateLimiter {
-    limiter: Arc&lt;FluxLimiter&lt;String, SystemClock&gt;&gt;,
+    limiter: Arc&lt;FluxLimiter&lt;String, MonotonicClock&gt;&gt;,
     requests_total: IntCounter,
     requests_allowed: IntCounter,
     requests_denied: IntCounter,
@@ -282,7 +282,7 @@ struct PrometheusRateLimiter {
 
 impl PrometheusRateLimiter {
     fn new(
-        limiter: FluxLimiter&lt;String, SystemClock&gt;,
+        limiter: FluxLimiter&lt;String, MonotonicClock&gt;,
         registry: &amp;Registry,
     ) -&gt; Result&lt;Self, Box&lt;dyn std::error::Error&gt;&gt; {
         let requests_total = IntCounter::new(
@@ -341,7 +341,7 @@ impl PrometheusRateLimiter {
 </span>use tracing::{info, warn, error};
 
 fn check_request_with_logging(
-    limiter: &amp;FluxLimiter&lt;String, SystemClock&gt;,
+    limiter: &amp;FluxLimiter&lt;String, MonotonicClock&gt;,
     client_id: String,
 ) -&gt; bool {
     match limiter.check_request(client_id.clone()) {
@@ -389,12 +389,12 @@ fn check_request_with_logging(
 use std::sync::Arc;
 
 struct ManagedRateLimiter {
-    limiter: Arc&lt;FluxLimiter&lt;String, SystemClock&gt;&gt;,
+    limiter: Arc&lt;FluxLimiter&lt;String, MonotonicClock&gt;&gt;,
 }
 
 impl ManagedRateLimiter {
     fn new(config: FluxLimiterConfig) -&gt; Result&lt;Self, FluxLimiterError&gt; {
-        let limiter = Arc::new(FluxLimiter::with_config(config, SystemClock)?);
+        let limiter = Arc::new(FluxLimiter::with_config(config, MonotonicClock::new())?);
 
         // Start background cleanup task
         let limiter_clone = Arc::clone(&amp;limiter);
@@ -405,7 +405,7 @@ impl ManagedRateLimiter {
         Ok(Self { limiter })
     }
 
-    async fn cleanup_loop(limiter: Arc&lt;FluxLimiter&lt;String, SystemClock&gt;&gt;) {
+    async fn cleanup_loop(limiter: Arc&lt;FluxLimiter&lt;String, MonotonicClock&gt;&gt;) {
         let mut interval = interval(Duration::from_secs(3600)); // 1 hour
 
         loop {
@@ -433,14 +433,32 @@ impl ManagedRateLimiter {
 <p>Monitor memory usage and alert on growth:</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>fn estimate_memory_usage(limiter: &amp;FluxLimiter&lt;String, SystemClock&gt;) -&gt; usize {
-    // Estimate: ~48 bytes per client (HashMap overhead + String + u64)
-    let estimated_clients = 1_000_000; // Adjust based on your load
-    estimated_clients * 48
+</span>/// Rough estimate of the bytes held for `clients` clients whose keys are
+/// `key_len` characters long.
+///
+/// The client map grows by doubling its tables, so memory holds flat for a
+/// while and then jumps. This interpolates between measured averages over
+/// large populations on a 64-bit target: about 76 bytes per client for a
+/// 15-character `String` key and about 95 for a 36-character one. At any one
+/// client count the true figure ranges from roughly 20% below to 15% above
+/// the average, so size a capacity limit against the high end.
+fn estimate_memory_usage(clients: usize, key_len: usize) -&gt; usize {
+    const MEASURED: [(usize, f64); 2] = [(15, 76.0), (36, 95.0)]; // (key length, bytes per client)
+    let (lo, hi) = (MEASURED[0], MEASURED[1]);
+    let per_client = if key_len &lt;= lo.0 {
+        lo.1
+    } else if key_len &gt;= hi.0 {
+        // beyond the measured range, assume each extra character costs one byte
+        hi.1 + (key_len - hi.0) as f64
+    } else {
+        lo.1 + (hi.1 - lo.1) * (key_len - lo.0) as f64 / (hi.0 - lo.0) as f64
+    };
+    (clients as f64 * per_client * 1.15).ceil() as usize // 1.15 = high end of the range
 }
 
-fn check_memory_threshold(limiter: &amp;FluxLimiter&lt;String, SystemClock&gt;) {
-    let estimated_usage = estimate_memory_usage(limiter);
+fn check_memory_threshold(limiter: &amp;FluxLimiter&lt;String, MonotonicClock&gt;) {
+    let client_count = limiter.client_count();
+    let estimated_usage = estimate_memory_usage(client_count, "user_".len() + 36);
     let threshold = 100 * 1024 * 1024; // 100 MB
 
     if estimated_usage &gt; threshold {
@@ -460,7 +478,7 @@ fn check_memory_threshold(limiter: &amp;FluxLimiter&lt;String, SystemClock&gt;) 
 use std::time::{SystemTime, Duration};
 
 struct CircuitBreakerRateLimiter {
-    limiter: FluxLimiter&lt;String, SystemClock&gt;,
+    limiter: FluxLimiter&lt;String, MonotonicClock&gt;,
     consecutive_failures: AtomicU64,
     circuit_open: AtomicBool,
     circuit_open_time: AtomicU64,
@@ -475,7 +493,7 @@ impl CircuitBreakerRateLimiter {
         reset_timeout_secs: u64,
     ) -&gt; Result&lt;Self, FluxLimiterError&gt; {
         Ok(Self {
-            limiter: FluxLimiter::with_config(config, SystemClock)?,
+            limiter: FluxLimiter::with_config(config, MonotonicClock::new())?,
             consecutive_failures: AtomicU64::new(0),
             circuit_open: AtomicBool::new(false),
             circuit_open_time: AtomicU64::new(0),
@@ -549,7 +567,7 @@ mod load_tests {
     #[test]
     fn test_concurrent_load() {
         let config = FluxLimiterConfig::new(1000.0, 500.0);
-        let limiter = Arc::new(FluxLimiter::with_config(config, SystemClock).unwrap());
+        let limiter = Arc::new(FluxLimiter::with_config(config, MonotonicClock::new()).unwrap());
 
         let start = Instant::now();
         let threads: Vec&lt;_&gt; = (0..10)
@@ -597,11 +615,11 @@ mod load_tests {
 <li><input disabled="" type="checkbox"> Implement error handling policy (fail-open/fail-closed)</li>
 <li><input disabled="" type="checkbox"> Set up monitoring and alerting</li>
 <li><input disabled="" type="checkbox"> Enable structured logging</li>
-<li><input disabled="" type="checkbox"> Configure automatic cleanup</li>
+<li><input disabled="" type="checkbox"> Schedule <code>cleanup_stale_clients()</code>; it does not run on its own</li>
 <li><input disabled="" type="checkbox"> Load test under expected traffic</li>
 <li><input disabled="" type="checkbox"> Document rate limit headers in API docs</li>
 <li><input disabled="" type="checkbox"> Set up memory monitoring</li>
-<li><input disabled="" type="checkbox"> Test clock error handling</li>
+<li><input disabled="" type="checkbox"> Test the clock error path, if you use <code>SystemClock</code> or a custom clock (the default clock cannot fail)</li>
 <li><input disabled="" type="checkbox"> Implement circuit breaker if needed</li>
 </ul>
 <h2 id="next-steps"><a class="header" href="#next-steps">Next Steps</a></h2>
