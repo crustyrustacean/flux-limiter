@@ -8,7 +8,7 @@ Add this to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-flux-limiter = "0.8.6"
+flux-limiter = "0.9.0"
 ```
 
 ## Alternative: Using Cargo Add
@@ -24,11 +24,11 @@ cargo add flux-limiter
 Create a simple example to verify the installation:
 
 ```rust
-use flux_limiter::{FluxLimiter, FluxLimiterConfig, SystemClock};
+use flux_limiter::{FluxLimiter, FluxLimiterConfig, MonotonicClock};
 
 fn main() {
     let config = FluxLimiterConfig::new(10.0, 5.0);
-    let limiter = FluxLimiter::with_config(config, SystemClock).unwrap();
+    let limiter = FluxLimiter::with_config(config, MonotonicClock::new()).unwrap();
 
     match limiter.check_request("test_client") {
         Ok(decision) => {

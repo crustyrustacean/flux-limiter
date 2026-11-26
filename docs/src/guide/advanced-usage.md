@@ -9,8 +9,9 @@ Flux Limiter tracks state for each client, which can grow over time. Use cleanup
 ### Understanding Memory Usage
 
 - **Memory**: O(number of active clients)
-- **Per-client overhead**: ~40-48 bytes (client ID + TAT timestamp)
-- **Example**: 1 million clients ≈ 40-48 MB
+- **Per-client overhead**: about 31 bytes with a `u64` key and about 76-95 bytes with a short `String` key, measured as the average over a million or more clients
+- **It grows in steps, not smoothly**: the client map doubles its tables when it fills, so memory holds flat for a while and then jumps. At any one client count the true figure is between about two thirds and the whole of the average above
+- **Example**: 1 million clients take about 34 MB with `u64` keys
 
 ### Manual Cleanup
 
@@ -35,7 +36,7 @@ match limiter.cleanup_stale_clients(one_hour_nanos) {
 use std::sync::Arc;
 use tokio::time::{interval, Duration};
 
-async fn start_cleanup_task(limiter: Arc<FluxLimiter<String, SystemClock>>) {
+async fn start_cleanup_task(limiter: Arc<FluxLimiter<String, MonotonicClock>>) {
     let mut cleanup_interval = interval(Duration::from_secs(3600)); // 1 hour
 
     loop {
@@ -58,7 +59,7 @@ async fn start_cleanup_task(limiter: Arc<FluxLimiter<String, SystemClock>>) {
 #[tokio::main]
 async fn main() {
     let config = FluxLimiterConfig::new(100.0, 50.0);
-    let limiter = Arc::new(FluxLimiter::with_config(config, SystemClock).unwrap());
+    let limiter = Arc::new(FluxLimiter::with_config(config, MonotonicClock::new()).unwrap());
 
     // Start cleanup task in background
     let limiter_clone = Arc::clone(&limiter);
@@ -73,7 +74,7 @@ async fn main() {
 Base cleanup threshold on the configured rate:
 
 ```rust
-fn calculate_cleanup_threshold(limiter: &FluxLimiter<String, SystemClock>) -> u64 {
+fn calculate_cleanup_threshold(limiter: &FluxLimiter<String, MonotonicClock>) -> u64 {
     // Clean up clients inactive for 100x the rate interval
     let rate = limiter.rate();
     let rate_interval_nanos = (1_000_000_000.0 / rate) as u64;
@@ -103,7 +104,7 @@ struct CompositeClientId {
 
 let limiter = FluxLimiter::<CompositeClientId, _>::with_config(
     FluxLimiterConfig::new(100.0, 50.0),
-    SystemClock
+    MonotonicClock::new()
 ).unwrap();
 
 // Different rate limits per user per endpoint
@@ -127,12 +128,12 @@ enum RateLimitKey {
 
 let limiter = FluxLimiter::<RateLimitKey, _>::with_config(
     FluxLimiterConfig::new(1000.0, 500.0),
-    SystemClock
+    MonotonicClock::new()
 ).unwrap();
 
 // Check multiple levels
 fn check_hierarchical(
-    limiter: &FluxLimiter<RateLimitKey, SystemClock>,
+    limiter: &FluxLimiter<RateLimitKey, MonotonicClock>,
     tenant_id: &str,
     user_id: &str,
 ) -> bool {
@@ -163,9 +164,9 @@ Use different rate limiters for different purposes.
 use std::sync::Arc;
 
 struct TieredRateLimiter {
-    free_tier: Arc<FluxLimiter<String, SystemClock>>,
-    paid_tier: Arc<FluxLimiter<String, SystemClock>>,
-    premium_tier: Arc<FluxLimiter<String, SystemClock>>,
+    free_tier: Arc<FluxLimiter<String, MonotonicClock>>,
+    paid_tier: Arc<FluxLimiter<String, MonotonicClock>>,
+    premium_tier: Arc<FluxLimiter<String, MonotonicClock>>,
 }
 
 impl TieredRateLimiter {
@@ -173,15 +174,15 @@ impl TieredRateLimiter {
         Ok(Self {
             free_tier: Arc::new(FluxLimiter::with_config(
                 FluxLimiterConfig::new(10.0, 5.0), // 10 req/s
-                SystemClock
+                MonotonicClock::new()
             )?),
             paid_tier: Arc::new(FluxLimiter::with_config(
                 FluxLimiterConfig::new(100.0, 50.0), // 100 req/s
-                SystemClock
+                MonotonicClock::new()
             )?),
             premium_tier: Arc::new(FluxLimiter::with_config(
                 FluxLimiterConfig::new(1000.0, 500.0), // 1000 req/s
-                SystemClock
+                MonotonicClock::new()
             )?),
         })
     }
@@ -204,8 +205,8 @@ use std::collections::HashMap;
 use std::sync::Arc;
 
 struct EndpointRateLimiter {
-    limiters: HashMap<String, Arc<FluxLimiter<String, SystemClock>>>,
-    default: Arc<FluxLimiter<String, SystemClock>>,
+    limiters: HashMap<String, Arc<FluxLimiter<String, MonotonicClock>>>,
+    default: Arc<FluxLimiter<String, MonotonicClock>>,
 }
 
 impl EndpointRateLimiter {
@@ -217,7 +218,7 @@ impl EndpointRateLimiter {
             "/api/expensive".to_string(),
             Arc::new(FluxLimiter::with_config(
                 FluxLimiterConfig::new(1.0, 2.0),
-                SystemClock
+                MonotonicClock::new()
             )?),
         );
 
@@ -226,14 +227,14 @@ impl EndpointRateLimiter {
             "/api/cheap".to_string(),
             Arc::new(FluxLimiter::with_config(
                 FluxLimiterConfig::new(1000.0, 500.0),
-                SystemClock
+                MonotonicClock::new()
             )?),
         );
 
         // Default limit
         let default = Arc::new(FluxLimiter::with_config(
             FluxLimiterConfig::new(100.0, 50.0),
-            SystemClock
+            MonotonicClock::new()
         )?);
 
         Ok(Self { limiters, default })
@@ -254,12 +255,12 @@ Use references where possible:
 
 ```rust
 // Instead of allocating new strings
-fn check_request_owned(limiter: &FluxLimiter<String, SystemClock>, id: String) -> bool {
+fn check_request_owned(limiter: &FluxLimiter<String, MonotonicClock>, id: String) -> bool {
     limiter.check_request(id).unwrap().allowed
 }
 
 // Use string slices and clone only when needed
-fn check_request_borrowed(limiter: &FluxLimiter<String, SystemClock>, id: &str) -> bool {
+fn check_request_borrowed(limiter: &FluxLimiter<String, MonotonicClock>, id: &str) -> bool {
     limiter.check_request(id.to_string()).unwrap().allowed
 }
 ```
@@ -268,7 +269,7 @@ Or use numeric IDs for better performance:
 
 ```rust
 // Faster: no string allocation
-let limiter = FluxLimiter::<u64, _>::with_config(config, SystemClock).unwrap();
+let limiter = FluxLimiter::<u64, _>::with_config(config, MonotonicClock::new()).unwrap();
 limiter.check_request(user_id_numeric).unwrap();
 ```
 
@@ -278,7 +279,7 @@ Process multiple clients efficiently:
 
 ```rust
 fn check_batch(
-    limiter: &FluxLimiter<String, SystemClock>,
+    limiter: &FluxLimiter<String, MonotonicClock>,
     client_ids: &[String],
 ) -> Vec<bool> {
     client_ids
@@ -298,7 +299,7 @@ Use rayon for parallel rate limiting checks:
 use rayon::prelude::*;
 
 fn check_parallel(
-    limiter: &FluxLimiter<String, SystemClock>,
+    limiter: &FluxLimiter<String, MonotonicClock>,
     client_ids: Vec<String>,
 ) -> Vec<bool> {
     client_ids
@@ -356,55 +357,24 @@ let limiter = FluxLimiter::with_config(config, clock.clone()).unwrap();
 clock.advance(1_000_000_000); // Advance 1 second
 ```
 
-### Monotonic Clock
+### Clock steps
 
-The built-in `SystemClock` does not detect a backwards clock step
-([#5](https://github.com/crustyrustacean/flux-limiter/issues/5)). If that matters to
-you, wrap it so `now()` can never return a value lower than the last one it returned:
+The default `MonotonicClock` is immune to operating-system clock steps. It
+reads the OS clock once, when it is first used, and then measures *elapsed*
+time. A backwards step (an NTP correction, a manual change, a VM resuming with
+a stale clock) therefore has no effect on decisions, and capacity refills
+according to how much time really passed.
 
-```rust
-use flux_limiter::{Clock, ClockError};
-use std::sync::atomic::{AtomicU64, Ordering};
-use std::sync::Arc;
-use std::time::{SystemTime, UNIX_EPOCH};
+If you pass `SystemClock` explicitly you get wall-clock time instead, with its
+known limitation: a backwards step makes every client look over-limit until the
+OS clock catches back up, and no error is reported.
 
-#[derive(Clone)]
-struct MonotonicClock {
-    last_time: Arc<AtomicU64>,
-}
-
-impl MonotonicClock {
-    fn new() -> Self {
-        Self {
-            last_time: Arc::new(AtomicU64::new(0)),
-        }
-    }
-}
-
-impl Clock for MonotonicClock {
-    fn now(&self) -> Result<u64, ClockError> {
-        let current_time = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .map_err(|_| ClockError::SystemTimeError)?
-            .as_nanos() as u64;
-
-        // Ensure monotonicity
-        let mut last = self.last_time.load(Ordering::Acquire);
-        loop {
-            let next = current_time.max(last);
-            match self.last_time.compare_exchange_weak(
-                last,
-                next,
-                Ordering::Release,
-                Ordering::Acquire,
-            ) {
-                Ok(_) => return Ok(next),
-                Err(x) => last = x,
-            }
-        }
-    }
-}
-```
+An earlier version of this page showed a workaround to layer on top of
+`SystemClock`: clamp its readings so they never go backwards. That is not a
+fix. The clamp freezes the limiter's time at the instant of the step, so
+nothing refills until the OS clock climbs back past it. Measured, a client that
+waits 9.9 real seconds after a 10-second step gets none of the requests it has
+earned. Use `MonotonicClock`, which does not have the problem.
 
 ## Next Steps
 

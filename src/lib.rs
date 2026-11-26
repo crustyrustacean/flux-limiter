@@ -7,10 +7,10 @@
 //! ## Quick Example
 //!
 //! ```rust
-//! use flux_limiter::{FluxLimiter, FluxLimiterConfig, SystemClock};
+//! use flux_limiter::{FluxLimiter, FluxLimiterConfig, MonotonicClock};
 //!
 //! let config = FluxLimiterConfig::new(10.0, 5.0);
-//! let limiter = FluxLimiter::with_config(config, SystemClock).unwrap();
+//! let limiter = FluxLimiter::with_config(config, MonotonicClock::new()).unwrap();
 //!
 //! let decision = limiter.check_request("user_123").unwrap();
 //! if decision.allowed {
@@ -28,7 +28,8 @@ mod errors;
 mod flux_limiter;
 
 // public API exports
-pub use clock::{Clock, ClockError, SystemClock};
+pub use clock::hidden;
+pub use clock::{Clock, ClockError, MonotonicClock, SystemClock};
 pub use config::FluxLimiterConfig;
 pub use errors::FluxLimiterError;
 pub use flux_limiter::{FluxLimiter, FluxLimiterDecision};

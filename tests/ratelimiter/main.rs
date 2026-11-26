@@ -2,6 +2,7 @@
 
 // test modules
 mod cleanup_tests;
+mod clock_tests;
 mod concurrency_tests;
 mod config_tests;
 mod decision_metadata_tests;

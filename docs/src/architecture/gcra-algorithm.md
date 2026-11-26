@@ -96,14 +96,29 @@ if let Some(tat) = client_state.get(&client_id) {
         // Return denied decision with retry_after
     }
 } else {
-    // First request from this client — always allowed.
-    // Inserted under the shard lock; a lost insert race rejoins the path above.
-    client_state.entry(client_id).or_insert_with(|| {
-        AtomicU64::new(current_time_nanos.saturating_add(rate_nanos))
-    });
-    // Return allowed decision
+    // First request from this client. The entry lock is held only here.
+    match client_state.entry(client_id) {
+        Entry::Vacant(vacant) => {
+            // Always allowed. Insert the initial TAT.
+            vacant.insert(AtomicU64::new(
+                current_time_nanos.saturating_add(rate_nanos),
+            ));
+            // Return allowed decision
+        }
+        Entry::Occupied(occupied) => {
+            // Another request inserted this client first. Drop the guard so the
+            // shard is not held, then retry the lock-free path on its value.
+            drop(occupied);
+            // ... retry as a known client, with a bounded number of attempts
+        }
+    }
 }
 ```
+
+A request that keeps losing the compare-and-swap retries up to 64 times. After
+that it takes the shard's write lock once and settles the decision there, so a
+hot client cannot make a request spin forever. Even under that lock the store
+is a compare-and-swap, because the lock does not stop lock-free updates.
 
 **Conforming Request**: `current_time >= TAT - τ`
 
@@ -119,15 +134,27 @@ makes concurrent requests.
 
 ```rust
 if is_conforming {
-    // Allow request and update TAT atomically
+    // Compute the new TAT. The addition saturates rather than wrapping.
     let new_tat_nanos = current_time_nanos
-        .max(previous_tat_nanos) + rate_nanos;
+        .max(previous_tat_nanos)
+        .saturating_add(rate_nanos);
 
-    occupied.insert(new_tat_nanos);
+    // Publish it only if the TAT we decided on is still current. If another
+    // request advanced it first, this fails and we retry on the new value.
+    tat.compare_exchange(
+        previous_tat_nanos,
+        new_tat_nanos,
+        Ordering::Relaxed,
+        Ordering::Relaxed,
+    )?;
 
     // Return allowed decision
 }
 ```
+
+No lock is held here. `Relaxed` ordering is sufficient because the atomic
+itself carries the ordering: a request either sees the TAT it decided on and
+wins the compare-and-swap, or sees a newer one and retries.
 
 **TAT Update Rule**: `TAT' = max(current_time, previous_TAT) + T`
 

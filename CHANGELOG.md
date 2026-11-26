@@ -6,11 +6,29 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 
+## [0.9.0] - 2026-11-25
+
+### Fixed
+- A backwards step of the operating-system clock (an NTP correction, a manual change, a VM resuming with a stale clock) no longer denies every request until the clock catches back up. The limiter's default clock measures elapsed time instead of reading the wall clock, so decisions depend on how much time really passed and capacity refills correctly while the OS clock is wrong (#5)
+- The documented workaround for that problem, a clock that clamps its readings so they never go backwards, is removed from the guide. It did not fix the problem: the clamp froze the limiter's time at the instant of the step, so nothing refilled until the OS clock climbed back past it. Measured, a client that waited 9.9 real seconds after a 10-second step got none of the requests it had earned
+
+### Changed
+- **The default clock is now `MonotonicClock`** instead of `SystemClock`. `FluxLimiter<K>` means `FluxLimiter<K, MonotonicClock>`; nothing else changes for callers that do not name a clock. `SystemClock` is unchanged and remains available for callers who need readings that match the OS clock exactly; pass it explicitly to keep wall-clock behaviour and accept its limitation
+- `MonotonicClock::new()` is required to write the new clock by name, as in `FluxLimiter::with_config(config, MonotonicClock::new())`. `SystemClock` can still be written bare. This is the one place where the new clock is not a drop-in replacement
+- Each `check_request()` costs about 3 ns more with the new default: measured at 49.8 ns with `SystemClock` and 53.0 ns with `MonotonicClock`, same build, only the clock differing. Reading a monotonic clock costs slightly more than reading the wall clock on this platform, and the anchor adds one atomic load. Decisions are identical for both clocks
+- `FluxLimiter`'s clock field is 40 bytes instead of zero, so the struct is no longer 24 bytes. Pass `SystemClock` if that matters to you and you accept its limitation
+- Every code example in the documentation uses `MonotonicClock`, so no copied example is left on the clock that has the backwards-step problem. `SystemClock` appears only where it is itself the subject
+- The documentation is checked against the code as of this release, and no longer overstates what the crate does. Memory and latency figures are replaced with measured values (about 31 bytes per client with a `u64` key, growing in steps rather than linearly), the rate interval is described as truncated to a whole nanosecond rather than exact, cleanup is described as something you call rather than something that runs on its own, and the one case where an update does wait on a lock (after 64 lost compare-and-swap races) is stated
+
+### Added
+- `MonotonicClock`, the new default clock. It reads the OS clock once, on first use, to record an anchor, then reports `anchor + elapsed`. Readings are Unix-epoch nanoseconds that never go backwards; they track the OS clock to within microseconds for as long as that clock is not stepped, so `reset_time_nanos` still works in headers such as `X-RateLimit-Reset` without conversion. It never returns an error
+- Tests for the clock's monotonicity under contention, anchor sharing between clones, invariance to a backwards step, refill by real elapsed time, and epoch accuracy
+
 ## [0.8.6] - 2026-11-25
 
 ### Changed
 - `check_request()` no longer takes a lock when updating a client it has already seen. Each client's TAT is stored as an `AtomicU64` and published with a compare-and-swap, so requests for the same client no longer queue behind the map shard's write lock, and requests for different clients in the same shard no longer contend for it. A client is still inserted under the shard lock the first time it is seen. The public API is unchanged, as is the set of decisions returned for any sequence of requests
-- Same-client contention throughput roughly doubled: with 4 threads hitting one client, 159 ns per request down to 74 ns (−52%). Requests for distinct clients are unaffected
+- Same-client contention is 1.6 to 2.4 times faster: with 4 threads hitting one client, 159 ns per request down to 67–96 ns across repeated runs on one machine (that figure varies by about 40% between runs, so the range is the result). Requests for distinct clients are unaffected
 - A request that repeatedly loses the compare-and-swap race retries a bounded number of times and then settles under the write lock, so a hot client cannot make a request spin indefinitely
 
 ### Added
@@ -182,7 +200,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - O(number of active clients) memory usage
 - Support for configurable rate and burst capacity
 
-[Unreleased]: https://github.com/crustyrustacean/flux-limiter/compare/v0.8.6...HEAD
+[Unreleased]: https://github.com/crustyrustacean/flux-limiter/compare/v0.9.0...HEAD
+[0.9.0]: https://github.com/crustyrustacean/flux-limiter/compare/v0.8.6...v0.9.0
 [0.8.6]: https://github.com/crustyrustacean/flux-limiter/compare/v0.8.5...v0.8.6
 [0.8.5]: https://github.com/crustyrustacean/flux-limiter/compare/v0.8.4...v0.8.5
 [0.8.4]: https://github.com/crustyrustacean/flux-limiter/compare/v0.8.3...v0.8.4

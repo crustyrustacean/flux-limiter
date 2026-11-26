@@ -12,8 +12,8 @@ Detailed rationale behind key architectural choices in Flux Limiter.
 
 ✅ **Exact Mathematical Precision**
 - Integer arithmetic with u64 nanoseconds
-- No floating-point precision loss
-- No accumulating rounding errors
+- No floating-point state, so nothing drifts as requests accumulate
+- The rate is truncated once, to a whole-nanosecond interval; see below
 
 ✅ **Stateless Calculation**
 - No background token refill processes
@@ -122,38 +122,44 @@ The difference is implementation, not behavior.
 
 ### Decision: Use u64 Nanoseconds
 
-**Rationale**: Nanoseconds provide maximum precision with efficient integer arithmetic.
+**Rationale**: Nanoseconds give fine resolution with integer arithmetic, so every timing decision is reproducible.
 
 ### Benefits
 
-✅ **Maximum Precision**
-- Supports very high rates (1B req/s)
-- No precision loss
-- Exact calculations
+✅ **Fine Resolution**
+- One nanosecond per unit
+- Rates up to 1 billion per second can be represented
+- The precision limit is the rate, not the timestamp: see below
 
 ✅ **Integer Arithmetic**
-- Faster than floating-point
-- No rounding errors
+- No floating-point state
 - Deterministic results
+- Once the rate is an interval, the arithmetic has no rounding error
 
 ✅ **No Overflow**
-- u64::MAX nanoseconds = 584 years
-- Sufficient for any realistic usage
-- Saturating arithmetic for safety
+- u64::MAX nanoseconds is about 584 years
+- All additions saturate rather than wrap, so an out-of-range value cannot evict a live client or panic
+- The rate and burst are validated before any timestamp is computed from them
 
 ✅ **System Time Compatible**
 - Direct conversion from SystemTime
 - No conversion overhead
 - Natural representation
 
+⚠️ **Known limitation: the rate is truncated to a whole number of nanoseconds**
+- `rate` is stored as the interval `1_000_000_000 / rate`, truncated
+- A rate that does not divide one billion is enforced slightly higher than requested
+- Below about 10 million per second the difference is under 1%; at `rate = 6e8` it is 67%
+- See [Configuration: precision](../getting-started/configuration.md#precision-whole-nanosecond-truncation)
+
 ### Alternative: Milliseconds
 
-❌ **Insufficient Precision**
-- Can't support rates > 1000 req/s precisely
-- Precision loss for high rates
-- Rounding errors
+❌ **Insufficient Resolution**
+- One millisecond per unit, so no rate above 1000 per second can be represented
+- The same truncation that affects high rates in nanoseconds would affect every rate above 1000
+- Burst tolerance would be coarser by a factor of a million
 
-**Why rejected**: Limits maximum rate and precision.
+**Why rejected**: Caps the supported rate far below what users ask for.
 
 ### Alternative: Duration Type
 
@@ -305,7 +311,7 @@ The difference is implementation, not behavior.
 
 ### Decision: Clock Trait
 
-**Rationale**: Abstracting time enables testing and handles real-world clock issues.
+**Rationale**: Abstracting time enables testing, and lets the limiter use a monotonic source instead of the operating system's wall clock.
 
 ### Benefits
 
@@ -314,10 +320,17 @@ The difference is implementation, not behavior.
 - Precise time control
 - Failure simulation
 
-⚠️ **Known limitation: wall-clock time**
-- The system clock can step backwards (NTP, manual change, VM migration)
+✅ **Independent of the OS clock**
+- The default `MonotonicClock` measures elapsed time, so a backwards clock step does not affect decisions
+- It reads the OS clock once, to anchor its readings to the Unix epoch
+- It never returns an error
+
+⚠️ **Known limitation: wall-clock time, if you opt into it**
+- `SystemClock` reads the OS clock directly
+- That clock can step backwards (NTP, manual change, VM migration)
 - `SystemClock` does not detect this and does not return an error
-- Clients then appear over-limit until the clock catches up ([#5](https://github.com/crustyrustacean/flux-limiter/issues/5))
+- Clients then appear over-limit until the clock catches up
+- This is why it is not the default
 
 ✅ **Flexible**
 - Custom time sources
@@ -442,7 +455,7 @@ Both are supported.
 | Time | u64 nanos | ms, Duration, f64 | Precision, performance |
 | Errors | Result | Panic, Silent | Observability, recovery |
 | Client ID | Generic | Trait object, String | Flexibility, performance |
-| Clock | Trait | Direct SystemTime | Testing, error handling |
+| Clock | Trait, default `MonotonicClock` | Direct SystemTime | Testing, independence from the OS clock |
 | Cleanup | Manual | Automatic | Control, simplicity |
 | Config | Builder | Constructor only | Ergonomics |
 

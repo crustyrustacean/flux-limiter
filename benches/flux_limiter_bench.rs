@@ -7,11 +7,11 @@ use std::thread;
 use std::time::{Duration, Instant};
 
 use criterion::{Criterion, Throughput, criterion_group, criterion_main};
-use flux_limiter::{FluxLimiter, FluxLimiterConfig, SystemClock};
+use flux_limiter::{FluxLimiter, FluxLimiterConfig, MonotonicClock};
 
 fn bench_single_client_u64(c: &mut Criterion) {
     let config = FluxLimiterConfig::new(10_000.0, 100.0);
-    let limiter = FluxLimiter::with_config(config, SystemClock).unwrap();
+    let limiter = FluxLimiter::with_config(config, MonotonicClock::new()).unwrap();
 
     // Seed the client so we benchmark the Entry::Occupied hot path
     let _ = limiter.check_request(1u64);
@@ -26,7 +26,7 @@ fn bench_single_client_u64(c: &mut Criterion) {
 
 fn bench_single_client_string(c: &mut Criterion) {
     let config = FluxLimiterConfig::new(10_000.0, 100.0);
-    let limiter = FluxLimiter::with_config(config, SystemClock).unwrap();
+    let limiter = FluxLimiter::with_config(config, MonotonicClock::new()).unwrap();
     let client_id = String::from("user_12345");
     let _ = limiter.check_request(client_id.clone());
 
@@ -37,7 +37,7 @@ fn bench_single_client_string(c: &mut Criterion) {
 
 fn bench_contended_threads_u64(c: &mut Criterion) {
     let config = FluxLimiterConfig::new(100_000.0, 1000.0);
-    let limiter = Arc::new(FluxLimiter::with_config(config, SystemClock).unwrap());
+    let limiter = Arc::new(FluxLimiter::with_config(config, MonotonicClock::new()).unwrap());
     let _ = limiter.check_request(1u64);
 
     c.bench_function("contended_4_threads_u64", |b| {
@@ -79,7 +79,8 @@ fn bench_contention(c: &mut Criterion) {
         ("contention_spread_keys_u64", false),
     ] {
         let limiter = Arc::new(
-            FluxLimiter::with_config(FluxLimiterConfig::new(1e9, 1e9), SystemClock).unwrap(),
+            FluxLimiter::with_config(FluxLimiterConfig::new(1e9, 1e9), MonotonicClock::new())
+                .unwrap(),
         );
 
         // Worker t runs rounds until its start channel closes. Each round it is
