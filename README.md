@@ -65,6 +65,37 @@ For comprehensive documentation, including:
 
 Please see the [full documentation](https://docs.rs/flux-limiter).
 
+## Alternatives
+
+Flux Limiter is one of several rate limiters on crates.io. These are the others we know of, described by what they do. Each claim below was checked against the published version at the time of writing.
+
+- [`governor`](https://docs.rs/governor): GCRA with one 64-bit value of state per limiter, updated by compare-and-swap.
+  - keyed limiters for many clients, and checks that cost more than one cell
+  - can wait asynchronously until a request is allowed (`until_ready`, `until_key_ready`)
+  - denial reports how long to wait, as a relative `Duration`
+  - pluggable clock, with five shipped, including one you control in tests
+  - optional `no_std`
+- [`leaky-bucket`](https://docs.rs/leaky-bucket): a token bucket for async code.
+  - tokens, a refill interval, and how many tokens are refilled per interval
+  - `acquire(n).await` suspends the caller until `n` tokens are available
+  - `try_acquire(n)` answers with a `bool`: no wait time, no remaining count
+  - one limiter is one bucket; there is no per-client key
+  - requires a Tokio runtime
+- [`quota`](https://docs.rs/quota): a pool of per-key GCRA states, like Flux Limiter.
+  - keys are passed by reference, and a check can cost more than one token
+  - the result reports how much quota remains, but says nothing about time: no wait duration and no reset time
+  - built on `quanta` for its clock
+
+Where Flux Limiter differs:
+
+- Every check returns the seconds to wait and the time the limit resets, as a Unix-epoch timestamp. None of the three report a reset time.
+- It has no runtime requirement and links 11 crates in total. `leaky-bucket` requires Tokio.
+
+What it does not have:
+
+- Weighted checks, async waiting, or `no_std`. `governor` has all three.
+- A check that takes the key by reference. `governor` and `quota` do, so a `String` key need not be cloned per request.
+
 ## License
 
 This project is licensed under the MIT License - see the [License.txt](License.txt) file for details.
