@@ -23,7 +23,7 @@ Add this to your `Cargo.toml`:
 
 ```toml
 [dependencies]
-flux-limiter = "0.9.0"
+flux-limiter = "0.9.1"
 ```
 
 ## Quick Start
@@ -90,11 +90,11 @@ Where Flux Limiter differs:
 
 - Every check returns the seconds to wait and the time the limit resets, as a Unix-epoch timestamp. None of the three report a reset time.
 - It has no runtime requirement and links 11 crates in total. `leaky-bucket` requires Tokio.
+- The key can be passed by reference (`check_request_ref`), as with `governor` and `quota`, so a `String` key is not cloned per request.
 
 What it does not have:
 
 - Weighted checks, async waiting, or `no_std`. `governor` has all three.
-- A check that takes the key by reference. `governor` and `quota` do, so a `String` key need not be cloned per request.
 
 ## License
 

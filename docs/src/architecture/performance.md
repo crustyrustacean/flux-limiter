@@ -256,7 +256,7 @@ limiter.check_request("client_1")?; // Shard 0
 Choose efficient client ID types:
 
 ```rust
-// Numeric IDs avoid String allocation overhead
+// Numeric IDs: small, and copying one is free
 let limiter = FluxLimiter::<u64, _>::with_config(config, clock)?;
 limiter.check_request(user_id_numeric)?;
 
@@ -264,10 +264,14 @@ limiter.check_request(user_id_numeric)?;
 let limiter = FluxLimiter::<IpAddr, _>::with_config(config, clock)?;
 limiter.check_request(client_ip)?;
 
-// Strings (convenient but involves allocation per request)
+// Strings: pass a &str with check_request_ref. A known client's key is not
+// copied, so this costs no allocation per request, the same as a numeric key.
 let limiter = FluxLimiter::<String, _>::with_config(config, clock)?;
-limiter.check_request(user_id.to_string())?;
+limiter.check_request_ref(user_id)?;
 ```
+
+With `check_request_ref`, the choice of key type affects the cost of hashing and of
+storing a new client, not the cost of a request for a client the limiter already knows.
 
 ### Cleanup Strategy
 

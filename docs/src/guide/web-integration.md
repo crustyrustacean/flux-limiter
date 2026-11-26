@@ -29,7 +29,7 @@ async fn rate_limit_middleware(
     // Extract client ID (e.g., from IP or auth header)
     let client_ip = extract_client_ip(&request);
 
-    match limiter.check_request(client_ip.clone()) {
+    match limiter.check_request(client_ip) {
         Ok(decision) if decision.allowed => {
             // Add rate limit headers
             let mut response = next.run(request).await;

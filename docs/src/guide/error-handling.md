@@ -132,7 +132,7 @@ fn should_allow_request(
     limiter: &FluxLimiter<String, MonotonicClock>,
     client_id: &str
 ) -> bool {
-    match limiter.check_request(client_id.to_string()) {
+    match limiter.check_request_ref(client_id) {
         Ok(decision) => decision.allowed,
         Err(FluxLimiterError::ClockError(_)) => {
             // Fail-open: allow request on clock error
@@ -161,7 +161,7 @@ fn should_allow_request(
     limiter: &FluxLimiter<String, MonotonicClock>,
     client_id: &str
 ) -> bool {
-    match limiter.check_request(client_id.to_string()) {
+    match limiter.check_request_ref(client_id) {
         Ok(decision) => decision.allowed,
         Err(FluxLimiterError::ClockError(_)) => {
             // Fail-closed: deny request on clock error

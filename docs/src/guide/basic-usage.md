@@ -33,12 +33,25 @@ match limiter.check_request("user_123") {
 
 ### String Client IDs
 
+For `String` keys, use `check_request_ref` and pass a `&str`. It does not copy the key
+for a client the limiter already knows, so a request costs no allocation:
+
 ```rust
 // User IDs, session IDs, API keys
 let limiter = FluxLimiter::<String, _>::with_config(config, MonotonicClock::new()).unwrap();
 
-limiter.check_request("user_123".to_string())?;
-limiter.check_request("session_abc".to_string())?;
+limiter.check_request_ref("user_123")?;
+limiter.check_request_ref("session_abc")?;
+```
+
+`check_request` takes the key by value, so with it a caller who holds a `&str` has to
+build a `String` for every request. The two methods make the same decisions; only the way
+the key is passed differs. If you already own the key, `check_request` moves it without
+copying:
+
+```rust
+let owned: String = get_client_id();
+limiter.check_request(owned)?;
 ```
 
 ### IP Address Client IDs
