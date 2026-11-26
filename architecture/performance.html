@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-b36c7e4a.js";
+            window.path_to_searchindex_js = "../searchindex-c9145b36.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-a16be429.js"></script>
@@ -445,7 +445,7 @@ limiter.check_request("client_1")?; // Shard 0
 <p>Choose efficient client ID types:</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>// Numeric IDs avoid String allocation overhead
+</span>// Numeric IDs: small, and copying one is free
 let limiter = FluxLimiter::&lt;u64, _&gt;::with_config(config, clock)?;
 limiter.check_request(user_id_numeric)?;
 
@@ -453,10 +453,13 @@ limiter.check_request(user_id_numeric)?;
 let limiter = FluxLimiter::&lt;IpAddr, _&gt;::with_config(config, clock)?;
 limiter.check_request(client_ip)?;
 
-// Strings (convenient but involves allocation per request)
+// Strings: pass a &amp;str with check_request_ref. A known client's key is not
+// copied, so this costs no allocation per request, the same as a numeric key.
 let limiter = FluxLimiter::&lt;String, _&gt;::with_config(config, clock)?;
-limiter.check_request(user_id.to_string())?;
+limiter.check_request_ref(user_id)?;
 <span class="boring">}</span></code></pre>
+<p>With <code>check_request_ref</code>, the choice of key type affects the cost of hashing and of
+storing a new client, not the cost of a request for a client the limiter already knows.</p>
 <h3 id="cleanup-strategy"><a class="header" href="#cleanup-strategy">Cleanup Strategy</a></h3>
 <p>Balance memory usage vs. cleanup overhead:</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]

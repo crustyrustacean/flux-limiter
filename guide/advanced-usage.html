@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-b36c7e4a.js";
+            window.path_to_searchindex_js = "../searchindex-c9145b36.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-a16be429.js"></script>
@@ -411,24 +411,30 @@ impl EndpointRateLimiter {
 <span class="boring">}</span></code></pre>
 <h2 id="performance-optimization"><a class="header" href="#performance-optimization">Performance Optimization</a></h2>
 <h3 id="minimize-string-allocations"><a class="header" href="#minimize-string-allocations">Minimize String Allocations</a></h3>
-<p>Use references where possible:</p>
+<p>For a <code>String</code>-keyed limiter, pass the key as a <code>&amp;str</code> with <code>check_request_ref</code>. It
+hashes and compares the borrowed key directly, and copies it only on the request that
+first adds the client. A request for a client the limiter already knows makes no
+allocation:</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>// Instead of allocating new strings
-fn check_request_owned(limiter: &amp;FluxLimiter&lt;String, MonotonicClock&gt;, id: String) -&gt; bool {
-    limiter.check_request(id).unwrap().allowed
-}
-
-// Use string slices and clone only when needed
-fn check_request_borrowed(limiter: &amp;FluxLimiter&lt;String, MonotonicClock&gt;, id: &amp;str) -&gt; bool {
-    limiter.check_request(id.to_string()).unwrap().allowed
+</span>fn check_request_borrowed(limiter: &amp;FluxLimiter&lt;String, MonotonicClock&gt;, id: &amp;str) -&gt; bool {
+    limiter.check_request_ref(id).unwrap().allowed
 }
 <span class="boring">}</span></code></pre>
-<p>Or use numeric IDs for better performance:</p>
+<p><code>check_request</code> takes the key by value. Use it when you already own a <code>String</code>, and it
+moves the key instead of copying it:</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>// Faster: no string allocation
-let limiter = FluxLimiter::&lt;u64, _&gt;::with_config(config, MonotonicClock::new()).unwrap();
+</span>fn check_request_owned(limiter: &amp;FluxLimiter&lt;String, MonotonicClock&gt;, id: String) -&gt; bool {
+    limiter.check_request(id).unwrap().allowed
+}
+<span class="boring">}</span></code></pre>
+<p>A numeric key type is still smaller and cheaper to hash and store, so it is a reasonable
+choice when the client ID is naturally a number. It is no longer needed to avoid a
+per-request allocation:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>let limiter = FluxLimiter::&lt;u64, _&gt;::with_config(config, MonotonicClock::new()).unwrap();
 limiter.check_request(user_id_numeric).unwrap();
 <span class="boring">}</span></code></pre>
 <h3 id="batch-operations"><a class="header" href="#batch-operations">Batch Operations</a></h3>
@@ -441,7 +447,7 @@ limiter.check_request(user_id_numeric).unwrap();
 ) -&gt; Vec&lt;bool&gt; {
     client_ids
         .iter()
-        .map(|id| limiter.check_request(id.clone())
+        .map(|id| limiter.check_request_ref(id)
             .map(|d| d.allowed)
             .unwrap_or(false))
         .collect()
@@ -458,8 +464,8 @@ fn check_parallel(
     client_ids: Vec&lt;String&gt;,
 ) -&gt; Vec&lt;bool&gt; {
     client_ids
-        .par_iter()
-        .map(|id| limiter.check_request(id.clone())
+        .into_par_iter()
+        .map(|id| limiter.check_request(id)
             .map(|d| d.allowed)
             .unwrap_or(false))
         .collect()

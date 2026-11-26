@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-b36c7e4a.js";
+            window.path_to_searchindex_js = "searchindex-c9145b36.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-a16be429.js"></script>
@@ -241,11 +241,11 @@
 <ul>
 <li>Every check returns the seconds to wait and the time the limit resets, as a Unix-epoch timestamp. None of the three report a reset time.</li>
 <li>It has no runtime requirement and links 11 crates in total. <code>leaky-bucket</code> requires Tokio.</li>
+<li>The key can be passed by reference (<code>check_request_ref</code>), as with <code>governor</code> and <code>quota</code>, so a <code>String</code> key is not cloned per request.</li>
 </ul>
 <p>What it does not have:</p>
 <ul>
 <li>Weighted checks, async waiting, or <code>no_std</code>. <code>governor</code> has all three.</li>
-<li>A check that takes the key by reference. <code>governor</code> and <code>quota</code> do, so a <code>String</code> key need not be cloned per request.</li>
 </ul>
 <h2 id="algorithm-gcra"><a class="header" href="#algorithm-gcra">Algorithm: GCRA</a></h2>
 <p>Flux Limiter implements the Generic Cell Rate Algorithm (GCRA), which is mathematically equivalent to the token bucket algorithm but offers several advantages:</p>
@@ -275,7 +275,7 @@
 <h2 id="adding-to-cargotoml"><a class="header" href="#adding-to-cargotoml">Adding to Cargo.toml</a></h2>
 <p>Add this to your <code>Cargo.toml</code>:</p>
 <pre><code class="language-toml">[dependencies]
-flux-limiter = "0.9.0"
+flux-limiter = "0.9.1"
 </code></pre>
 <h2 id="alternative-using-cargo-add"><a class="header" href="#alternative-using-cargo-add">Alternative: Using Cargo Add</a></h2>
 <p>If you have <code>cargo-edit</code> installed, you can use:</p>
@@ -689,13 +689,24 @@ match limiter.check_request("user_123") {
 <span class="boring">}</span></code></pre>
 <h2 id="working-with-different-client-id-types"><a class="header" href="#working-with-different-client-id-types">Working with Different Client ID Types</a></h2>
 <h3 id="string-client-ids"><a class="header" href="#string-client-ids">String Client IDs</a></h3>
+<p>For <code>String</code> keys, use <code>check_request_ref</code> and pass a <code>&amp;str</code>. It does not copy the key
+for a client the limiter already knows, so a request costs no allocation:</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>// User IDs, session IDs, API keys
 let limiter = FluxLimiter::&lt;String, _&gt;::with_config(config, MonotonicClock::new()).unwrap();
 
-limiter.check_request("user_123".to_string())?;
-limiter.check_request("session_abc".to_string())?;
+limiter.check_request_ref("user_123")?;
+limiter.check_request_ref("session_abc")?;
+<span class="boring">}</span></code></pre>
+<p><code>check_request</code> takes the key by value, so with it a caller who holds a <code>&amp;str</code> has to
+build a <code>String</code> for every request. The two methods make the same decisions; only the way
+the key is passed differs. If you already own the key, <code>check_request</code> moves it without
+copying:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>let owned: String = get_client_id();
+limiter.check_request(owned)?;
 <span class="boring">}</span></code></pre>
 <h3 id="ip-address-client-ids"><a class="header" href="#ip-address-client-ids">IP Address Client IDs</a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
@@ -1029,7 +1040,7 @@ fn main() {
     limiter: &amp;FluxLimiter&lt;String, MonotonicClock&gt;,
     client_id: &amp;str
 ) -&gt; bool {
-    match limiter.check_request(client_id.to_string()) {
+    match limiter.check_request_ref(client_id) {
         Ok(decision) =&gt; decision.allowed,
         Err(FluxLimiterError::ClockError(_)) =&gt; {
             // Fail-open: allow request on clock error
@@ -1057,7 +1068,7 @@ fn main() {
     limiter: &amp;FluxLimiter&lt;String, MonotonicClock&gt;,
     client_id: &amp;str
 ) -&gt; bool {
-    match limiter.check_request(client_id.to_string()) {
+    match limiter.check_request_ref(client_id) {
         Ok(decision) =&gt; decision.allowed,
         Err(FluxLimiterError::ClockError(_)) =&gt; {
             // Fail-closed: deny request on clock error
@@ -1461,24 +1472,30 @@ impl EndpointRateLimiter {
 <span class="boring">}</span></code></pre>
 <h2 id="performance-optimization"><a class="header" href="#performance-optimization">Performance Optimization</a></h2>
 <h3 id="minimize-string-allocations"><a class="header" href="#minimize-string-allocations">Minimize String Allocations</a></h3>
-<p>Use references where possible:</p>
+<p>For a <code>String</code>-keyed limiter, pass the key as a <code>&amp;str</code> with <code>check_request_ref</code>. It
+hashes and compares the borrowed key directly, and copies it only on the request that
+first adds the client. A request for a client the limiter already knows makes no
+allocation:</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>// Instead of allocating new strings
-fn check_request_owned(limiter: &amp;FluxLimiter&lt;String, MonotonicClock&gt;, id: String) -&gt; bool {
-    limiter.check_request(id).unwrap().allowed
-}
-
-// Use string slices and clone only when needed
-fn check_request_borrowed(limiter: &amp;FluxLimiter&lt;String, MonotonicClock&gt;, id: &amp;str) -&gt; bool {
-    limiter.check_request(id.to_string()).unwrap().allowed
+</span>fn check_request_borrowed(limiter: &amp;FluxLimiter&lt;String, MonotonicClock&gt;, id: &amp;str) -&gt; bool {
+    limiter.check_request_ref(id).unwrap().allowed
 }
 <span class="boring">}</span></code></pre>
-<p>Or use numeric IDs for better performance:</p>
+<p><code>check_request</code> takes the key by value. Use it when you already own a <code>String</code>, and it
+moves the key instead of copying it:</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>// Faster: no string allocation
-let limiter = FluxLimiter::&lt;u64, _&gt;::with_config(config, MonotonicClock::new()).unwrap();
+</span>fn check_request_owned(limiter: &amp;FluxLimiter&lt;String, MonotonicClock&gt;, id: String) -&gt; bool {
+    limiter.check_request(id).unwrap().allowed
+}
+<span class="boring">}</span></code></pre>
+<p>A numeric key type is still smaller and cheaper to hash and store, so it is a reasonable
+choice when the client ID is naturally a number. It is no longer needed to avoid a
+per-request allocation:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>let limiter = FluxLimiter::&lt;u64, _&gt;::with_config(config, MonotonicClock::new()).unwrap();
 limiter.check_request(user_id_numeric).unwrap();
 <span class="boring">}</span></code></pre>
 <h3 id="batch-operations"><a class="header" href="#batch-operations">Batch Operations</a></h3>
@@ -1491,7 +1508,7 @@ limiter.check_request(user_id_numeric).unwrap();
 ) -&gt; Vec&lt;bool&gt; {
     client_ids
         .iter()
-        .map(|id| limiter.check_request(id.clone())
+        .map(|id| limiter.check_request_ref(id)
             .map(|d| d.allowed)
             .unwrap_or(false))
         .collect()
@@ -1508,8 +1525,8 @@ fn check_parallel(
     client_ids: Vec&lt;String&gt;,
 ) -&gt; Vec&lt;bool&gt; {
     client_ids
-        .par_iter()
-        .map(|id| limiter.check_request(id.clone())
+        .into_par_iter()
+        .map(|id| limiter.check_request(id)
             .map(|d| d.allowed)
             .unwrap_or(false))
         .collect()
@@ -1608,7 +1625,7 @@ async fn rate_limit_middleware(
     // Extract client ID (e.g., from IP or auth header)
     let client_ip = extract_client_ip(&amp;request);
 
-    match limiter.check_request(client_ip.clone()) {
+    match limiter.check_request(client_ip) {
         Ok(decision) if decision.allowed =&gt; {
             // Add rate limit headers
             let mut response = next.run(request).await;
@@ -4435,7 +4452,7 @@ limiter.check_request("client_1")?; // Shard 0
 <p>Choose efficient client ID types:</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
-</span>// Numeric IDs avoid String allocation overhead
+</span>// Numeric IDs: small, and copying one is free
 let limiter = FluxLimiter::&lt;u64, _&gt;::with_config(config, clock)?;
 limiter.check_request(user_id_numeric)?;
 
@@ -4443,10 +4460,13 @@ limiter.check_request(user_id_numeric)?;
 let limiter = FluxLimiter::&lt;IpAddr, _&gt;::with_config(config, clock)?;
 limiter.check_request(client_ip)?;
 
-// Strings (convenient but involves allocation per request)
+// Strings: pass a &amp;str with check_request_ref. A known client's key is not
+// copied, so this costs no allocation per request, the same as a numeric key.
 let limiter = FluxLimiter::&lt;String, _&gt;::with_config(config, clock)?;
-limiter.check_request(user_id.to_string())?;
+limiter.check_request_ref(user_id)?;
 <span class="boring">}</span></code></pre>
+<p>With <code>check_request_ref</code>, the choice of key type affects the cost of hashing and of
+storing a new client, not the cost of a request for a client the limiter already knows.</p>
 <h3 id="cleanup-strategy"><a class="header" href="#cleanup-strategy">Cleanup Strategy</a></h3>
 <p>Balance memory usage vs. cleanup overhead:</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
@@ -4885,7 +4905,8 @@ cargo bench -- --baseline before   # compare against the saved run
 </thead>
 <tbody>
 <tr><td><code>single_client_u64</code></td><td>One thread, one client, <code>u64</code> key</td></tr>
-<tr><td><code>single_client_string_clone</code></td><td>One thread, one client, <code>String</code> key cloned per request</td></tr>
+<tr><td><code>single_client_string/clone</code></td><td>One thread, one client, <code>String</code> key passed by value to <code>check_request</code></td></tr>
+<tr><td><code>single_client_string/ref</code></td><td>One thread, one client, the same key passed as a <code>&amp;str</code> to <code>check_request_ref</code></td></tr>
 <tr><td><code>contended_4_threads_u64</code></td><td>4 threads on one client, per batch</td></tr>
 <tr><td><code>contention_hot_key_u64</code></td><td>4 threads on one client, per request</td></tr>
 <tr><td><code>contention_spread_keys_u64</code></td><td>4 threads, each with its own clients, per request</td></tr>

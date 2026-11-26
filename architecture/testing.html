@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-b36c7e4a.js";
+            window.path_to_searchindex_js = "../searchindex-c9145b36.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-a16be429.js"></script>
@@ -502,7 +502,8 @@ cargo bench -- --baseline before   # compare against the saved run
 </thead>
 <tbody>
 <tr><td><code>single_client_u64</code></td><td>One thread, one client, <code>u64</code> key</td></tr>
-<tr><td><code>single_client_string_clone</code></td><td>One thread, one client, <code>String</code> key cloned per request</td></tr>
+<tr><td><code>single_client_string/clone</code></td><td>One thread, one client, <code>String</code> key passed by value to <code>check_request</code></td></tr>
+<tr><td><code>single_client_string/ref</code></td><td>One thread, one client, the same key passed as a <code>&amp;str</code> to <code>check_request_ref</code></td></tr>
 <tr><td><code>contended_4_threads_u64</code></td><td>4 threads on one client, per batch</td></tr>
 <tr><td><code>contention_hot_key_u64</code></td><td>4 threads on one client, per request</td></tr>
 <tr><td><code>contention_spread_keys_u64</code></td><td>4 threads, each with its own clients, per request</td></tr>

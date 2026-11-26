@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-b36c7e4a.js";
+            window.path_to_searchindex_js = "../searchindex-c9145b36.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-a16be429.js"></script>
@@ -289,7 +289,7 @@ fn main() {
     limiter: &amp;FluxLimiter&lt;String, MonotonicClock&gt;,
     client_id: &amp;str
 ) -&gt; bool {
-    match limiter.check_request(client_id.to_string()) {
+    match limiter.check_request_ref(client_id) {
         Ok(decision) =&gt; decision.allowed,
         Err(FluxLimiterError::ClockError(_)) =&gt; {
             // Fail-open: allow request on clock error
@@ -317,7 +317,7 @@ fn main() {
     limiter: &amp;FluxLimiter&lt;String, MonotonicClock&gt;,
     client_id: &amp;str
 ) -&gt; bool {
-    match limiter.check_request(client_id.to_string()) {
+    match limiter.check_request_ref(client_id) {
         Ok(decision) =&gt; decision.allowed,
         Err(FluxLimiterError::ClockError(_)) =&gt; {
             // Fail-closed: deny request on clock error

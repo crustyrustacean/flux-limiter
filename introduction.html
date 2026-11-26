@@ -35,7 +35,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-b36c7e4a.js";
+            window.path_to_searchindex_js = "searchindex-c9145b36.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-a16be429.js"></script>
@@ -243,11 +243,11 @@
 <ul>
 <li>Every check returns the seconds to wait and the time the limit resets, as a Unix-epoch timestamp. None of the three report a reset time.</li>
 <li>It has no runtime requirement and links 11 crates in total. <code>leaky-bucket</code> requires Tokio.</li>
+<li>The key can be passed by reference (<code>check_request_ref</code>), as with <code>governor</code> and <code>quota</code>, so a <code>String</code> key is not cloned per request.</li>
 </ul>
 <p>What it does not have:</p>
 <ul>
 <li>Weighted checks, async waiting, or <code>no_std</code>. <code>governor</code> has all three.</li>
-<li>A check that takes the key by reference. <code>governor</code> and <code>quota</code> do, so a <code>String</code> key need not be cloned per request.</li>
 </ul>
 <h2 id="algorithm-gcra"><a class="header" href="#algorithm-gcra">Algorithm: GCRA</a></h2>
 <p>Flux Limiter implements the Generic Cell Rate Algorithm (GCRA), which is mathematically equivalent to the token bucket algorithm but offers several advantages:</p>

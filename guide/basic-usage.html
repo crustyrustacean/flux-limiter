@@ -35,7 +35,7 @@
             const path_to_root = "../";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "../searchindex-b36c7e4a.js";
+            window.path_to_searchindex_js = "../searchindex-c9145b36.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="../toc-a16be429.js"></script>
@@ -209,13 +209,24 @@ match limiter.check_request("user_123") {
 <span class="boring">}</span></code></pre>
 <h2 id="working-with-different-client-id-types"><a class="header" href="#working-with-different-client-id-types">Working with Different Client ID Types</a></h2>
 <h3 id="string-client-ids"><a class="header" href="#string-client-ids">String Client IDs</a></h3>
+<p>For <code>String</code> keys, use <code>check_request_ref</code> and pass a <code>&amp;str</code>. It does not copy the key
+for a client the limiter already knows, so a request costs no allocation:</p>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
 </span><span class="boring">fn main() {
 </span>// User IDs, session IDs, API keys
 let limiter = FluxLimiter::&lt;String, _&gt;::with_config(config, MonotonicClock::new()).unwrap();
 
-limiter.check_request("user_123".to_string())?;
-limiter.check_request("session_abc".to_string())?;
+limiter.check_request_ref("user_123")?;
+limiter.check_request_ref("session_abc")?;
+<span class="boring">}</span></code></pre>
+<p><code>check_request</code> takes the key by value, so with it a caller who holds a <code>&amp;str</code> has to
+build a <code>String</code> for every request. The two methods make the same decisions; only the way
+the key is passed differs. If you already own the key, <code>check_request</code> moves it without
+copying:</p>
+<pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
+</span><span class="boring">fn main() {
+</span>let owned: String = get_client_id();
+limiter.check_request(owned)?;
 <span class="boring">}</span></code></pre>
 <h3 id="ip-address-client-ids"><a class="header" href="#ip-address-client-ids">IP Address Client IDs</a></h3>
 <pre class="playground"><code class="language-rust"><span class="boring">#![allow(unused)]
