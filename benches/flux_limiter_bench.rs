@@ -24,15 +24,29 @@ fn bench_single_client_u64(c: &mut Criterion) {
     });
 }
 
+/// One thread, one known client, `String` key: both ways of passing the key.
+///
+/// `_clone` is what a caller must write to use `check_request` with a borrowed key in
+/// hand: build a `String` per request. `_ref` is `check_request_ref`, which takes the
+/// `&str` as it is. The gap between the two is the cost of that allocation.
 fn bench_single_client_string(c: &mut Criterion) {
     let config = FluxLimiterConfig::new(10_000.0, 100.0);
     let limiter = FluxLimiter::with_config(config, MonotonicClock::new()).unwrap();
     let client_id = String::from("user_12345");
     let _ = limiter.check_request(client_id.clone());
 
-    c.bench_function("single_client_string_clone", |b| {
+    let mut group = c.benchmark_group("single_client_string");
+    group.bench_function("clone", |b| {
         b.iter(|| limiter.check_request(black_box(client_id.clone())).unwrap())
     });
+    group.bench_function("ref", |b| {
+        b.iter(|| {
+            limiter
+                .check_request_ref(black_box(client_id.as_str()))
+                .unwrap()
+        })
+    });
+    group.finish();
 }
 
 fn bench_contended_threads_u64(c: &mut Criterion) {

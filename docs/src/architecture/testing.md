@@ -346,7 +346,8 @@ cargo bench -- --baseline before   # compare against the saved run
 | Benchmark | What it measures |
 |---|---|
 | `single_client_u64` | One thread, one client, `u64` key |
-| `single_client_string_clone` | One thread, one client, `String` key cloned per request |
+| `single_client_string/clone` | One thread, one client, `String` key passed by value to `check_request` |
+| `single_client_string/ref` | One thread, one client, the same key passed as a `&str` to `check_request_ref` |
 | `contended_4_threads_u64` | 4 threads on one client, per batch |
 | `contention_hot_key_u64` | 4 threads on one client, per request |
 | `contention_spread_keys_u64` | 4 threads, each with its own clients, per request |

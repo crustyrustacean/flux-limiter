@@ -251,24 +251,31 @@ impl EndpointRateLimiter {
 
 ### Minimize String Allocations
 
-Use references where possible:
+For a `String`-keyed limiter, pass the key as a `&str` with `check_request_ref`. It
+hashes and compares the borrowed key directly, and copies it only on the request that
+first adds the client. A request for a client the limiter already knows makes no
+allocation:
 
 ```rust
-// Instead of allocating new strings
-fn check_request_owned(limiter: &FluxLimiter<String, MonotonicClock>, id: String) -> bool {
-    limiter.check_request(id).unwrap().allowed
-}
-
-// Use string slices and clone only when needed
 fn check_request_borrowed(limiter: &FluxLimiter<String, MonotonicClock>, id: &str) -> bool {
-    limiter.check_request(id.to_string()).unwrap().allowed
+    limiter.check_request_ref(id).unwrap().allowed
 }
 ```
 
-Or use numeric IDs for better performance:
+`check_request` takes the key by value. Use it when you already own a `String`, and it
+moves the key instead of copying it:
 
 ```rust
-// Faster: no string allocation
+fn check_request_owned(limiter: &FluxLimiter<String, MonotonicClock>, id: String) -> bool {
+    limiter.check_request(id).unwrap().allowed
+}
+```
+
+A numeric key type is still smaller and cheaper to hash and store, so it is a reasonable
+choice when the client ID is naturally a number. It is no longer needed to avoid a
+per-request allocation:
+
+```rust
 let limiter = FluxLimiter::<u64, _>::with_config(config, MonotonicClock::new()).unwrap();
 limiter.check_request(user_id_numeric).unwrap();
 ```
@@ -284,7 +291,7 @@ fn check_batch(
 ) -> Vec<bool> {
     client_ids
         .iter()
-        .map(|id| limiter.check_request(id.clone())
+        .map(|id| limiter.check_request_ref(id)
             .map(|d| d.allowed)
             .unwrap_or(false))
         .collect()
@@ -303,8 +310,8 @@ fn check_parallel(
     client_ids: Vec<String>,
 ) -> Vec<bool> {
     client_ids
-        .par_iter()
-        .map(|id| limiter.check_request(id.clone())
+        .into_par_iter()
+        .map(|id| limiter.check_request(id)
             .map(|d| d.allowed)
             .unwrap_or(false))
         .collect()
