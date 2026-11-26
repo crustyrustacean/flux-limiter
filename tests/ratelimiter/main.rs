@@ -1,6 +1,7 @@
 // tests/ratelimiter/main.rs
 
 // test modules
+mod borrowed_key_tests;
 mod cleanup_tests;
 mod clock_tests;
 mod concurrency_tests;

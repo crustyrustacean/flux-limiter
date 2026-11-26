@@ -8,6 +8,7 @@ use crate::config::FluxLimiterConfig;
 use crate::errors::FluxLimiterError;
 use dashmap::DashMap;
 use dashmap::mapref::entry::Entry;
+use std::borrow::{Borrow, ToOwned};
 use std::hash::Hash;
 use std::sync::Arc;
 use std::sync::atomic::{AtomicU64, Ordering};
@@ -105,13 +106,146 @@ where
     }
 
     /// Returns `true` if the given client ID is currently tracked.
-    pub fn contains_client(&self, client_id: &T) -> bool {
+    ///
+    /// The key may be borrowed, like the key of [`Self::check_request_ref`]: for a
+    /// `String`-keyed limiter, pass a `&str`.
+    pub fn contains_client<Q>(&self, client_id: &Q) -> bool
+    where
+        T: Borrow<Q>,
+        Q: Hash + Eq + ?Sized,
+    {
         self.client_state.contains_key(client_id)
     }
 
+    /// Decides whether a request from `client_id` should be allowed, and updates the
+    /// client's state if it is.
+    ///
+    /// This takes the key by value. If the caller holds a borrowed key (a `&str` for a
+    /// `String`-keyed limiter, say), [`Self::check_request_ref`] avoids cloning it on
+    /// every request.
     pub fn check_request(&self, client_id: T) -> Result<FluxLimiterDecision, FluxLimiterError> {
         let current_time_nanos = self.clock.now()?;
 
+        // Fast path: the client is already known. `client_id` is only ever borrowed
+        // here, exactly as in `check_request_ref`: a request for a known client
+        // never clones or moves the key.
+        if let Some(tat) = self.client_state.get(&client_id) {
+            match self.try_advance(&tat, current_time_nanos) {
+                Some(decision) => return Ok(decision),
+                None => return self.check_request_owned_slow(client_id, current_time_nanos),
+            }
+        }
+
+        // The client is new (or the insert path is needed). Storing a key needs an
+        // owned one, and the entry API consumes it, so a copy is made here and only
+        // here: the same single allocation this path always made.
+        self.check_request_new_owned(client_id, current_time_nanos)
+    }
+
+    /// The slow path for an owned key: a known client that keeps losing the
+    /// compare-and-swap race. The retries are lookups that borrow the key; only the
+    /// locked last resort consumes it.
+    fn check_request_owned_slow(
+        &self,
+        client_id: T,
+        current_time_nanos: u64,
+    ) -> Result<FluxLimiterDecision, FluxLimiterError> {
+        const MAX_SPINS: usize = 64;
+
+        for _ in 0..MAX_SPINS {
+            if let Some(tat) = self.client_state.get(&client_id)
+                && let Some(decision) = self.try_advance(&tat, current_time_nanos)
+            {
+                return Ok(decision);
+            }
+        }
+        self.decide_under_lock(client_id, current_time_nanos)
+    }
+
+    /// The first request from a client, for an owned key. The key is stored by value.
+    /// The entry API takes the key by value and gives it back only as a reference, so
+    /// a second copy is kept for the lost-insert-race retry; that copy, like the
+    /// insert itself, happens once in the lifetime of a client.
+    fn check_request_new_owned(
+        &self,
+        client_id: T,
+        current_time_nanos: u64,
+    ) -> Result<FluxLimiterDecision, FluxLimiterError> {
+        match self.client_state.entry(client_id.clone()) {
+            Entry::Vacant(vacant) => {
+                // A client's first request is always allowed.
+                let new_tat_nanos = current_time_nanos.saturating_add(self.rate_nanos);
+                vacant.insert(AtomicU64::new(new_tat_nanos));
+
+                Ok(FluxLimiterDecision {
+                    allowed: true,
+                    retry_after_seconds: None,
+                    remaining_capacity: Some(
+                        self.calculate_remaining_capacity(current_time_nanos, new_tat_nanos),
+                    ),
+                    reset_time_nanos: new_tat_nanos,
+                })
+            }
+            Entry::Occupied(entry) => {
+                // Lost the insert race. Drop the entry guard before deciding so the
+                // shard is not held across the retry.
+                drop(entry);
+                self.check_request_owned_slow(client_id, current_time_nanos)
+            }
+        }
+    }
+
+    /// Decides whether a request from the client identified by `key` should be allowed,
+    /// and updates the client's state if it is.
+    ///
+    /// This is [`Self::check_request`] for a borrowed key. The key is hashed and compared
+    /// without being owned, so a known client costs no allocation: for a `String`-keyed
+    /// limiter a caller can pass a `&str` instead of cloning a `String` per request.
+    ///
+    /// The key is copied once, and only once, on the request that first adds the client.
+    ///
+    /// # Examples
+    ///
+    /// ```
+    /// use flux_limiter::{FluxLimiter, FluxLimiterConfig, MonotonicClock};
+    ///
+    /// # fn main() -> Result<(), flux_limiter::FluxLimiterError> {
+    /// let config = FluxLimiterConfig::new(10.0, 5.0);
+    /// // The limiter is keyed by `String`, but the check takes a `&str`:
+    /// let limiter: FluxLimiter<String> = FluxLimiter::with_config(config, MonotonicClock::new())?;
+    /// let decision = limiter.check_request_ref("user_123")?;
+    /// assert!(decision.allowed);
+    /// # Ok(())
+    /// # }
+    /// ```
+    pub fn check_request_ref<Q>(&self, key: &Q) -> Result<FluxLimiterDecision, FluxLimiterError>
+    where
+        T: Borrow<Q>,
+        Q: Hash + Eq + ToOwned<Owned = T> + ?Sized,
+    {
+        let current_time_nanos = self.clock.now()?;
+        self.check_request_ref_impl(key, current_time_nanos, || key.to_owned())
+    }
+
+    /// The one implementation behind both entry points.
+    ///
+    /// `key` is only ever looked up, never stored. `make_owned` produces the key that
+    /// is stored, and is called only on a path that stores the client: a request for
+    /// a known client never calls it.
+    ///
+    /// `to_owned` rebuilds that key from the borrowed one. It is needed on one path
+    /// only: a first request that loses the insert race retries as a known client, and
+    /// if that retry reaches the locked last resort it has to store the key after all.
+    fn check_request_ref_impl<Q>(
+        &self,
+        key: &Q,
+        current_time_nanos: u64,
+        make_owned: impl FnOnce() -> T,
+    ) -> Result<FluxLimiterDecision, FluxLimiterError>
+    where
+        T: Borrow<Q>,
+        Q: Hash + Eq + ToOwned<Owned = T> + ?Sized,
+    {
         // Fast path: the client is already known. Decide from the TAT we read, then
         // publish the new TAT only if it is still the one we decided on. This is a
         // lock-free read-modify-write per client, so requests for the same client
@@ -127,13 +261,13 @@ where
         // compare-and-swap on the orphaned cell. That can only ever under-count (the
         // request is allowed, but its successor sees a fresh client), never over-allow,
         // because the fresh client starts from a TAT of now + one interval.
-        if let Some(tat) = self.client_state.get(&client_id) {
+        if let Some(tat) = self.client_state.get(key) {
             match self.try_advance(&tat, current_time_nanos) {
                 Some(decision) => return Ok(decision),
-                None => return self.check_request_known(client_id, current_time_nanos),
+                None => return self.check_request_known(key, current_time_nanos, make_owned),
             }
         }
-        self.check_request_new(client_id, current_time_nanos)
+        self.check_request_new(key, current_time_nanos, make_owned)
     }
 
     /// One lock-free attempt on a known client. Returns `None` if another request
@@ -160,32 +294,48 @@ where
     /// A request that keeps losing could in principle spin forever on a pathological
     /// key; after a fixed number of attempts it takes the shard's write lock once and
     /// settles the decision deterministically instead.
-    fn check_request_known(
+    ///
+    /// The retries are lookups, so they use the borrowed key. Only the locked last
+    /// resort needs an owned one, and `make_owned` is called there and nowhere else.
+    fn check_request_known<Q>(
         &self,
-        client_id: T,
+        key: &Q,
         current_time_nanos: u64,
-    ) -> Result<FluxLimiterDecision, FluxLimiterError> {
+        make_owned: impl FnOnce() -> T,
+    ) -> Result<FluxLimiterDecision, FluxLimiterError>
+    where
+        T: Borrow<Q>,
+        Q: Hash + Eq + ?Sized,
+    {
         const MAX_SPINS: usize = 64;
 
         for _ in 0..MAX_SPINS {
-            if let Some(tat) = self.client_state.get(&client_id)
+            if let Some(tat) = self.client_state.get(key)
                 && let Some(decision) = self.try_advance(&tat, current_time_nanos)
             {
                 return Ok(decision);
             }
         }
-        self.decide_under_lock(client_id, current_time_nanos)
+        self.decide_under_lock(make_owned(), current_time_nanos)
     }
 
     /// First request from a client: insert its initial TAT under the entry lock.
     /// If another request inserted this client first, it is no longer new, so we
     /// fall through to the normal path on the value that request stored.
-    fn check_request_new(
+    ///
+    /// This is where the borrowed key becomes an owned one: the entry API must be
+    /// given an owned key to store, and DashMap has no borrowed entry.
+    fn check_request_new<Q>(
         &self,
-        client_id: T,
+        key: &Q,
         current_time_nanos: u64,
-    ) -> Result<FluxLimiterDecision, FluxLimiterError> {
-        match self.client_state.entry(client_id.clone()) {
+        make_owned: impl FnOnce() -> T,
+    ) -> Result<FluxLimiterDecision, FluxLimiterError>
+    where
+        T: Borrow<Q>,
+        Q: Hash + Eq + ToOwned<Owned = T> + ?Sized,
+    {
+        match self.client_state.entry(make_owned()) {
             Entry::Vacant(vacant) => {
                 // A client's first request is always allowed.
                 let new_tat_nanos = current_time_nanos.saturating_add(self.rate_nanos);
@@ -201,10 +351,13 @@ where
                 })
             }
             Entry::Occupied(entry) => {
-                // Lost the insert race. Drop the entry guard before deciding so the
-                // shard is not held across the retry.
+                // Lost the insert race: another request stored this client between our
+                // lookup and our insert. Drop the entry guard before deciding so the
+                // shard is not held across the retry. The client is known now, so the
+                // retry is lookups; should it reach the locked last resort it builds
+                // the key afresh from the borrowed one.
                 drop(entry);
-                self.check_request_known(client_id, current_time_nanos)
+                self.check_request_known(key, current_time_nanos, || key.to_owned())
             }
         }
     }
