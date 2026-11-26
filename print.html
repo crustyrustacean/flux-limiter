@@ -36,7 +36,7 @@
             const path_to_root = "";
             const default_light_theme = "light";
             const default_dark_theme = "navy";
-            window.path_to_searchindex_js = "searchindex-9b512f0d.js";
+            window.path_to_searchindex_js = "searchindex-b36c7e4a.js";
         </script>
         <!-- Start loading toc.js asap -->
         <script src="toc-a16be429.js"></script>
@@ -208,6 +208,45 @@
 <li><strong>Observability</strong>: Rich metadata for monitoring and HTTP headers</li>
 <li><strong>Flexibility</strong>: Generic design supporting various client ID types</li>
 </ol>
+<h2 id="alternatives"><a class="header" href="#alternatives">Alternatives</a></h2>
+<p>Flux Limiter is one of several rate limiters on crates.io. These are the others we know of, described by what they do. Each claim below was checked against the published version at the time of writing.</p>
+<ul>
+<li><a href="https://docs.rs/governor"><code>governor</code></a>: GCRA with one 64-bit value of state per limiter, updated by compare-and-swap.
+<ul>
+<li>keyed limiters for many clients, and checks that cost more than one cell</li>
+<li>can wait asynchronously until a request is allowed (<code>until_ready</code>, <code>until_key_ready</code>)</li>
+<li>denial reports how long to wait, as a relative <code>Duration</code></li>
+<li>pluggable clock, with five shipped, including one you control in tests</li>
+<li>optional <code>no_std</code></li>
+</ul>
+</li>
+<li><a href="https://docs.rs/leaky-bucket"><code>leaky-bucket</code></a>: a token bucket for async code.
+<ul>
+<li>tokens, a refill interval, and how many tokens are refilled per interval</li>
+<li><code>acquire(n).await</code> suspends the caller until <code>n</code> tokens are available</li>
+<li><code>try_acquire(n)</code> answers with a <code>bool</code>: no wait time, no remaining count</li>
+<li>one limiter is one bucket; there is no per-client key</li>
+<li>requires a Tokio runtime</li>
+</ul>
+</li>
+<li><a href="https://docs.rs/quota"><code>quota</code></a>: a pool of per-key GCRA states, like Flux Limiter.
+<ul>
+<li>keys are passed by reference, and a check can cost more than one token</li>
+<li>the result reports how much quota remains, but says nothing about time: no wait duration and no reset time</li>
+<li>built on <code>quanta</code> for its clock</li>
+</ul>
+</li>
+</ul>
+<p>Where Flux Limiter differs:</p>
+<ul>
+<li>Every check returns the seconds to wait and the time the limit resets, as a Unix-epoch timestamp. None of the three report a reset time.</li>
+<li>It has no runtime requirement and links 11 crates in total. <code>leaky-bucket</code> requires Tokio.</li>
+</ul>
+<p>What it does not have:</p>
+<ul>
+<li>Weighted checks, async waiting, or <code>no_std</code>. <code>governor</code> has all three.</li>
+<li>A check that takes the key by reference. <code>governor</code> and <code>quota</code> do, so a <code>String</code> key need not be cloned per request.</li>
+</ul>
 <h2 id="algorithm-gcra"><a class="header" href="#algorithm-gcra">Algorithm: GCRA</a></h2>
 <p>Flux Limiter implements the Generic Cell Rate Algorithm (GCRA), which is mathematically equivalent to the token bucket algorithm but offers several advantages:</p>
 <ul>
